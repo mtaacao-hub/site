@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de aposentadoria — Ricardo Mauad</title>
+  <meta name="description" content="Simule, em termos reais, quanto você pode acumular até se aposentar e como esse patrimônio se comporta durante a fase de usufruto.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo"><img src="images/logo-diamond.png" alt="" class="logo-mark">Ricardo Mauad</a>
+      <button class="nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav">
+        <a href="servicos.html#sobre" class="nav-link">Sobre</a>
+        <a href="servicos.html" class="nav-link">Serviços</a>
+        <a href="conteudo.html" class="nav-link active">Conteúdo</a>
+        <a href="contato.html" class="nav-link">Contato</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <a href="conteudo.html" class="back-link">← Voltar para Conteúdo</a>
+        <p class="eyebrow">Conteúdo — ferramenta</p>
+        <h1>Simulador de aposentadoria</h1>
+        <p class="lead">Preencha os campos ao lado e veja, na hora, quanto você pode acumular até a idade que escolher para se aposentar, e como esse patrimônio se comporta durante a aposentadoria — a fase de usufruto. Todos os valores estão em termos reais: já descontada a inflação, no poder de compra de hoje.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="tool-grid">
+
+          <div class="tool-card">
+            <h2>Fase de acumulação</h2>
+
+            <div class="field">
+              <label for="idade-atual">Idade atual</label>
+              <input type="number" id="idade-atual" value="30" min="0" max="100" step="1">
+            </div>
+
+            <div class="field">
+              <label for="idade-aposentadoria">Idade que pretende se aposentar</label>
+              <input type="number" id="idade-aposentadoria" value="65" min="0" max="100" step="1">
+            </div>
+
+            <div class="field">
+              <label for="valor-atual">Quanto você já tem investido hoje (R$)</label>
+              <input type="number" id="valor-atual" value="20000" min="0" step="100">
+              <span class="hint">Em valores de hoje.</span>
+            </div>
+
+            <div class="field">
+              <label>Fases de aporte mensal</label>
+              <span class="hint">Divida o período até a aposentadoria em fases com aportes diferentes — por exemplo, guardar menos no início da carreira e mais depois de uma promoção. Valores em reais de hoje.</span>
+            </div>
+            <div id="fases-aporte-lista"></div>
+            <button type="button" id="btn-add-fase" class="btn btn-outline btn-add-fase">+ Adicionar fase</button>
+
+            <div class="field">
+              <label for="rentabilidade">Rentabilidade real esperada (% ao ano)</label>
+              <input type="number" id="rentabilidade" value="4" min="0" max="30" step="0.1">
+              <span class="hint">Em termos reais, ou seja, já acima da inflação. 4% ao ano é uma referência conservadora e bem aceita para uma carteira diversificada e de baixo custo no longo prazo — mas é só uma hipótese sua, ninguém pode garantir rentabilidade futura. Usamos essa mesma taxa nas fases de acumulação e de usufruto.</span>
+            </div>
+
+            <h2 style="margin-top: 32px;">Fase de usufruto</h2>
+
+            <div class="field">
+              <label for="idade-final">Até que idade quer que o patrimônio dure</label>
+              <input type="number" id="idade-final" value="100" min="0" max="120" step="1">
+              <span class="hint">A partir da idade de aposentadoria informada acima. 100 anos é uma sugestão comum de expectativa de vida pra esse tipo de planejamento — ajuste como preferir.</span>
+            </div>
+
+            <div class="field">
+              <label for="modo-final">Nessa idade final, o patrimônio deve...</label>
+              <select id="modo-final">
+                <option value="zerar" selected>Chegar a zero (gastar tudo)</option>
+                <option value="preservar">Continuar inteiro (viver só do rendimento)</option>
+                <option value="personalizado">Sobrar um valor específico</option>
+              </select>
+            </div>
+
+            <div class="field" id="campo-valor-final" style="display: none;">
+              <label for="valor-final">Quanto quer que sobre nessa idade final (R$)</label>
+              <input type="number" id="valor-final" value="0" min="0" step="1000">
+              <span class="hint">Em valores de hoje.</span>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <h2>Resultado da simulação</h2>
+            <p class="result-sub" style="margin-bottom: 20px;">Todos os valores abaixo estão em reais de hoje (termos reais).</p>
+
+            <div class="result-block">
+              <div class="result-label">Total acumulado estimado na aposentadoria</div>
+              <div class="result-figure" id="out-total">R$ 0</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Renda mensal estimada na aposentadoria</div>
+              <div class="result-figure accent" id="out-renda-usufruto">R$ 0</div>
+              <div class="result-sub" id="out-renda-usufruto-sub"></div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">De onde vem o total acumulado</div>
+              <div class="result-sub" id="out-breakdown"></div>
+            </div>
+
+            <div class="chart-wrap">
+              <canvas class="growth-chart" id="growth-chart"></canvas>
+              <div class="result-sub" style="margin-top: 8px;">
+                <span style="color: var(--color-green-dark);">●</span> acumulação
+                &nbsp; <span style="color: var(--color-wine);">●</span> usufruto
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="tool-disclaimer">Esta é uma simulação ilustrativa e educacional, com base nos números e na rentabilidade real que você mesmo informou. Os valores já estão em termos reais (poder de compra de hoje), então a simulação não precisa somar inflação por fora — mas ela não considera impostos ou taxas, não constitui promessa nem garantia de rentabilidade, e não é uma recomendação de investimento personalizada. Rentabilidade passada não garante resultado futuro.</p>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2>Quer ajuda pra colocar esse plano em prática?</h2>
+        <p>Vamos marcar um papo gratuito e ver o que faz sentido pra sua situação.</p>
+        <a href="https://wa.me/5511936201155" class="btn btn-whatsapp btn-lg" target="_blank" rel="noopener">Agendar papo gratuito</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <a href="index.html" class="logo">Ricardo Mauad</a>
+        <nav class="footer-nav">
+          <a href="servicos.html#sobre">Sobre</a>
+          <a href="servicos.html">Serviços</a>
+          <a href="conteudo.html">Conteúdo</a>
+          <a href="contato.html">Contato</a>
+          <a href="https://instagram.com/financasricardo" target="_blank" rel="noopener">Instagram</a>
+        </nav>
+      </div>
+      <p class="disclaimer">Ricardo Mauad é consultor de investimentos autônomo, habilitado pela CVM (Comissão de Valores Mobiliários). O conteúdo deste site tem caráter educacional e informativo, não constitui recomendação de investimento personalizada nem promessa de rentabilidade.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/simulador-aposentadoria.js"></script>
+</body>
+</html>

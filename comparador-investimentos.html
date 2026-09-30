@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comparador CDB x LCI/LCA — Ricardo Mauad</title>
+  <meta name="description" content="Descubra a taxa equivalente entre um CDB e uma LCI/LCA isenta de imposto de renda, conforme o prazo do investimento.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo"><img src="images/logo-diamond.png" alt="" class="logo-mark">Ricardo Mauad</a>
+      <button class="nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav">
+        <a href="servicos.html#sobre" class="nav-link">Sobre</a>
+        <a href="servicos.html" class="nav-link">Serviços</a>
+        <a href="conteudo.html" class="nav-link active">Conteúdo</a>
+        <a href="contato.html" class="nav-link">Contato</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <a href="conteudo.html" class="back-link">← Voltar para Conteúdo</a>
+        <p class="eyebrow">Conteúdo — ferramenta</p>
+        <h1>Comparador CDB × LCI/LCA</h1>
+        <p class="lead">CDB paga imposto de renda; LCI e LCA são isentas. Informe a taxa que você já tem e o prazo, e veja qual seria a taxa equivalente no outro tipo de título.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="tool-grid">
+
+          <div class="tool-card">
+            <h2>O que você já tem</h2>
+
+            <div class="field">
+              <label for="tipo-produto">Tipo de título</label>
+              <select id="tipo-produto">
+                <option value="cdb">CDB (paga imposto de renda)</option>
+                <option value="isento">LCI / LCA (isenta de imposto de renda)</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="taxa-cdi">% do CDI oferecido</label>
+              <input type="number" id="taxa-cdi" value="100" min="0" max="300" step="1">
+            </div>
+
+            <div class="field">
+              <label for="prazo">Prazo do investimento</label>
+              <select id="prazo">
+                <option value="0.225">Até 6 meses (IR 22,5%)</option>
+                <option value="0.20">De 6 meses a 1 ano (IR 20%)</option>
+                <option value="0.175" selected>De 1 a 2 anos (IR 17,5%)</option>
+                <option value="0.15">Acima de 2 anos (IR 15%)</option>
+              </select>
+            </div>
+
+            <table class="ir-table" id="ir-table">
+              <thead>
+                <tr><th>Prazo</th><th>IR sobre o CDB</th></tr>
+              </thead>
+              <tbody>
+                <tr data-taxa="0.225"><td>Até 6 meses</td><td>22,5%</td></tr>
+                <tr data-taxa="0.20"><td>De 6 meses a 1 ano</td><td>20%</td></tr>
+                <tr data-taxa="0.175"><td>De 1 a 2 anos</td><td>17,5%</td></tr>
+                <tr data-taxa="0.15"><td>Acima de 2 anos</td><td>15%</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="tool-card">
+            <h2>Taxa equivalente</h2>
+
+            <div class="result-block">
+              <div class="result-label" id="out-label">Uma LCI/LCA precisaria render</div>
+              <div class="result-figure accent" id="out-equivalente">—</div>
+              <div class="result-sub" id="out-explicacao"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="tool-disclaimer">Esta calculadora é uma ferramenta educacional para comparar a rentabilidade líquida entre um CDB e uma LCI/LCA, com base nos percentuais que você mesmo informar. Ela não representa oferta de nenhum produto específico, não considera IOF em prazos muito curtos nem outras condições contratuais, e não constitui recomendação de investimento personalizada.</p>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2>Quer ajuda pra montar uma carteira que faça sentido pro seu perfil?</h2>
+        <p>Vamos marcar um papo gratuito e conversar sobre os seus objetivos.</p>
+        <a href="https://wa.me/5511936201155" class="btn btn-whatsapp btn-lg" target="_blank" rel="noopener">Agendar papo gratuito</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <a href="index.html" class="logo">Ricardo Mauad</a>
+        <nav class="footer-nav">
+          <a href="servicos.html#sobre">Sobre</a>
+          <a href="servicos.html">Serviços</a>
+          <a href="conteudo.html">Conteúdo</a>
+          <a href="contato.html">Contato</a>
+          <a href="https://instagram.com/financasricardo" target="_blank" rel="noopener">Instagram</a>
+        </nav>
+      </div>
+      <p class="disclaimer">Ricardo Mauad é consultor de investimentos autônomo, habilitado pela CVM (Comissão de Valores Mobiliários). O conteúdo deste site tem caráter educacional e informativo, não constitui recomendação de investimento personalizada nem promessa de rentabilidade.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/comparador-investimentos.js"></script>
+</body>
+</html>

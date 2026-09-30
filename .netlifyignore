@@ -1,0 +1,14 @@
+# Arquivos internos de trabalho — nunca devem ir para o site publicado.
+# Sintaxe igual .gitignore; o Netlify CLI respeita este arquivo no deploy.
+
+CLAUDE.md
+COMO-EDITAR.md
+roteiro-video-vendas.md
+
+# Página do curso ainda em rascunho (preço/bônus entre colchetes) —
+# tirar desta lista quando estiver pronta para ir ao ar.
+curso-financas-pessoais.html
+
+# Estado local do Netlify CLI, não é conteúdo do site.
+.netlify/
+.gitignore

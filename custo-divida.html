@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador do custo de uma dívida — Ricardo Mauad</title>
+  <meta name="description" content="Veja quanto tempo leva e quanto de juros você paga pra quitar uma dívida de cartão de crédito ou cheque especial.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo"><img src="images/logo-diamond.png" alt="" class="logo-mark">Ricardo Mauad</a>
+      <button class="nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav">
+        <a href="servicos.html#sobre" class="nav-link">Sobre</a>
+        <a href="servicos.html" class="nav-link">Serviços</a>
+        <a href="conteudo.html" class="nav-link active">Conteúdo</a>
+        <a href="contato.html" class="nav-link">Contato</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <a href="mais-simuladores.html" class="back-link">← Voltar para Mais simuladores</a>
+        <p class="eyebrow">Conteúdo — ferramenta</p>
+        <h1>Quanto custa essa dívida?</h1>
+        <p class="lead">Cartão de crédito rotativo e cheque especial estão entre os juros mais altos do mercado. Veja quanto tempo leva — e quanto você paga de juros — pra quitar.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="tool-grid">
+
+          <div class="tool-card">
+            <h2>A dívida</h2>
+
+            <div class="field">
+              <label for="valor-divida">Valor da dívida hoje (R$)</label>
+              <input type="number" id="valor-divida" value="3000" min="0" step="100">
+            </div>
+
+            <div class="field">
+              <label for="juros-mes">Juros ao mês (%)</label>
+              <input type="number" id="juros-mes" value="12" min="0" max="30" step="0.1">
+              <span class="hint">Cartão de crédito rotativo costuma ficar entre 10% e 15% ao mês; cheque especial, entre 6% e 8%. Confira a taxa real no seu contrato.</span>
+            </div>
+
+            <div class="field">
+              <label for="pagamento-mensal">Quanto consegue pagar por mês (R$)</label>
+              <input type="number" id="pagamento-mensal" value="400" min="0" step="50">
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <h2>Resultado</h2>
+
+            <div id="alerta-divida" class="winner-banner is-cdb" style="display:none;"></div>
+
+            <div class="result-block">
+              <div class="result-label">Tempo até quitar</div>
+              <div class="result-figure" id="out-tempo">—</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Total pago em juros</div>
+              <div class="result-figure accent" id="out-juros">R$ 0</div>
+              <div class="result-sub" id="out-juros-sub"></div>
+            </div>
+
+            <div class="chart-wrap">
+              <canvas class="growth-chart" id="growth-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="tool-disclaimer">Esta é uma simulação ilustrativa e educacional, com base nos números que você mesmo informou. Não considera IOF, tarifas ou mudanças na taxa de juros ao longo do tempo, e não constitui recomendação personalizada. As faixas de juros mencionadas são referências gerais de mercado, não uma oferta específica.</p>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2>Quer ajuda pra sair dessa e organizar as contas?</h2>
+        <p>Vamos marcar um papo gratuito e ver o que faz sentido pra sua situação.</p>
+        <a href="https://wa.me/5511936201155" class="btn btn-whatsapp btn-lg" target="_blank" rel="noopener">Agendar papo gratuito</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <a href="index.html" class="logo">Ricardo Mauad</a>
+        <nav class="footer-nav">
+          <a href="servicos.html#sobre">Sobre</a>
+          <a href="servicos.html">Serviços</a>
+          <a href="conteudo.html">Conteúdo</a>
+          <a href="contato.html">Contato</a>
+          <a href="https://instagram.com/financasricardo" target="_blank" rel="noopener">Instagram</a>
+        </nav>
+      </div>
+      <p class="disclaimer">Ricardo Mauad é consultor de investimentos autônomo, habilitado pela CVM (Comissão de Valores Mobiliários). O conteúdo deste site tem caráter educacional e informativo, não constitui recomendação de investimento personalizada nem promessa de rentabilidade.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/custo-divida.js"></script>
+</body>
+</html>

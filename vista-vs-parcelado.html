@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>À vista ou parcelado? — Ricardo Mauad</title>
+  <meta name="description" content="Descubra se compensa mais pagar à vista ou parcelar, considerando o quanto seu dinheiro renderia investido.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo"><img src="images/logo-diamond.png" alt="" class="logo-mark">Ricardo Mauad</a>
+      <button class="nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav">
+        <a href="servicos.html#sobre" class="nav-link">Sobre</a>
+        <a href="servicos.html" class="nav-link">Serviços</a>
+        <a href="conteudo.html" class="nav-link active">Conteúdo</a>
+        <a href="contato.html" class="nav-link">Contato</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <a href="mais-simuladores.html" class="back-link">← Voltar para Mais simuladores</a>
+        <p class="eyebrow">Conteúdo — ferramenta</p>
+        <h1>À vista ou parcelado?</h1>
+        <p class="lead">Compare o preço à vista com o total parcelado, considerando o quanto o seu dinheiro renderia se ficasse investido em vez de sair do bolso de uma vez.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="tool-grid">
+
+          <div class="tool-card">
+            <h2>A compra</h2>
+
+            <div class="field">
+              <label for="preco-vista">Preço à vista (R$)</label>
+              <input type="number" id="preco-vista" value="3000" min="0" step="50">
+            </div>
+
+            <div class="field">
+              <label for="preco-parcelado">Preço total parcelado (R$)</label>
+              <input type="number" id="preco-parcelado" value="3000" min="0" step="50">
+              <span class="hint">Se for o mesmo valor do à vista, é parcelamento sem juros. Se for maior, a diferença é o juro embutido.</span>
+            </div>
+
+            <div class="field">
+              <label for="num-parcelas">Número de parcelas</label>
+              <input type="number" id="num-parcelas" value="10" min="1" max="60" step="1">
+            </div>
+
+            <div class="field">
+              <label for="rentabilidade-vp">Rentabilidade que você conseguiria investindo (% ao ano)</label>
+              <input type="number" id="rentabilidade-vp" value="4" min="0" max="30" step="0.1">
+              <span class="hint">Em termos reais. É a taxa que seu dinheiro renderia se, em vez de pagar à vista, ficasse investido enquanto você paga as parcelas.</span>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <h2>Resultado</h2>
+
+            <div id="vp-banner" class="winner-banner"></div>
+
+            <div class="result-block">
+              <div class="result-label">Parcela mensal</div>
+              <div class="result-figure" id="vp-out-parcela">R$ 0</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Diferença ao final das parcelas</div>
+              <div class="result-figure accent" id="vp-out-diferenca">R$ 0</div>
+              <div class="result-sub" id="vp-out-sub"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="tool-disclaimer">Esta é uma simulação ilustrativa e educacional. Não considera eventuais descontos adicionais à vista, IOF de parcelamento no cartão, nem mudanças na taxa de rentabilidade ao longo do tempo — e não constitui recomendação personalizada.</p>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2>Quer ajuda pra organizar decisões como essa?</h2>
+        <p>Vamos marcar um papo gratuito e ver o que faz sentido pra sua situação.</p>
+        <a href="https://wa.me/5511936201155" class="btn btn-whatsapp btn-lg" target="_blank" rel="noopener">Agendar papo gratuito</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <a href="index.html" class="logo">Ricardo Mauad</a>
+        <nav class="footer-nav">
+          <a href="servicos.html#sobre">Sobre</a>
+          <a href="servicos.html">Serviços</a>
+          <a href="conteudo.html">Conteúdo</a>
+          <a href="contato.html">Contato</a>
+          <a href="https://instagram.com/financasricardo" target="_blank" rel="noopener">Instagram</a>
+        </nav>
+      </div>
+      <p class="disclaimer">Ricardo Mauad é consultor de investimentos autônomo, habilitado pela CVM (Comissão de Valores Mobiliários). O conteúdo deste site tem caráter educacional e informativo, não constitui recomendação de investimento personalizada nem promessa de rentabilidade.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/vista-vs-parcelado.js"></script>
+</body>
+</html>

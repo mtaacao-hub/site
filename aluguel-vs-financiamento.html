@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alugar ou financiar um imóvel? — Ricardo Mauad</title>
+  <meta name="description" content="Compare, em números, alugar e investir a diferença com comprar um imóvel financiado.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="logo"><img src="images/logo-diamond.png" alt="" class="logo-mark">Ricardo Mauad</a>
+      <button class="nav-toggle" aria-label="Abrir menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav">
+        <a href="servicos.html#sobre" class="nav-link">Sobre</a>
+        <a href="servicos.html" class="nav-link">Serviços</a>
+        <a href="conteudo.html" class="nav-link active">Conteúdo</a>
+        <a href="contato.html" class="nav-link">Contato</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <a href="mais-simuladores.html" class="back-link">← Voltar para Mais simuladores</a>
+        <p class="eyebrow">Conteúdo — ferramenta</p>
+        <h1>Alugar ou financiar um imóvel?</h1>
+        <p class="lead">Compare, só em números, alugar e investir a diferença com comprar um imóvel financiado.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container" style="max-width: 760px;">
+        <div class="tool-disclaimer" style="margin-top: 0;">
+          <strong>Antes de olhar pros números:</strong> comprar um imóvel provavelmente é a compra mais cara que você vai fazer na vida — e essa decisão costuma ser muito mais emocional do que racional. Onde você quer morar, perto de quem, a sensação de estabilidade, o que aquele lugar significa pra sua família: tudo isso pesa tanto quanto (ou mais) do que qualquer conta abaixo. Use esse simulador como mais um dado pra decisão, não como a decisão inteira.
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <div class="tool-grid">
+
+          <div class="tool-card">
+            <h2>Os números</h2>
+
+            <div class="field">
+              <label for="valor-imovel">Valor do imóvel (R$)</label>
+              <input type="number" id="valor-imovel" value="400000" min="0" step="5000">
+            </div>
+
+            <div class="field">
+              <label for="entrada">Entrada disponível (R$)</label>
+              <input type="number" id="entrada" value="80000" min="0" step="5000">
+            </div>
+
+            <div class="field">
+              <label for="prazo-anos">Prazo do financiamento (anos)</label>
+              <input type="number" id="prazo-anos" value="30" min="1" max="35" step="1">
+            </div>
+
+            <div class="field">
+              <label for="juros-financiamento">Juros do financiamento (% ao ano)</label>
+              <input type="number" id="juros-financiamento" value="10" min="0" max="25" step="0.1">
+            </div>
+
+            <div class="field">
+              <label for="aluguel-equivalente">Aluguel de um imóvel equivalente (R$/mês)</label>
+              <input type="number" id="aluguel-equivalente" value="1800" min="0" step="50">
+            </div>
+
+            <div class="field">
+              <label for="rentabilidade-af">Rentabilidade real esperada investindo (% ao ano)</label>
+              <input type="number" id="rentabilidade-af" value="4" min="0" max="30" step="0.1">
+              <span class="hint">Em termos reais. É a taxa que renderia a entrada e a diferença mensal, se você alugasse e investisse em vez de comprar.</span>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <h2>Resultado ao final do prazo</h2>
+
+            <div id="af-banner" class="winner-banner"></div>
+
+            <div class="result-block">
+              <div class="result-label">Parcela do financiamento</div>
+              <div class="result-figure" id="af-out-parcela">R$ 0</div>
+              <div class="result-sub" id="af-out-parcela-sub"></div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Comprando: patrimônio ao final (o imóvel quitado)</div>
+              <div class="result-figure" id="af-out-comprar">R$ 0</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Alugando e investindo a diferença: patrimônio ao final</div>
+              <div class="result-figure accent" id="af-out-alugar">R$ 0</div>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="tool-disclaimer">Esta é uma simulação ilustrativa e educacional. Não considera valorização ou desvalorização do imóvel, ITBI, escritura, condomínio, IPTU, manutenção, nem reajuste do aluguel ao longo do tempo — todos fatores reais que pesam na conta completa. Não constitui recomendação personalizada.</p>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2>Quer ajuda pra pensar essa decisão com calma?</h2>
+        <p>Vamos marcar um papo gratuito e ver o que faz sentido pra sua situação.</p>
+        <a href="https://wa.me/5511936201155" class="btn btn-whatsapp btn-lg" target="_blank" rel="noopener">Agendar papo gratuito</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <a href="index.html" class="logo">Ricardo Mauad</a>
+        <nav class="footer-nav">
+          <a href="servicos.html#sobre">Sobre</a>
+          <a href="servicos.html">Serviços</a>
+          <a href="conteudo.html">Conteúdo</a>
+          <a href="contato.html">Contato</a>
+          <a href="https://instagram.com/financasricardo" target="_blank" rel="noopener">Instagram</a>
+        </nav>
+      </div>
+      <p class="disclaimer">Ricardo Mauad é consultor de investimentos autônomo, habilitado pela CVM (Comissão de Valores Mobiliários). O conteúdo deste site tem caráter educacional e informativo, não constitui recomendação de investimento personalizada nem promessa de rentabilidade.</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/aluguel-vs-financiamento.js"></script>
+</body>
+</html>

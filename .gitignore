@@ -1,0 +1,16 @@
+# Local Netlify folder
+.netlify
+
+# Never commit secrets
+.env
+.env.*
+
+# Arquivos internos de trabalho — o repo GitHub sera publico
+# (exigencia do GitHub Pages gratuito), entao isso nunca pode ir junto.
+CLAUDE.md
+COMO-EDITAR.md
+roteiro-video-vendas.md
+
+# Pagina do curso ainda em rascunho (preco/bonus entre colchetes) —
+# tirar desta lista quando estiver pronta para ir ao ar.
+curso-financas-pessoais.html

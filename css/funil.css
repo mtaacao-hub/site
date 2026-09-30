@@ -1,0 +1,239 @@
+/* ===== Funil de vendas — layout dedicado, separado do site principal ===== */
+
+.funil-body { background: var(--color-bg); }
+
+.funil-hero { padding: 64px 0 48px; text-align: center; }
+.funil-hero .container { max-width: 820px; }
+.funil-kicker {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-green-dark);
+  background: var(--color-green-tint);
+  padding: 6px 16px;
+  border-radius: 999px;
+  margin-bottom: 22px;
+}
+.funil-hero h1 {
+  font-size: clamp(2rem, 5vw, 3.1rem);
+  line-height: 1.15;
+  margin-bottom: 18px;
+  text-wrap: balance;
+}
+.funil-hero .sub {
+  font-size: 1.2rem;
+  color: var(--color-text-muted);
+  max-width: 620px;
+  margin: 0 auto 32px;
+}
+
+/* ---- Video ---- */
+.funil-video-wrap {
+  max-width: 820px;
+  margin: 0 auto 28px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 22px 55px -24px rgba(76, 16, 15, 0.4);
+}
+.funil-video-placeholder {
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(150deg, var(--color-wine-dark), var(--color-wine));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #f3e6e6;
+}
+.funil-video-placeholder .play-badge {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+}
+.funil-video-placeholder .label {
+  font-size: 0.95rem;
+  opacity: 0.9;
+  max-width: 380px;
+  text-align: center;
+  padding: 0 20px;
+}
+
+/* ---- CTA ---- */
+.funil-cta-primary {
+  display: inline-block;
+  background: var(--color-green);
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 18px 42px;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px -12px rgba(52, 91, 42, 0.55);
+  text-decoration: none;
+}
+.funil-cta-primary:hover { background: var(--color-green-dark); text-decoration: none; }
+.funil-cta-sub { margin-top: 12px; font-size: 0.85rem; color: var(--color-text-muted); }
+
+/* ---- Sections ---- */
+.funil-section { padding: 64px 0; }
+.funil-section .container { max-width: 760px; }
+.funil-section-alt { background: var(--color-surface); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+.funil-section-dark { background: var(--color-wine-dark); color: #f3e6e6; }
+.funil-section-dark h2 { color: #fff; }
+.funil-section-dark .funil-eyebrow { color: #e0a9a6; }
+.funil-section-dark .funil-h2 { color: #fff; }
+
+.funil-eyebrow {
+  display: block;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-green-dark);
+  margin-bottom: 10px;
+}
+.funil-h2 {
+  text-align: center;
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  margin-bottom: 36px;
+}
+
+/* ---- Pain points ---- */
+.funil-pain-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.funil-pain-list li {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  font-size: 1.05rem;
+}
+.funil-pain-list .mark { flex: none; color: var(--color-wine); font-weight: 700; font-size: 1.2rem; line-height: 1.4; }
+
+/* ---- Pillars ---- */
+.funil-pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.funil-pillar { text-align: center; padding: 28px 20px; }
+.funil-pillar .circle {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  background: var(--color-wine-tint);
+  color: var(--color-wine);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.3rem;
+}
+.funil-pillar h3 { font-size: 1.15rem; }
+.funil-pillar p { color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 0; }
+
+/* ---- Curriculum timeline ---- */
+.funil-curriculum { list-style: none; margin: 0; padding: 0; position: relative; }
+.funil-curriculum::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: var(--color-border);
+}
+.funil-curriculum li { position: relative; padding-left: 60px; margin-bottom: 28px; }
+.funil-curriculum li:last-child { margin-bottom: 0; }
+.funil-curriculum .step-circle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-wine);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  z-index: 1;
+}
+.funil-curriculum h3 { font-size: 1.1rem; margin-bottom: 4px; }
+.funil-curriculum p { color: var(--color-text-muted); margin-bottom: 0; font-size: 0.95rem; }
+
+/* ---- Offer ---- */
+.funil-offer-box {
+  max-width: 520px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 2px solid var(--color-green);
+  border-radius: 16px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: 0 26px 60px -30px rgba(52, 91, 42, 0.45);
+}
+.funil-offer-box .stack { text-align: left; list-style: none; margin: 0 0 24px; padding: 0; }
+.funil-offer-box .stack li { padding: 8px 0; border-top: 1px solid var(--color-border); font-size: 0.95rem; }
+.funil-offer-box .stack li:first-child { border-top: none; }
+.funil-offer-box .price-old { color: var(--color-text-muted); text-decoration: line-through; font-size: 1rem; }
+.funil-offer-box .price-new { font-family: var(--font-heading); font-size: 2.4rem; color: var(--color-wine-dark); font-weight: 700; margin: 6px 0; }
+.funil-offer-box .price-installment { color: var(--color-text-muted); margin-bottom: 20px; }
+.funil-offer-box .guarantee { margin-top: 16px; font-size: 0.85rem; color: var(--color-text-muted); }
+
+/* ---- FAQ (accordion nativo, sem JS) ---- */
+.funil-faq details { border-bottom: 1px solid var(--color-border); padding: 18px 0; }
+.funil-faq details:first-child { border-top: 1px solid var(--color-border); }
+.funil-faq summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1.05rem;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.funil-faq summary::-webkit-details-marker { display: none; }
+.funil-faq summary::after { content: "+"; font-size: 1.4rem; color: var(--color-wine); flex: none; margin-left: 12px; }
+.funil-faq details[open] summary::after { content: "\2013"; }
+.funil-faq p { color: var(--color-text-muted); margin: 12px 0 0; }
+
+/* ---- Sticky CTA ---- */
+.funil-sticky-cta {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--color-wine-dark);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  z-index: 40;
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.18);
+}
+.funil-sticky-cta span { color: #f3e6e6; font-size: 0.9rem; display: none; }
+@media (min-width: 560px) {
+  .funil-sticky-cta span { display: inline; }
+}
+
+/* ---- Footer específico do funil ---- */
+.funil-footer { background: var(--color-wine-dark); color: #d8c4c3; padding: 32px 0; text-align: center; font-size: 0.82rem; }
+.funil-footer a { color: #f3e6e6; }
+.funil-footer .back { display: block; margin-top: 10px; color: #d8c4c3; font-size: 0.8rem; }
+
+@media (max-width: 720px) {
+  .funil-pillars { grid-template-columns: 1fr; }
+}
