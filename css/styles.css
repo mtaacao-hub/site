@@ -71,13 +71,13 @@ ul { margin: 0; padding: 0; }
   align-items: center;
   gap: 8px;
   font-family: var(--font-heading);
-  font-size: 1.25rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: var(--color-wine-dark);
   letter-spacing: 0.01em;
 }
 .logo:hover { text-decoration: none; }
-.logo-mark { width: 44px; height: 44px; display: block; }
+.logo-mark { width: 58px; height: 58px; display: block; }
 
 .nav {
   display: flex;
