@@ -139,6 +139,17 @@ ul { margin: 0; padding: 0; }
 .btn-wine:hover { background: var(--color-wine-dark); }
 .btn-lg { padding: 16px 36px; font-size: 1.1rem; }
 
+/* ===== Newsletter ===== */
+.newsletter-box {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.newsletter-box iframe { width: 100%; max-width: 100%; display: block; }
+
 /* ===== Hero ===== */
 .hero {
   padding: 88px 0 72px;
