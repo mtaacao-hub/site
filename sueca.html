@@ -300,8 +300,23 @@
       return arr;
     }
 
+    // drawPile is consumed with .pop(), entao indice maior = sai primeiro.
+    // garante que "beforeName" sempre seja puxada antes de "afterName".
+    function enforceDrawOrder(deck, beforeName, afterName) {
+      var beforeIdx = deck.findIndex(function (c) { return c.name === beforeName; });
+      var afterIdx = deck.findIndex(function (c) { return c.name === afterName; });
+      if (beforeIdx === -1 || afterIdx === -1) return;
+      if (beforeIdx < afterIdx) {
+        var tmp = deck[beforeIdx];
+        deck[beforeIdx] = deck[afterIdx];
+        deck[afterIdx] = tmp;
+      }
+    }
+
     function resetGame() {
       drawPile = shuffle(buildFullDeck());
+      enforceDrawOrder(drawPile, "Anjo", "Lúcifer");
+      enforceDrawOrder(drawPile, "Maldição", "Bênção");
       discardPile = [];
       handCards = [];
       pendingCard = null;
