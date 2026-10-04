@@ -1,4 +1,4 @@
-import { store, genCode, genId, json } from "./_store.js";
+import { store, genCode, genId, json, addToIndex } from "./_store.js";
 
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "method" }, 405);
@@ -25,7 +25,10 @@ export default async (req) => {
     var code = genCode();
     room.code = code;
     var write = await s.setJSON(code, room, { onlyIfNew: true });
-    if (write.modified) return json({ code, playerId, name });
+    if (write.modified) {
+      await addToIndex(code);
+      return json({ code, playerId, name });
+    }
   }
   return json({ error: "Não consegui gerar um código de sala livre, tenta de novo" }, 500);
 };

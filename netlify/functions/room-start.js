@@ -1,4 +1,4 @@
-import { readModifyWrite, json } from "./_store.js";
+import { readModifyWrite, removeFromIndex, json } from "./_store.js";
 import { CARDS } from "./_cards.js";
 
 function shuffle(arr) {
@@ -45,5 +45,6 @@ export default async (req) => {
 
   if (result.notFound) return json({ error: "Sala não encontrada" }, 404);
   if (!result.ok) return json({ error: result.error }, 400);
+  await removeFromIndex(code);
   return json({ ok: true });
 };

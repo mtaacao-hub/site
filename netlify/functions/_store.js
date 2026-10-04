@@ -60,3 +60,42 @@ export async function readModifyWrite(code, mutate, verify, maxAttempts = 8) {
   }
   return { ok: false, error: "Conflito ao salvar, tenta de novo." };
 }
+
+// `store().list()` NAO aceita consistencia "strong" (so get/getWithMetadata
+// aceitam) -- testado: uma sala recem-criada nao aparecia no list() nem
+// apos varios segundos. Por isso mantemos nosso proprio indice de salas
+// abertas numa chave fixa, lido/escrito sempre com leitura forte.
+const INDEX_KEY = "_open_rooms";
+
+export async function addToIndex(code, maxAttempts = 6) {
+  const s = store();
+  for (let i = 0; i < maxAttempts; i++) {
+    const existing = await s.getWithMetadata(INDEX_KEY, { type: "json", consistency: "strong" });
+    const list = existing ? existing.data : [];
+    if (list.indexOf(code) === -1) list.push(code);
+    const opts = existing ? { onlyIfMatch: existing.etag } : { onlyIfNew: true };
+    const write = await s.setJSON(INDEX_KEY, list, opts);
+    if (!write.modified) continue;
+    const check = await s.get(INDEX_KEY, { type: "json", consistency: "strong" });
+    if (check && check.indexOf(code) !== -1) return;
+  }
+}
+
+export async function removeFromIndex(code, maxAttempts = 6) {
+  const s = store();
+  for (let i = 0; i < maxAttempts; i++) {
+    const existing = await s.getWithMetadata(INDEX_KEY, { type: "json", consistency: "strong" });
+    if (!existing) return;
+    const list = existing.data.filter((c) => c !== code);
+    const write = await s.setJSON(INDEX_KEY, list, { onlyIfMatch: existing.etag });
+    if (!write.modified) continue;
+    const check = await s.get(INDEX_KEY, { type: "json", consistency: "strong" });
+    if (check && check.indexOf(code) === -1) return;
+  }
+}
+
+export async function getIndex() {
+  const s = store();
+  const list = await s.get(INDEX_KEY, { type: "json", consistency: "strong" });
+  return list || [];
+}

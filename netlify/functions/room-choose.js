@@ -41,8 +41,12 @@ export default async (req) => {
       return { playerId: p.id, cardId: topId, value: cardById(topId).stats[category] };
     });
 
-    var maxVal = Math.max.apply(null, plays.map(function (pl) { return pl.value; }));
-    var winners = plays.filter(function (pl) { return pl.value === maxVal; });
+    // Calvicie e a unica categoria onde o MENOR valor vence (menos careca).
+    var lowerWins = category === "Calvície";
+    var extremeVal = lowerWins
+      ? Math.min.apply(null, plays.map(function (pl) { return pl.value; }))
+      : Math.max.apply(null, plays.map(function (pl) { return pl.value; }));
+    var winners = plays.filter(function (pl) { return pl.value === extremeVal; });
     var isTie = winners.length > 1;
 
     var playedCardIds = [];
@@ -98,6 +102,8 @@ export default async (req) => {
           name: room.players.find(function (p) { return p.id === pl.playerId; }).name,
           value: pl.value,
           isWinner: !isTie && pl.playerId === roundWinnerId,
+          cardName: cardById(pl.cardId).name,
+          cardImg: cardById(pl.cardId).img,
         };
       }),
       eliminated: eliminatedNames,

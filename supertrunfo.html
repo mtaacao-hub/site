@@ -68,10 +68,24 @@
 
     .error-msg { background: #fde8e8; border: 1px solid #f3b9b9; color: #9c2b2b; padding: 10px 14px; border-radius: 8px; font-size: 0.86rem; margin-bottom: 16px; }
 
+    /* lista de salas */
+    .room-list-wrap { margin-bottom: 20px; }
+    .room-list-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; }
+    .room-list { list-style: none; margin: 0; padding: 0; }
+    .room-list li {
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px;
+      display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--surface);
+      font-size: 0.92rem; transition: border-color 0.15s;
+    }
+    .room-list li:hover { border-color: var(--accent); }
+    .room-list li .rl-host { font-weight: 600; }
+    .room-list li .rl-count { color: var(--text-muted); font-size: 0.82rem; }
+    .empty-note { font-size: 0.85rem; color: var(--text-muted); font-style: italic; margin: 0; }
+
     /* lobby */
     .room-code { text-align: center; margin-bottom: 22px; }
     .room-code .label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
-    .room-code .code { font-family: var(--font-heading); font-size: 2.4rem; font-weight: 700; letter-spacing: 0.1em; color: var(--accent-dark); }
+    .room-code .code { font-family: var(--font-heading); font-size: 1.8rem; font-weight: 700; color: var(--accent-dark); }
     .room-code .hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
 
     .player-list { list-style: none; margin: 0 0 22px; padding: 0; }
@@ -83,17 +97,16 @@
     .waiting-note { text-align: center; font-size: 0.86rem; color: var(--text-muted); margin-top: 10px; }
 
     /* jogo */
-    .trump-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); max-width: 360px; margin: 0 auto; }
-    .trump-card .tc-photo { width: 100%; height: 190px; object-fit: cover; display: block; background: var(--bg-deep2); }
-    .trump-card .tc-top { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); color: #fff; padding: 12px 14px; text-align: center; }
-    .trump-card .tc-name { font-family: var(--font-heading); font-weight: 700; font-size: 1rem; }
-    .trump-card .tc-stats { padding: 4px 0; }
-    .trump-card .tc-stat { display: flex; justify-content: space-between; padding: 9px 16px; font-size: 0.88rem; border-top: 1px solid var(--border); }
-    .trump-card .tc-stat .sv { font-weight: 700; color: var(--accent-dark); font-variant-numeric: tabular-nums; }
-    .trump-card .tc-stat.clickable { cursor: pointer; background: #f6f0fc; }
-    .trump-card .tc-stat.clickable:hover { background: #ece0fa; }
-    .trump-card .tc-stat.clickable:disabled { opacity: 0.6; }
-    button.tc-stat { width: 100%; border: none; border-top: 1px solid var(--border); font-family: var(--font-body); text-align: left; }
+    .card-art-wrap { position: relative; max-width: 280px; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: 0 14px 34px rgba(0,0,0,0.4); }
+    .card-art-wrap img { width: 100%; display: block; }
+    .hotspot {
+      position: absolute; left: 0; right: 0; width: 100%;
+      border: none; background: transparent; cursor: pointer; padding: 0;
+      -webkit-tap-highlight-color: rgba(224,184,65,0.25);
+    }
+    .hotspot:hover, .hotspot:focus-visible { background: rgba(224,184,65,0.22); outline: 2px solid var(--gold); outline-offset: -2px; }
+    .hotspot:disabled { cursor: default; }
+    .hotspot-hint { text-align: center; font-size: 0.78rem; color: var(--gold); margin-top: 10px; }
 
     .count-note { text-align: center; color: #c9bde0; font-size: 0.84rem; margin-bottom: 16px; }
 
@@ -104,11 +117,21 @@
     .turn-note { text-align: center; font-size: 0.95rem; color: #fff; margin-bottom: 18px; font-weight: 600; }
     .turn-note.waiting { color: #c9bde0; font-weight: 400; }
 
-    .last-round { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 16px 18px; margin-bottom: 20px; }
-    .last-round .lr-title { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); margin-bottom: 10px; }
-    .last-round .lr-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 0.9rem; color: #e7dcf7; }
-    .last-round .lr-row.winner { color: var(--gold); font-weight: 700; }
-    .last-round .lr-note { font-size: 0.82rem; color: #c9bde0; margin-top: 8px; }
+    /* revelacao da rodada */
+    .reveal-title { text-align: center; color: var(--gold); font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+    .reveal-subtitle { text-align: center; color: #c9bde0; font-size: 0.82rem; margin-bottom: 20px; }
+    .reveal-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 22px; }
+    .reveal-card { width: 150px; }
+    .reveal-card .card-art-wrap { max-width: 150px; border: 2px solid transparent; }
+    .reveal-card.winner .card-art-wrap { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(224,184,65,0.35), 0 14px 34px rgba(0,0,0,0.4); }
+    .reveal-row-box { position: absolute; left: 3%; right: 3%; border: 2px solid var(--gold); border-radius: 8px; background: rgba(224,184,65,0.18); pointer-events: none; }
+    .reveal-card .rc-name { text-align: center; font-size: 0.8rem; color: #e7dcf7; margin-top: 8px; }
+    .reveal-card.winner .rc-name { color: var(--gold); font-weight: 700; }
+    .reveal-card .rc-value { text-align: center; font-size: 1.1rem; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
+    .reveal-card.winner .rc-value { color: var(--gold); }
+    .reveal-note { text-align: center; font-size: 0.84rem; color: #c9bde0; margin-bottom: 20px; }
+    .btn-continue { background: var(--gold); color: #3a2a0d; max-width: 280px; margin: 0 auto; display: block; }
+    .btn-continue:hover { background: var(--gold-dark); color: #fff; }
 
     .standings { list-style: none; margin: 24px 0 0; padding: 0; }
     .standings li { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 8px; font-size: 0.86rem; color: #e7dcf7; }
@@ -146,23 +169,23 @@
         <input type="text" id="name-input" placeholder="como te chamam na mesa" maxlength="30">
       </div>
 
-      <button class="btn btn-primary" id="create-btn">Criar sala nova</button>
+      <div class="room-list-wrap">
+        <p class="room-list-label">Salas abertas</p>
+        <ul class="room-list" id="room-list"></ul>
+        <p class="empty-note" id="room-list-empty">Nenhuma sala aberta agora — crie uma pra começar.</p>
+      </div>
 
       <div class="divider">ou</div>
 
-      <div class="field">
-        <label for="code-input">Código da sala</label>
-        <input type="text" id="code-input" placeholder="ex: F3K9Q" maxlength="6" style="text-transform:uppercase;">
-      </div>
-      <button class="btn btn-gold" id="join-btn">Entrar na sala</button>
+      <button class="btn btn-primary" id="create-btn">Criar sala nova</button>
     </div>
 
     <!-- TELA 2: lobby -->
     <div id="screen-lobby" class="panel" hidden>
       <div class="room-code">
-        <div class="label">Código da sala</div>
+        <div class="label">Sala de</div>
         <div class="code" id="lobby-code">—</div>
-        <div class="hint">Passe esse código pra quem for jogar</div>
+        <div class="hint">Peça pra galera abrir o link e escolher essa sala na lista</div>
       </div>
 
       <ul class="player-list" id="player-list"></ul>
@@ -179,14 +202,21 @@
         <span class="game-tag pot" id="pot-tag" hidden></span>
       </div>
 
-      <div class="last-round" id="last-round-panel" hidden></div>
-
       <div class="panel gameover-panel" id="gameover-panel" hidden></div>
+
+      <div id="reveal-screen" hidden>
+        <p class="reveal-title" id="reveal-title"></p>
+        <p class="reveal-subtitle" id="reveal-subtitle"></p>
+        <div class="reveal-grid" id="reveal-grid"></div>
+        <p class="reveal-note" id="reveal-note" hidden></p>
+        <button class="btn btn-continue" id="continue-btn">Continuar</button>
+      </div>
 
       <div id="game-active">
         <p class="turn-note" id="turn-note"></p>
         <p class="count-note" id="stack-note"></p>
-        <div class="trump-card" id="my-card"></div>
+        <div class="card-art-wrap" id="my-card"></div>
+        <p class="hotspot-hint" id="hotspot-hint" hidden>Toque na categoria da carta pra escolher — em Calvície, quem tem o menor valor vence</p>
       </div>
 
       <ul class="standings" id="standings"></ul>
@@ -207,7 +237,6 @@
     var screenLobby = document.getElementById("screen-lobby");
     var screenGame = document.getElementById("screen-game");
     var nameInput = document.getElementById("name-input");
-    var codeInput = document.getElementById("code-input");
     var homeError = document.getElementById("home-error");
     var lobbyCode = document.getElementById("lobby-code");
     var playerList = document.getElementById("player-list");
@@ -215,13 +244,34 @@
     var waitingNote = document.getElementById("waiting-note");
     var roundTag = document.getElementById("round-tag");
     var potTag = document.getElementById("pot-tag");
-    var lastRoundPanel = document.getElementById("last-round-panel");
     var gameoverPanel = document.getElementById("gameover-panel");
+    var revealScreen = document.getElementById("reveal-screen");
+    var revealTitle = document.getElementById("reveal-title");
+    var revealSubtitle = document.getElementById("reveal-subtitle");
+    var revealGrid = document.getElementById("reveal-grid");
+    var revealNote = document.getElementById("reveal-note");
+    var continueBtn = document.getElementById("continue-btn");
     var gameActive = document.getElementById("game-active");
     var turnNote = document.getElementById("turn-note");
     var stackNote = document.getElementById("stack-note");
     var myCardEl = document.getElementById("my-card");
+    var hotspotHint = document.getElementById("hotspot-hint");
     var standingsEl = document.getElementById("standings");
+
+    // posicao (% de cima pra baixo) de cada uma das 6 faixas de atributo
+    // dentro da arte da carta -- mesmo layout em todas as 36 cartas.
+    var ROW_TOP_PCT = 51;
+    var ROW_BOTTOM_PCT = 100;
+    var STATS_ORDER = ["Índ. Alcoólico", "Incoveniência", "Índ. Bigodagem", "Noia", "Freq. no Shisha", "Calvície"];
+    var STAT_ICONS = {
+      "Índ. Alcoólico": "🍺",
+      "Incoveniência": "🤦",
+      "Índ. Bigodagem": "🥸",
+      "Noia": "🤪",
+      "Freq. no Shisha": "💨",
+      "Calvície": "👨‍🦲"
+    };
+    var lastAcknowledgedRound = 0;
 
     var pollTimer = null;
 
@@ -232,6 +282,11 @@
       screenHome.hidden = name !== "home";
       screenLobby.hidden = name !== "lobby";
       screenGame.hidden = name !== "game";
+      clearInterval(roomListTimer);
+      if (name === "home") {
+        pollRoomList();
+        roomListTimer = setInterval(pollRoomList, 3000);
+      }
     }
 
     function showError(msg) {
@@ -289,15 +344,11 @@
       }
     });
 
-    var joinBtn = document.getElementById("join-btn");
-    joinBtn.addEventListener("click", async function () {
+    async function joinRoom(code) {
       homeError.hidden = true;
       var name = nameInput.value.trim();
-      var code = codeInput.value.trim().toUpperCase();
       if (!name) { showError("Digite seu nome primeiro."); return; }
-      if (!code) { showError("Digite o código da sala."); return; }
-      joinBtn.disabled = true;
-      joinBtn.textContent = "Entrando…";
+      clearInterval(roomListTimer);
       try {
         var data = await apiRetry("room-join", {
           method: "POST",
@@ -309,11 +360,30 @@
         await enterLobby();
       } catch (e) {
         showError(e.message);
-      } finally {
-        joinBtn.disabled = false;
-        joinBtn.textContent = "Entrar na sala";
+        pollRoomList();
+        roomListTimer = setInterval(pollRoomList, 3000);
       }
-    });
+    }
+
+    var roomListEl = document.getElementById("room-list");
+    var roomListEmpty = document.getElementById("room-list-empty");
+    var roomListTimer = null;
+
+    async function pollRoomList() {
+      try {
+        var data = await api("room-list", {});
+        roomListEmpty.hidden = data.rooms.length > 0;
+        roomListEl.innerHTML = data.rooms.map(function (r) {
+          return '<li data-code="' + r.code + '"><span class="rl-host">Sala de ' + escapeHtml(r.hostName) + '</span>' +
+            '<span class="rl-count">' + r.playerCount + ' jogador' + (r.playerCount === 1 ? '' : 'es') + '</span></li>';
+        }).join("");
+        Array.prototype.forEach.call(roomListEl.querySelectorAll("li"), function (li) {
+          li.addEventListener("click", function () { joinRoom(li.getAttribute("data-code")); });
+        });
+      } catch (e) {
+        // falha silenciosa -- so tenta de novo no proximo ciclo
+      }
+    }
 
     startBtn.addEventListener("click", async function () {
       startBtn.disabled = true;
@@ -359,13 +429,16 @@
       return name === "Calvície" ? str + "%" : str;
     }
 
+    var latestGameData = null;
+
     function renderGame(data) {
+      latestGameData = data;
+
       if (data.gameOver) {
         clearInterval(gamePollTimer);
         roundTag.textContent = "Fim de jogo";
         potTag.hidden = true;
-        lastRoundPanel.hidden = !data.lastRound;
-        if (data.lastRound) renderLastRound(data.lastRound);
+        revealScreen.hidden = true;
         gameActive.hidden = true;
         gameoverPanel.hidden = false;
         gameoverPanel.innerHTML = '<span class="trophy">🏆</span><h2>' + escapeHtml(data.winnerName) + ' venceu!</h2><p>Levou todas as cartas do baralho.</p>';
@@ -374,72 +447,95 @@
       }
 
       gameoverPanel.hidden = true;
-      gameActive.hidden = false;
       roundTag.textContent = "Rodada " + data.roundNum;
       potTag.hidden = data.potSize === 0;
       if (data.potSize > 0) potTag.textContent = data.potSize + " carta" + (data.potSize === 1 ? "" : "s") + " em disputa";
 
-      lastRoundPanel.hidden = !data.lastRound;
-      if (data.lastRound) renderLastRound(data.lastRound);
+      var showReveal = data.lastRound && data.lastRound.num > lastAcknowledgedRound;
+      revealScreen.hidden = !showReveal;
+      gameActive.hidden = showReveal;
+      if (showReveal) {
+        renderReveal(data.lastRound);
+        renderStandings(data.players, null);
+        return;
+      }
 
       if (data.eliminated) {
         turnNote.textContent = "Você foi eliminado — mas pode acompanhar o jogo.";
         turnNote.className = "turn-note waiting";
         stackNote.textContent = "";
+        hotspotHint.hidden = true;
         myCardEl.innerHTML = "";
       } else {
         stackNote.textContent = "Você tem " + data.stackSize + " carta" + (data.stackSize === 1 ? "" : "s");
         if (data.isMyTurn) {
-          turnNote.textContent = "Sua vez! Escolha uma categoria da sua carta:";
+          turnNote.textContent = "Sua vez de escolher!";
           turnNote.className = "turn-note";
-          renderMyCard(data.myCard, data.stats, true);
+          hotspotHint.hidden = false;
+          renderCardArt(data.myCard, true);
         } else {
           turnNote.textContent = "Aguardando " + escapeHtml(data.chooserName) + " escolher uma categoria…";
           turnNote.className = "turn-note waiting";
-          renderMyCard(data.myCard, data.stats, false);
+          hotspotHint.hidden = true;
+          renderCardArt(data.myCard, false);
         }
       }
 
       renderStandings(data.players, data.isMyTurn ? state.playerId : null);
     }
 
-    function renderMyCard(c, stats, clickable) {
-      if (!c) { myCardEl.innerHTML = ""; return; }
-      var statsHtml = stats.map(function (st) {
-        var val = formatStat(st, c.stats[st]);
-        if (clickable) {
-          return '<button type="button" class="tc-stat clickable" data-stat="' + escapeHtml(st) + '">' +
-            '<span>' + escapeHtml(st) + '</span><span class="sv">' + val + '</span></button>';
-        }
-        return '<div class="tc-stat"><span>' + escapeHtml(st) + '</span><span class="sv">' + val + '</span></div>';
-      }).join("");
-      myCardEl.innerHTML =
-        '<img class="tc-photo" src="' + c.img + '" alt="' + escapeHtml(c.name) + '">' +
-        '<div class="tc-top"><div class="tc-name">' + escapeHtml(c.name) + '</div></div>' +
-        '<div class="tc-stats">' + statsHtml + '</div>';
-
-      if (clickable) {
-        Array.prototype.forEach.call(myCardEl.querySelectorAll(".tc-stat.clickable"), function (btn) {
-          btn.addEventListener("click", function () { chooseCategory(btn.getAttribute("data-stat")); });
-        });
-      }
+    function renderCardArt(card, clickable) {
+      if (!card) { myCardEl.innerHTML = ""; return; }
+      myCardEl.innerHTML = '<img src="' + card.img + '" alt="' + escapeHtml(card.name) + '">';
+      if (!clickable) return;
+      var rowH = (ROW_BOTTOM_PCT - ROW_TOP_PCT) / STATS_ORDER.length;
+      STATS_ORDER.forEach(function (st, i) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "hotspot";
+        btn.style.top = (ROW_TOP_PCT + i * rowH) + "%";
+        btn.style.height = rowH + "%";
+        btn.setAttribute("aria-label", st);
+        btn.addEventListener("click", function () { chooseCategory(st); });
+        myCardEl.appendChild(btn);
+      });
     }
 
-    function renderLastRound(lr) {
-      var rows = lr.entries.map(function (e) {
-        return '<div class="lr-row' + (e.isWinner ? ' winner' : '') + '"><span>' + escapeHtml(e.name) + (e.isWinner ? ' 🏆' : '') + '</span><span>' + formatStat(lr.category, e.value) + '</span></div>';
+    function renderReveal(lr) {
+      revealTitle.textContent = "Rodada " + lr.num + " — " + (STAT_ICONS[lr.category] || "") + " " + lr.category;
+      var lowerWins = lr.category === "Calvície";
+      revealSubtitle.textContent = lr.tie
+        ? "Empate — ninguém levou essa rodada"
+        : (lowerWins ? "Calvície é ao contrário: quem tinha o MENOR valor levou as cartas" : "Quem tinha o maior valor levou as cartas");
+
+      var idx = STATS_ORDER.indexOf(lr.category);
+      var rowH = (ROW_BOTTOM_PCT - ROW_TOP_PCT) / STATS_ORDER.length;
+      var top = ROW_TOP_PCT + idx * rowH;
+
+      revealGrid.innerHTML = lr.entries.map(function (e) {
+        return '<div class="reveal-card' + (e.isWinner ? ' winner' : '') + '">' +
+          '<div class="card-art-wrap">' +
+            '<img src="' + e.cardImg + '" alt="' + escapeHtml(e.cardName) + '">' +
+            '<div class="reveal-row-box" style="top:' + top + '%; height:' + rowH + '%;"></div>' +
+          '</div>' +
+          '<div class="rc-name">' + escapeHtml(e.name) + (e.isWinner ? ' 🏆' : '') + '</div>' +
+          '<div class="rc-value">' + formatStat(lr.category, e.value) + '</div>' +
+          '</div>';
       }).join("");
-      var note = lr.tie
-        ? "Empate! As cartas ficaram acumuladas pra próxima rodada."
-        : "";
+
+      var note = lr.tie ? "As cartas ficaram acumuladas pra próxima rodada." : "";
       if (lr.eliminated && lr.eliminated.length) {
         note += (note ? " " : "") + lr.eliminated.map(escapeHtml).join(", ") + (lr.eliminated.length === 1 ? " ficou" : " ficaram") + " sem cartas e saiu do jogo.";
       }
-      lastRoundPanel.innerHTML =
-        '<div class="lr-title">Rodada ' + lr.num + ' — ' + escapeHtml(lr.category) + '</div>' +
-        rows +
-        (note ? '<div class="lr-note">' + note + '</div>' : '');
+      revealNote.hidden = !note;
+      revealNote.textContent = note;
     }
+
+    continueBtn.addEventListener("click", function () {
+      if (!latestGameData || !latestGameData.lastRound) return;
+      lastAcknowledgedRound = latestGameData.lastRound.num;
+      renderGame(latestGameData);
+    });
 
     function renderStandings(players, turnPlayerId) {
       standingsEl.innerHTML = players.map(function (p) {
@@ -452,7 +548,7 @@
     }
 
     async function chooseCategory(stat) {
-      Array.prototype.forEach.call(myCardEl.querySelectorAll(".tc-stat.clickable"), function (b) { b.disabled = true; });
+      Array.prototype.forEach.call(myCardEl.querySelectorAll(".hotspot"), function (b) { b.disabled = true; });
       try {
         await api("room-choose", {
           method: "POST",
@@ -462,7 +558,7 @@
         await pollGame();
       } catch (e) {
         alert(e.message);
-        Array.prototype.forEach.call(myCardEl.querySelectorAll(".tc-stat.clickable"), function (b) { b.disabled = false; });
+        Array.prototype.forEach.call(myCardEl.querySelectorAll(".hotspot"), function (b) { b.disabled = false; });
       }
     }
 
@@ -472,6 +568,7 @@
     async function enterGame() {
       showScreen("game");
       gamePollFails = 0;
+      lastAcknowledgedRound = 0;
       try {
         var data = await apiRetry("room-round?code=" + state.code + "&playerId=" + state.playerId, {});
         renderGame(data);
@@ -503,8 +600,8 @@
     var pollFails = 0;
 
     async function enterLobby() {
+      clearInterval(roomListTimer);
       showScreen("lobby");
-      lobbyCode.textContent = state.code;
       pollFails = 0;
       // primeira leitura logo apos criar/entrar precisa de retry generoso --
       // é quando a sala tem mais chance de ainda nao ter propagado.
@@ -522,6 +619,8 @@
 
     function applyRoomState(data) {
       pollFails = 0;
+      var host = data.players.find(function (p) { return p.id === data.hostId; });
+      lobbyCode.textContent = host ? host.name : "—";
       renderPlayers(data.players, data.hostId);
       var isHost = data.hostId === state.playerId;
       startBtn.hidden = !isHost;
