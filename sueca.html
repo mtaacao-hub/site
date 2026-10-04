@@ -79,7 +79,7 @@
 
     /* ===== Stage / card draw ===== */
     .stage-area { display: flex; flex-direction: column; align-items: center; }
-    .stage { position: relative; width: 260px; height: 360px; perspective: 1400px; }
+    .stage { position: relative; width: 300px; height: 440px; perspective: 1400px; }
     .deck-shadow { position: absolute; inset: 0; border-radius: 16px; background: var(--surface); border: 1px solid rgba(0,0,0,0.08); }
     .deck-shadow.s1 { transform: rotate(-6deg) translateY(6px); opacity: 0.5; }
     .deck-shadow.s2 { transform: rotate(5deg) translateY(10px); opacity: 0.35; }
@@ -100,9 +100,11 @@
     .card-back .suit { font-size: 2.6rem; color: rgba(255,255,255,0.85); }
     .card-back .hint { position: absolute; bottom: 22px; font-size: 0.74rem; color: rgba(255,255,255,0.55); letter-spacing: 0.04em; }
 
-    .card-front { background: var(--surface); border: 1px solid var(--border); transform: rotateY(180deg); gap: 10px; }
-    .card-front .card-name { font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; color: var(--accent-dark); text-transform: uppercase; letter-spacing: 0.02em; }
-    .card-front .card-text { font-size: 0.98rem; line-height: 1.5; color: var(--text); white-space: pre-line; }
+    .card-front { background: var(--surface); border: 1px solid var(--border); transform: rotateY(180deg); gap: 8px; padding: 18px 20px; overflow: hidden; }
+    .card-front .card-icon { width: 100%; height: 118px; object-fit: contain; flex: none; }
+    .card-front .card-icon[hidden] { display: none; }
+    .card-front .card-name { font-family: var(--font-heading); font-weight: 700; font-size: 1.02rem; color: var(--accent-dark); text-transform: uppercase; letter-spacing: 0.02em; flex: none; }
+    .card-front .card-text { font-size: 0.88rem; line-height: 1.42; color: var(--text); white-space: pre-line; overflow-y: auto; max-height: 100%; }
     .card-front .hold-badge {
       font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase;
       color: var(--gold-dark); background: #fbeed9; border: 1px solid #ecd3a3;
@@ -196,6 +198,7 @@
           </div>
           <div class="card-face card-front">
             <span class="hold-badge" id="hold-badge" style="display:none;">pode ficar na mão</span>
+            <img class="card-icon" id="card-icon" src="" alt="" hidden>
             <div class="card-name" id="card-name"></div>
             <div class="card-text" id="card-text"></div>
           </div>
@@ -247,30 +250,30 @@
 
   <script>
     var CARD_DEFS = [
-      { name: "Roda a roda", text: "Escolha alguém para jogar par ou ímpar. O perdedor deve beber uma dose e girar sobre seu eixo a soma dos números jogados", count: 2 },
-      { name: "Mão na mesa", text: "Quem tirou esta carta guarda e a usa quando quiser.\n\nDiscretamente, o jogador coloca a mão na mesa, o último que colocar, bebe uma dose!", count: 3, holdable: true },
-      { name: "Espelho, espelho meu", text: "Você escolhe um participante, ele deve tomar o mesmo número de doses que você decidir beber", count: 3 },
-      { name: "Queima-regra", text: "Queime uma das regras inventadas por outro jogador", count: 2 },
-      { name: "Jogo do Pi", text: "Troque os números múltiplos de 3 e os que contenham o número três por “Pi”.\n\nEx: 1, 2, PI, 4, 5, PI, 7 … 22, PI, PI, 25", count: 3 },
-      { name: "Mulheres bebem", text: "A mulherada bebe uma dose!", count: 2 },
-      { name: "Homens bebem", text: "Os rapazes viram uma dose!", count: 2 },
-      { name: "Passe livre!", text: "Apertado?\n\nSorte a sua, esta carta vale uma ida ao toalete!", count: 3, holdable: true },
-      { name: "Regra", text: "Você que manda!\n\nInvente uma nova regra, quem não obedecê-la deve beber uma dose", count: 4, holdable: true, isRule: true },
-      { name: "Dia do Marcos", text: "Foi o marquinho que botou pá nois beber!\n\nTodos bebem três doses!", count: 1 },
-      { name: "Valentines", text: "Love is in the air!\n\nTodos os casais devem beber uma dose cada", count: 2 },
-      { name: "Karaokê", text: "Comece a cantar uma música, o próximo deve continuá-la. Aquele que errar ou não souber, bebe uma dose!", count: 2 },
-      { name: "Anjo", text: "Você foi agraciado com poderes divinos!\n\nNão precisa beber durante uma rodada!\n\nApós, entregue esta carta a outro jogador", count: 1, holdable: true },
-      { name: "Lúcifer", text: "O anjo caiu!\nQuem tiver a carta Anjo deve beber três doses!\n\nCaso o Anjo não esteja em jogo, devolva a carta para o deck, embaralhe e jogue novamente", count: 1 },
-      { name: "Vale a pena ver de novo", text: "Escolha uma carta da pilha de descarte e a use novamente", count: 2 },
+      { name: "Roda a roda", text: "Escolha alguém para jogar par ou ímpar. O perdedor deve beber uma dose e girar sobre seu eixo a soma dos números jogados", count: 2, icon: "images/sueca/roda-a-roda.png" },
+      { name: "Mão na mesa", text: "Quem tirou esta carta guarda e a usa quando quiser.\n\nDiscretamente, o jogador coloca a mão na mesa, o último que colocar, bebe uma dose!", count: 3, holdable: true, icon: "images/sueca/mao-na-mesa.png" },
+      { name: "Espelho, espelho meu", text: "Você escolhe um participante, ele deve tomar o mesmo número de doses que você decidir beber", count: 3, icon: "images/sueca/espelho-espelho-meu.png" },
+      { name: "Queima-regra", text: "Queime uma das regras inventadas por outro jogador", count: 2, icon: "images/sueca/queima-regra.png" },
+      { name: "Jogo do Pi", text: "Troque os números múltiplos de 3 e os que contenham o número três por “Pi”.\n\nEx: 1, 2, PI, 4, 5, PI, 7 … 22, PI, PI, 25", count: 3, icon: "images/sueca/jogo-do-pi.png" },
+      { name: "Mulheres bebem", text: "A mulherada bebe uma dose!", count: 2, icon: "images/sueca/mulheres-bebem.png" },
+      { name: "Homens bebem", text: "Os rapazes viram uma dose!", count: 2, icon: "images/sueca/homens-bebem.png" },
+      { name: "Passe livre!", text: "Apertado?\n\nSorte a sua, esta carta vale uma ida ao toalete!", count: 3, holdable: true, icon: "images/sueca/passe-livre.png" },
+      { name: "Regra", text: "Você que manda!\n\nInvente uma nova regra, quem não obedecê-la deve beber uma dose", count: 4, holdable: true, isRule: true, icon: "images/sueca/regra.png" },
+      { name: "Dia do Marcos", text: "Foi o marquinho que botou pá nois beber!\n\nTodos bebem três doses!", count: 1, icon: "images/sueca/dia-do-marcos.png" },
+      { name: "Valentines", text: "Love is in the air!\n\nTodos os casais devem beber uma dose cada", count: 2, icon: "images/sueca/valentines.png" },
+      { name: "Karaokê", text: "Comece a cantar uma música, o próximo deve continuá-la. Aquele que errar ou não souber, bebe uma dose!", count: 2, icon: "images/sueca/karaoke.png" },
+      { name: "Anjo", text: "Você foi agraciado com poderes divinos!\n\nNão precisa beber durante uma rodada!\n\nApós, entregue esta carta a outro jogador", count: 1, holdable: true, icon: "images/sueca/anjo.png" },
+      { name: "Lúcifer", text: "O anjo caiu!\nQuem tiver a carta Anjo deve beber três doses!\n\nCaso o Anjo não esteja em jogo, devolva a carta para o deck, embaralhe e jogue novamente", count: 1, icon: "images/sueca/lucifer.png" },
+      { name: "Vale a pena ver de novo", text: "Escolha uma carta da pilha de descarte e a use novamente", count: 2, icon: "images/sueca/vale-a-pena-ver-de-novo.png" },
       { name: "Paredão", text: "Você é o líder!\n\nEscolha duas pessoas para o paredão, o mais votado pelos jogadores, bebe!", count: 2 },
-      { name: "1 dose", text: "Escolha um participante para beber uma dose!", count: 3 },
-      { name: "2 doses", text: "Fazendo inimigos!\n\nEscolha duas pessoas para beberem uma dose cada ou um para tomar uma dose dupla!", count: 3 },
-      { name: "3 doses", text: "Um é pouco, dois é bom... TRÊS É DEMAIS!\n\nEscolha três jogadores para beber uma dose cada!", count: 3 },
-      { name: "Você bebe!", text: "Que felicidade!\n\nTome uma dose dupla!", count: 3 },
-      { name: "Que horas são?!", text: "Todos gritam:\nÉ HORA DO GOLÃO!\ne bebem uma dose", count: 4 },
-      { name: "Forrest Gump", text: "Comece uma história, o próximo deve repeti-la e complementar. A rodada acaba quando alguém errar a história, o felizardo bebe uma dose!", count: 3 },
-      { name: "Bênção", text: "Glória, glória, aleluia!\nTem o poder divino de anular a carta Maldição.\n\nCaso a Maldição não esteja em jogo, devolva a carta para o deck, embaralhe e jogue novamente", count: 1, holdable: true },
-      { name: "Maldição", text: "Você foi amaldiçoado!\nPor uma rodada deverá beber em dobro!\n\nApós, transfere a maldição a outro jogador", count: 1, holdable: true }
+      { name: "1 dose", text: "Escolha um participante para beber uma dose!", count: 3, icon: "images/sueca/1-dose.png" },
+      { name: "2 doses", text: "Fazendo inimigos!\n\nEscolha duas pessoas para beberem uma dose cada ou um para tomar uma dose dupla!", count: 3, icon: "images/sueca/2-doses.png" },
+      { name: "3 doses", text: "Um é pouco, dois é bom... TRÊS É DEMAIS!\n\nEscolha três jogadores para beber uma dose cada!", count: 3, icon: "images/sueca/3-doses.png" },
+      { name: "Você bebe!", text: "Que felicidade!\n\nTome uma dose dupla!", count: 3, icon: "images/sueca/voce-bebe.png" },
+      { name: "Que horas são?!", text: "Todos gritam:\nÉ HORA DO GOLÃO!\ne bebem uma dose", count: 4, icon: "images/sueca/que-horas-sao.png" },
+      { name: "Forrest Gump", text: "Comece uma história, o próximo deve repeti-la e complementar. A rodada acaba quando alguém errar a história, o felizardo bebe uma dose!", count: 3, icon: "images/sueca/forrest-gump.png" },
+      { name: "Bênção", text: "Glória, glória, aleluia!\nTem o poder divino de anular a carta Maldição.\n\nCaso a Maldição não esteja em jogo, devolva a carta para o deck, embaralhe e jogue novamente", count: 1, holdable: true, icon: "images/sueca/bencao.png" },
+      { name: "Maldição", text: "Você foi amaldiçoado!\nPor uma rodada deverá beber em dobro!\n\nApós, transfere a maldição a outro jogador", count: 1, holdable: true, icon: "images/sueca/maldicao.png" }
     ];
 
     var TOTAL_CARDS = CARD_DEFS.reduce(function (sum, d) { return sum + d.count; }, 0);
@@ -286,7 +289,7 @@
       var deck = [];
       CARD_DEFS.forEach(function (def) {
         for (var i = 0; i < def.count; i++) {
-          deck.push({ uid: uidCounter++, name: def.name, text: def.text, holdable: !!def.holdable, isRule: !!def.isRule });
+          deck.push({ uid: uidCounter++, name: def.name, text: def.text, holdable: !!def.holdable, isRule: !!def.isRule, icon: def.icon || "" });
         }
       });
       return deck;
@@ -314,6 +317,7 @@
     }
 
     var card = document.getElementById("card");
+    var cardIcon = document.getElementById("card-icon");
     var cardName = document.getElementById("card-name");
     var cardText = document.getElementById("card-text");
     var holdBadge = document.getElementById("hold-badge");
@@ -334,6 +338,13 @@
       cardName.textContent = c.name;
       cardText.textContent = c.text;
       holdBadge.style.display = c.holdable ? "inline-block" : "none";
+      if (c.icon) {
+        cardIcon.src = c.icon;
+        cardIcon.alt = c.name;
+        cardIcon.hidden = false;
+      } else {
+        cardIcon.hidden = true;
+      }
     }
 
     function drawCard() {
