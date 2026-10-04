@@ -130,8 +130,6 @@
     .pending-row { display: flex; gap: 10px; }
     .btn-hold { background: var(--accent); color: #fff; flex: 1; }
     .btn-hold:hover { background: var(--accent-dark); }
-    .btn-discard { background: rgba(255,255,255,0.12); color: #e7eef1; flex: 1; }
-    .btn-discard:hover { background: rgba(255,255,255,0.2); }
 
     /* ===== Panels ===== */
     .panels { margin-top: 48px; display: grid; grid-template-columns: 1fr; gap: 20px; }
@@ -209,7 +207,7 @@
         <button class="btn btn-draw" id="draw-btn">Puxar carta</button>
 
         <div class="pending-box" id="pending-box">
-          <label for="holder-name">Ficou na mão de quem? (deixe em branco pra descartar)</label>
+          <label for="holder-name">Essa carta ficou na mão de alguém? (opcional)</label>
           <input type="text" id="holder-name" placeholder="nome da pessoa">
           <div id="rule-text-wrap" style="display:none;">
             <label for="rule-text">Qual foi a regra inventada?</label>
@@ -217,7 +215,6 @@
           </div>
           <div class="pending-row">
             <button class="btn btn-hold" id="hold-btn">Guardar na mão</button>
-            <button class="btn btn-discard" id="discard-btn">Descartar</button>
           </div>
         </div>
 
@@ -329,7 +326,6 @@
     var ruleWrap = document.getElementById("rule-text-wrap");
     var ruleTextInput = document.getElementById("rule-text");
     var holdBtn = document.getElementById("hold-btn");
-    var discardBtn = document.getElementById("discard-btn");
     var rulesList = document.getElementById("rules-list");
     var handList = document.getElementById("hand-list");
     var discardList = document.getElementById("discard-list");
@@ -351,6 +347,7 @@
       if (drawPile.length === 0) return;
       var c = drawPile.pop();
       pendingCard = c;
+      discardPile.push(c);
       showCardFace(c);
 
       if (!flipped) {
@@ -368,17 +365,16 @@
         drawBtn.disabled = true;
         drawBtn.textContent = "Baralho acabou";
       }
+      renderAll();
     }
 
-    function resolvePending(toHand) {
+    function moveToHand() {
       if (!pendingCard) return;
-      if (toHand) {
-        pendingCard.holder = holderInput.value.trim() || "alguém";
-        pendingCard.ruleText = pendingCard.isRule ? ruleTextInput.value.trim() : "";
-        handCards.push(pendingCard);
-      } else {
-        discardPile.push(pendingCard);
-      }
+      var idx = discardPile.findIndex(function (c) { return c.uid === pendingCard.uid; });
+      if (idx !== -1) discardPile.splice(idx, 1);
+      pendingCard.holder = holderInput.value.trim() || "alguém";
+      pendingCard.ruleText = pendingCard.isRule ? ruleTextInput.value.trim() : "";
+      handCards.push(pendingCard);
       pendingCard = null;
       pendingBox.classList.remove("show");
       renderAll();
@@ -394,8 +390,8 @@
       renderAll();
     }
 
-    function replayFromDiscard(uid) {
-      var c = discardPile.find(function (c) { return c.uid === uid; });
+    function replayFromDiscard(name) {
+      var c = discardPile.find(function (c) { return c.name === name; });
       if (!c) return;
       showCardFace(c);
       if (!flipped) { card.classList.add("flipped"); flipped = true; }
@@ -438,12 +434,16 @@
         }).join("");
       }
 
-      // discard pile
-      if (discardPile.length === 0) {
+      // discard pile (unique names only)
+      var seenNames = [];
+      discardPile.forEach(function (c) {
+        if (seenNames.indexOf(c.name) === -1) seenNames.push(c.name);
+      });
+      if (seenNames.length === 0) {
         discardList.innerHTML = '<p class="empty-note">Ainda não foi descartada nenhuma carta.</p>';
       } else {
-        discardList.innerHTML = '<div class="chip-list">' + discardPile.map(function (c) {
-          return '<span class="chip" data-uid="' + c.uid + '">' + escapeHtml(c.name) + '</span>';
+        discardList.innerHTML = '<div class="chip-list">' + seenNames.map(function (name) {
+          return '<span class="chip" data-name="' + escapeHtml(name) + '">' + escapeHtml(name) + '</span>';
         }).join("") + '</div>';
       }
 
@@ -464,13 +464,12 @@
         });
       });
       Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (chip) {
-        chip.addEventListener("click", function () { replayFromDiscard(Number(chip.getAttribute("data-uid"))); });
+        chip.addEventListener("click", function () { replayFromDiscard(chip.getAttribute("data-name")); });
       });
     }
 
     drawBtn.addEventListener("click", drawCard);
-    holdBtn.addEventListener("click", function () { resolvePending(true); });
-    discardBtn.addEventListener("click", function () { resolvePending(false); });
+    holdBtn.addEventListener("click", moveToHand);
     resetBtn.addEventListener("click", resetGame);
 
     resetGame();
