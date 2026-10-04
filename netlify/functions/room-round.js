@@ -33,6 +33,7 @@ export default async (req) => {
       num: room.lastRound.num,
       category: room.lastRound.category,
       tie: room.lastRound.tie,
+      special: room.lastRound.special || null,
       entries: room.lastRound.entries,
       eliminated: room.lastRound.eliminated || [],
     };

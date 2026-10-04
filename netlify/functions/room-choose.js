@@ -14,6 +14,41 @@ function shuffle(arr) {
   return a;
 }
 
+const SUPER_TRUNFO_ID = "marcos";
+const AMOR_IDS = ["belenga", "david", "felice", "marcossamba"];
+
+function byValue(plays, category) {
+  var lowerWins = category === "Calvície";
+  var extremeVal = lowerWins
+    ? Math.min.apply(null, plays.map(function (pl) { return pl.value; }))
+    : Math.max.apply(null, plays.map(function (pl) { return pl.value; }));
+  var winners = plays.filter(function (pl) { return pl.value === extremeVal; });
+  return { winners: winners, isTie: winners.length > 1 };
+}
+
+// Regra especial: a carta do Super Trunfo vence qualquer rodada em que
+// aparecer, exceto se uma carta "Amor do Trunfo" tambem estiver em jogo --
+// aí o Amor vence. Com 2+ Amores junto do Trunfo, eles disputam normalmente
+// entre si pelo valor da categoria. Sem o Trunfo na rodada, Amor e carta
+// normal (ver _cards.js / mensagem do Ricardo de 2026-10-05).
+function resolveRound(plays, category) {
+  var trunfoPlay = plays.find(function (pl) { return pl.cardId === SUPER_TRUNFO_ID; });
+  if (!trunfoPlay) {
+    var r = byValue(plays, category);
+    return { winners: r.winners, isTie: r.isTie, special: null };
+  }
+
+  var amorPlays = plays.filter(function (pl) { return AMOR_IDS.indexOf(pl.cardId) !== -1; });
+  if (amorPlays.length === 0) {
+    return { winners: [trunfoPlay], isTie: false, special: "trunfo" };
+  }
+  if (amorPlays.length === 1) {
+    return { winners: amorPlays, isTie: false, special: "amor-solo" };
+  }
+  var r2 = byValue(amorPlays, category);
+  return { winners: r2.winners, isTie: r2.isTie, special: "amor-disputa" };
+}
+
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "method" }, 405);
   const body = await req.json().catch(() => ({}));
@@ -41,13 +76,10 @@ export default async (req) => {
       return { playerId: p.id, cardId: topId, value: cardById(topId).stats[category] };
     });
 
-    // Calvicie e a unica categoria onde o MENOR valor vence (menos careca).
-    var lowerWins = category === "Calvície";
-    var extremeVal = lowerWins
-      ? Math.min.apply(null, plays.map(function (pl) { return pl.value; }))
-      : Math.max.apply(null, plays.map(function (pl) { return pl.value; }));
-    var winners = plays.filter(function (pl) { return pl.value === extremeVal; });
-    var isTie = winners.length > 1;
+    var resolved = resolveRound(plays, category);
+    var winners = resolved.winners;
+    var isTie = resolved.isTie;
+    var special = resolved.special;
 
     var playedCardIds = [];
     plays.forEach(function (pl) {
@@ -97,11 +129,13 @@ export default async (req) => {
       num: room.round.num,
       category: category,
       tie: isTie,
+      special: special,
       entries: plays.map(function (pl) {
         return {
           name: room.players.find(function (p) { return p.id === pl.playerId; }).name,
           value: pl.value,
           isWinner: !isTie && pl.playerId === roundWinnerId,
+          cardId: pl.cardId,
           cardName: cardById(pl.cardId).name,
           cardImg: cardById(pl.cardId).img,
         };

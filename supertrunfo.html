@@ -145,13 +145,28 @@
     .gameover-panel h2 { color: var(--gold-dark); font-size: 1.3rem; margin-bottom: 6px; }
 
     [hidden] { display: none !important; }
-    .footnote { margin-top: 44px; max-width: 480px; text-align: center; font-size: 0.76rem; line-height: 1.6; color: #9385a8; margin-left: auto; margin-right: auto; }
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(10,5,25,0.75); z-index: 50;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-box { background: var(--surface); border-radius: 14px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); }
+    .modal-head h2 { font-size: 1.1rem; color: var(--accent-dark); }
+    .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--text-muted); cursor: pointer; padding: 4px 8px; }
+    .modal-body { padding: 18px 20px 22px; }
+    .modal-body p { font-size: 0.9rem; line-height: 1.55; color: var(--text); margin: 0 0 14px; }
+    .modal-body p:last-child { margin-bottom: 0; }
+    .modal-special { background: #f6f0fc; border: 1px solid #e2d0f7; border-radius: 10px; padding: 12px 14px; }
+
+    .reveal-badge { position: absolute; top: 6px; right: 6px; font-size: 1.2rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5)); }
+    .special-note { text-align: center; font-size: 0.86rem; color: var(--gold); font-weight: 600; margin-bottom: 14px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="top">
       <a href="index.html" class="home-link">Ricardo Mauad</a>
+      <button class="btn-link" id="rules-btn" style="padding:4px 0;">📜 Regras</button>
     </div>
 
     <div class="intro">
@@ -226,7 +241,22 @@
       </div>
     </div>
 
-    <p class="footnote">Baralho Super Trunfo Golão — 36 cartas. Link não divulgado, não aparece em nenhum menu do site.</p>
+  </div>
+
+  <div class="modal-backdrop" id="rules-backdrop" hidden>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>Regras do jogo</h2>
+        <button class="modal-close" id="rules-close" aria-label="Fechar">✕</button>
+      </div>
+      <div class="modal-body">
+        <p>Cada jogador recebe uma parte do baralho, embaralhada, virada pra baixo. Ninguém vê as cartas dos outros — só a de cima do próprio monte.</p>
+        <p><strong>Na sua vez:</strong> você olha sua carta e escolhe uma categoria (toca direto nela). Todo mundo compara o valor dessa categoria na carta que está jogando.</p>
+        <p><strong>Quem vence:</strong> maior valor leva as cartas da rodada — exceto <strong>Calvície</strong>, onde quem tem o <strong>menor</strong> valor vence. Empate: as cartas ficam acumuladas pra próxima rodada.</p>
+        <p>Quem venceu a rodada escolhe a categoria na próxima. Ficou sem carta, saiu do jogo. Vence quem ficar com o baralho inteiro.</p>
+        <p class="modal-special"><strong>💘 Super Trunfo e Amor do Trunfo:</strong> a carta do <strong>Marcos Santiago</strong> é o Super Trunfo — ela vence qualquer rodada em que aparecer, não importa a categoria. A exceção são as cartas <strong>Amor do Trunfo</strong> (Belenga, David, Felice e Marquinhos do Samba): elas vencem o Super Trunfo automaticamente. Se duas ou mais delas caírem na mesma rodada que o Super Trunfo, aí sim disputam normalmente entre si pelo valor da categoria. Sem o Super Trunfo na rodada, as cartas de Amor são cartas normais, sem nenhum poder especial.</p>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -501,22 +531,36 @@
       });
     }
 
+    var SUPER_TRUNFO_ID = "marcos";
+    var AMOR_IDS = ["belenga", "david", "felice", "marcossamba"];
+    var SPECIAL_TEXT = {
+      "trunfo": "👑 Super Trunfo em campo — vence sem disputa!",
+      "amor-solo": "💘 Amor do Trunfo apareceu — vence o Super Trunfo automaticamente!",
+      "amor-disputa": "💘 Dois Amores do Trunfo se enfrentaram — decidiu pelo valor da categoria"
+    };
+
     function renderReveal(lr) {
       revealTitle.textContent = "Rodada " + lr.num + " — " + (STAT_ICONS[lr.category] || "") + " " + lr.category;
       var lowerWins = lr.category === "Calvície";
-      revealSubtitle.textContent = lr.tie
-        ? "Empate — ninguém levou essa rodada"
-        : (lowerWins ? "Calvície é ao contrário: quem tinha o MENOR valor levou as cartas" : "Quem tinha o maior valor levou as cartas");
+      if (lr.special) {
+        revealSubtitle.textContent = SPECIAL_TEXT[lr.special] || "";
+      } else {
+        revealSubtitle.textContent = lr.tie
+          ? "Empate — ninguém levou essa rodada"
+          : (lowerWins ? "Calvície é ao contrário: quem tinha o MENOR valor levou as cartas" : "Quem tinha o maior valor levou as cartas");
+      }
 
       var idx = STATS_ORDER.indexOf(lr.category);
       var rowH = (ROW_BOTTOM_PCT - ROW_TOP_PCT) / STATS_ORDER.length;
       var top = ROW_TOP_PCT + idx * rowH;
 
       revealGrid.innerHTML = lr.entries.map(function (e) {
+        var badge = e.cardId === SUPER_TRUNFO_ID ? "👑" : (AMOR_IDS.indexOf(e.cardId) !== -1 ? "💘" : "");
         return '<div class="reveal-card' + (e.isWinner ? ' winner' : '') + '">' +
           '<div class="card-art-wrap">' +
             '<img src="' + e.cardImg + '" alt="' + escapeHtml(e.cardName) + '">' +
             '<div class="reveal-row-box" style="top:' + top + '%; height:' + rowH + '%;"></div>' +
+            (badge ? '<span class="reveal-badge">' + badge + '</span>' : '') +
           '</div>' +
           '<div class="rc-name">' + escapeHtml(e.name) + (e.isWinner ? ' 🏆' : '') + '</div>' +
           '<div class="rc-value">' + formatStat(lr.category, e.value) + '</div>' +
@@ -535,6 +579,13 @@
       if (!latestGameData || !latestGameData.lastRound) return;
       lastAcknowledgedRound = latestGameData.lastRound.num;
       renderGame(latestGameData);
+    });
+
+    var rulesBackdrop = document.getElementById("rules-backdrop");
+    document.getElementById("rules-btn").addEventListener("click", function () { rulesBackdrop.hidden = false; });
+    document.getElementById("rules-close").addEventListener("click", function () { rulesBackdrop.hidden = true; });
+    rulesBackdrop.addEventListener("click", function (ev) {
+      if (ev.target === rulesBackdrop) rulesBackdrop.hidden = true;
     });
 
     function renderStandings(players, turnPlayerId) {
