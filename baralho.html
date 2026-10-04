@@ -190,6 +190,8 @@
     .actions {
       margin-top: 36px;
       display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
       gap: 12px;
     }
     .btn {
@@ -212,6 +214,47 @@
       font-size: 0.78rem;
       line-height: 1.6;
       color: #a89792;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: #e7dcd8;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.08); }
+
+    .all-cards-list {
+      display: none;
+      width: 100%;
+      max-width: 480px;
+      margin: 32px auto 0;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .all-cards-list.show { display: flex; }
+    .all-card-item {
+      background: var(--color-surface, #fff);
+      border: 1px solid var(--color-border, #d8d8d8);
+      border-radius: 10px;
+      padding: 14px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: baseline;
+    }
+    .all-card-item .n {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      color: var(--color-green);
+      font-size: 0.82rem;
+      flex: none;
+      min-width: 22px;
+    }
+    .all-card-item p {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      color: var(--color-wine-dark);
+      white-space: pre-line;
     }
   </style>
 </head>
@@ -245,7 +288,10 @@
 
   <div class="actions">
     <button class="btn btn-draw" id="draw-btn">Puxar outra carta</button>
+    <button class="btn btn-outline" id="list-btn">Mostrar todas as cartas</button>
   </div>
+
+  <div class="all-cards-list" id="all-cards-list"></div>
 
   <p class="footnote">Perguntas inspiradas num baralho de investigações pra uso pessoal — pra explorar com calma, sozinho ou em boa companhia.</p>
 
@@ -336,6 +382,31 @@
 
     card.addEventListener("click", draw);
     drawBtn.addEventListener("click", draw);
+
+    var listBtn = document.getElementById("list-btn");
+    var allCardsList = document.getElementById("all-cards-list");
+    var listRendered = false;
+    var listOpen = false;
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, function (m) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[m];
+      });
+    }
+
+    function renderAllCards() {
+      allCardsList.innerHTML = perguntas.map(function (p, i) {
+        return '<div class="all-card-item"><span class="n">' + (i + 1) + '</span><p>' + escapeHtml(p) + '</p></div>';
+      }).join("");
+      listRendered = true;
+    }
+
+    listBtn.addEventListener("click", function () {
+      if (!listRendered) renderAllCards();
+      listOpen = !listOpen;
+      allCardsList.classList.toggle("show", listOpen);
+      listBtn.textContent = listOpen ? "Esconder lista" : "Mostrar todas as cartas";
+    });
   </script>
 </body>
 </html>
