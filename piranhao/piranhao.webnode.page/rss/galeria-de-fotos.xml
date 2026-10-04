@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" >
+   <channel>
+    <atom:link href="https://piranhao.webnode.page/rss/galeria-de-fotos.xml" rel="self" type="application/rss+xml" />
+      <title><![CDATA[Galeria de fotos - piranhao.webnode.page]]></title>
+      <link>https://piranhao.webnode.page</link>
+      <language>pt-br</language>
+      <pubDate>Wed, 25 Jan 2012 17:50:00 +0200</pubDate>
+      <lastBuildDate>Wed, 25 Jan 2012 17:50:00 +0200</lastBuildDate>
+      <category><![CDATA[Galeria de fotos]]></category>
+      <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+      <generator>Webnode</generator>
+      <item>
+         <title><![CDATA[Galeria de Fotos]]></title>
+         <link>https://piranhao.webnode.page/news/galeria-de-fotos/</link>
+         <description><![CDATA[
+	Neste segmento serão encontrados os registros oficiais de todas as edições do Piranhão, o Magnânimo!
+]]></description>
+         <pubDate>Wed, 25 Jan 2012 17:50:00 +0200</pubDate>
+         <guid isPermaLink="true">https://piranhao.webnode.page/news/galeria-de-fotos/</guid>
+         <category><![CDATA[Galeria de fotos]]></category>
+      </item>
+   </channel>
+</rss>

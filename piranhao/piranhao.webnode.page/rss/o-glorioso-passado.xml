@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" >
+   <channel>
+    <atom:link href="https://piranhao.webnode.page/rss/o-glorioso-passado.xml" rel="self" type="application/rss+xml" />
+      <title><![CDATA[O glorioso passado - piranhao.webnode.page]]></title>
+      <link>https://piranhao.webnode.page</link>
+      <language>pt-br</language>
+      <pubDate>Thu, 26 Jan 2012 11:40:00 +0200</pubDate>
+      <lastBuildDate>Thu, 26 Jan 2012 11:40:00 +0200</lastBuildDate>
+      <category><![CDATA[O glorioso passado]]></category>
+      <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+      <generator>Webnode</generator>
+      <item>
+         <title><![CDATA[Tempos que não voltam mais...]]></title>
+         <link>https://piranhao.webnode.page/news/tempos%20que%20n%c3%a3o%20voltam%20mais-/</link>
+         <description><![CDATA[
+	Aqui estão as poucas, porém inspiradoras imagens do nosso querido Piranhão em seu momento inicial, quando ainda era um esporte amador.
+]]></description>
+         <pubDate>Thu, 26 Jan 2012 11:40:00 +0200</pubDate>
+         <guid isPermaLink="true">https://piranhao.webnode.page/news/tempos%20que%20n%c3%a3o%20voltam%20mais-/</guid>
+         <category><![CDATA[O glorioso passado]]></category>
+      </item>
+   </channel>
+</rss>

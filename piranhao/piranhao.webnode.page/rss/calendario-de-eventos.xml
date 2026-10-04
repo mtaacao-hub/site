@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" >
+   <channel>
+    <atom:link href="https://piranhao.webnode.page/rss/calendario-de-eventos.xml" rel="self" type="application/rss+xml" />
+      <title><![CDATA[Calendário de eventos - piranhao.webnode.page]]></title>
+      <link>https://piranhao.webnode.page</link>
+      <language>pt-br</language>
+      <pubDate>Mon, 18 Oct 2021 14:00:00 +0200</pubDate>
+      <lastBuildDate>Mon, 18 Oct 2021 14:00:00 +0200</lastBuildDate>
+      <category><![CDATA[Calendário de eventos]]></category>
+      <docs>http://blogs.law.harvard.edu/tech/rss</docs>
+      <generator>Webnode</generator>
+      <item>
+         <title><![CDATA[Piranhão, o Merry Christmas 2021]]></title>
+         <link>https://piranhao.webnode.page/news/novo-evento/</link>
+         <description><![CDATA[Piranhão, o Merry Christmas 2021
+
+Informações do evento:
+. Data: 18/12/2021 (sábado)
+. Local: Campinho de futebol da SQS 307
+. Horário: 14 horas
+. Equipamentos obrigatórios:
+.. Pluriforme: Vestimenta Obrigatória (obrigatório) + Acessórios Opcionais (opcional)
+.. Presente de Natal: uma caixa de cerveja
+]]></description>
+         <pubDate>Mon, 18 Oct 2021 14:00:00 +0200</pubDate>
+         <guid isPermaLink="true">https://piranhao.webnode.page/news/novo-evento/</guid>
+         <category><![CDATA[Calendário de eventos]]></category>
+      </item>
+   </channel>
+</rss>
