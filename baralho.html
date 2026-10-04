@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Baralho — Ricardo Mauad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <style>
+    :root {
+      --color-bg: #f7f6f5;
+      --color-surface: #ffffff;
+      --color-text: #262422;
+      --color-text-muted: #6b6864;
+      --color-border: #d8d8d8;
+      --color-wine: #4c100f;
+      --color-wine-dark: #350b0a;
+      --color-green: #345b2a;
+      --color-green-dark: #2a4922;
+      --font-heading: "Lora", Georgia, "Times New Roman", serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--color-wine-dark);
+      background-image: radial-gradient(circle at 20% 15%, rgba(255,255,255,0.05), transparent 40%),
+                         radial-gradient(circle at 85% 90%, rgba(52,91,42,0.35), transparent 45%);
+      color: var(--color-text);
+      font-family: var(--font-body);
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 20px 48px;
+    }
+    .top {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .home-link {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: #f2ece9;
+      text-decoration: none;
+      opacity: 0.85;
+    }
+    .home-link:hover { opacity: 1; }
+    .counter {
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #cdbdb9;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .intro {
+      text-align: center;
+      max-width: 480px;
+      margin: 8px 0 36px;
+    }
+    .intro .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: #7fae6f;
+      margin-bottom: 10px;
+    }
+    .intro h1 {
+      font-family: var(--font-heading);
+      font-size: 1.5rem;
+      color: #fff;
+      margin: 0 0 10px;
+      line-height: 1.3;
+    }
+    .intro p {
+      color: #cdbdb9;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .stage {
+      position: relative;
+      width: 290px;
+      height: 400px;
+      perspective: 1400px;
+    }
+    .deck-shadow-card {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: var(--color-surface);
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+    .deck-shadow-card.s1 { transform: rotate(-6deg) translateY(6px); opacity: 0.55; }
+    .deck-shadow-card.s2 { transform: rotate(5deg) translateY(10px); opacity: 0.4; }
+
+    .card {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(.3,.1,.25,1);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card.shaking { animation: shake 0.4s ease-in-out; }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      25% { transform: translateX(-6px) rotate(-1.5deg); }
+      75% { transform: translateX(6px) rotate(1.5deg); }
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+    }
+    .card-back {
+      background: linear-gradient(155deg, var(--color-wine) 0%, var(--color-wine-dark) 70%);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .card-back .mark {
+      width: 64px;
+      height: 64px;
+      border: 2px solid rgba(255,255,255,0.5);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.3rem;
+      color: #fff;
+      letter-spacing: 0.02em;
+    }
+    .card-back .hint {
+      position: absolute;
+      bottom: 26px;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.55);
+      letter-spacing: 0.04em;
+    }
+    .card-front {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      transform: rotateY(180deg);
+      justify-content: center;
+      gap: 18px;
+    }
+    .card-front .tick {
+      width: 28px;
+      height: 3px;
+      background: var(--color-green);
+      border-radius: 2px;
+    }
+    .card-front p {
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 1.28rem;
+      line-height: 1.4;
+      color: var(--color-wine-dark);
+      margin: 0;
+      white-space: pre-line;
+    }
+
+    .actions {
+      margin-top: 36px;
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.95rem;
+      padding: 13px 26px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-draw { background: var(--color-green); color: #fff; }
+    .btn-draw:hover { background: var(--color-green-dark); }
+    .btn-draw:disabled { opacity: 0.6; cursor: default; }
+
+    .footnote {
+      margin-top: 40px;
+      max-width: 420px;
+      text-align: center;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: #a89792;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top">
+    <a href="index.html" class="home-link">Ricardo Mauad</a>
+    <span class="counter" id="counter">47 cartas</span>
+  </div>
+
+  <div class="intro">
+    <p class="eyebrow">Baralho de investigações</p>
+    <h1>Puxe uma carta e leve a sério</h1>
+    <p>Cada carta é uma pergunta pra parar e pensar. Clique na carta pra virar.</p>
+  </div>
+
+  <div class="stage">
+    <div class="deck-shadow-card s2"></div>
+    <div class="deck-shadow-card s1"></div>
+    <div class="card" id="card">
+      <div class="card-face card-back">
+        <div class="mark">RM</div>
+        <span class="hint">toque pra virar</span>
+      </div>
+      <div class="card-face card-front">
+        <div class="tick"></div>
+        <p id="card-text"></p>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button class="btn btn-draw" id="draw-btn">Puxar outra carta</button>
+  </div>
+
+  <p class="footnote">Perguntas inspiradas num baralho de investigações pra uso pessoal — pra explorar com calma, sozinho ou em boa companhia.</p>
+
+  <script>
+    var perguntas = [
+      "quais são os meus 5 temperos?",
+      "talvez eu entenda muito mais do que transpareço que entendo — e talvez muito mais do que eu admita para mim mesmo",
+      "busco outras formas de explorar, profissionalmente, minha personalidade",
+      "preciso admitir para mim mesmo que esse projeto de longo prazo existe — não vou executá-lo agora, mas preciso criar causas e condições",
+      "quero trabalhar menos, mas quero faturar igual",
+      "quero o tema ________ mais presente na minha vida.\nO que posso fazer?",
+      "quero que meu conhecimento em ________ seja nota 8.\nHoje ele é nota 4, o que fazer?",
+      "quero subir meu ticket em 25% nos próximos 12 meses",
+      "quero dobrar meu ticket nos próximos 12 meses",
+      "quero construir uma vitrine para meu trabalho, para que as pessoas entendam rapidamente o que eu faço",
+      "quero produzir uma peça de comunicação que funcione por anos",
+      "quero produzir uma peça de comunicação que possa ser muitíssimo compartilhada",
+      "quero não trabalhar um dia “útil” por semana",
+      "quero não trabalhar pelas manhãs",
+      "quero não trabalhar à tarde",
+      "quero ter um dia por semana sem reuniões",
+      "quero lotar minha agenda",
+      "quero ser visto como um profissional ainda mais presente na vida dos meus clientes",
+      "quero tirar férias de 30 dias",
+      "quero tirar férias de 60 dias",
+      "quero atender muitos clientes com as características ________ e ________",
+      "quero atender muitos clientes dos setores ________ e ________",
+      "quero tomar as decisões difíceis que estou adiando",
+      "quero faturar o dobro em ________ meses",
+      "quero faturar ________ nos próximos ___ meses",
+      "quero ser capaz de explicar melhor o que eu faço",
+      "quero ser capaz de estar em um palco falando sobre o que eu faço",
+      "quero ter uma equipe muito eficiente",
+      "quero ser visto como uma autoridade pelos meus pares",
+      "quero aumentar o impacto social do meu trabalho",
+      "quero aumentar a diversidade entre meus clientes",
+      "quero ter meu próprio podcast",
+      "quero produzir textos longos e profundos",
+      "quero fazer um mestrado/doutorado na minha área",
+      "quero criar uma fonte de receita recorrente",
+      "quero reduzir minha dependência dos meus ___ maiores clientes",
+      "quero construir uma audiência que me acompanhe, não só clientes que me contratam",
+      "quero cuidar da minha energia com o mesmo rigor com que cuido da minha agenda",
+      "quero cobrar pelo valor que entrego, não pelas horas que trabalho",
+      "não sei se é a hora de abrir mais uma frente de trabalho!",
+      "tenho várias frentes de atuação, como comunicá-las?",
+      "preciso aumentar minha margem de lucro",
+      "preciso gastar menos tempo com meus processos, o que fazer?",
+      "como eu poderia entregar o que eu entrego gastando 25% menos tempo?",
+      "como eu poderia gerar o dobro de valor para meu cliente?",
+      "como melhorar minha entrega, de modo que seja impossível compará-la com qualquer outra coisa?",
+      "como mudar totalmente minha entrega, de modo que seja impossível compará-la com qualquer outra coisa?"
+    ];
+
+    var card = document.getElementById("card");
+    var cardText = document.getElementById("card-text");
+    var drawBtn = document.getElementById("draw-btn");
+    var counter = document.getElementById("counter");
+    var lastIndex = -1;
+    var flipped = false;
+
+    function randomIndex() {
+      if (perguntas.length === 1) return 0;
+      var i;
+      do { i = Math.floor(Math.random() * perguntas.length); } while (i === lastIndex);
+      return i;
+    }
+
+    function draw() {
+      var i = randomIndex();
+      lastIndex = i;
+      counter.textContent = "carta " + (i + 1) + " de " + perguntas.length;
+
+      if (!flipped) {
+        cardText.textContent = perguntas[i];
+        card.classList.add("flipped");
+        flipped = true;
+        drawBtn.textContent = "Puxar outra carta";
+      } else {
+        card.classList.add("shaking");
+        setTimeout(function () {
+          card.classList.remove("shaking");
+          cardText.textContent = perguntas[i];
+        }, 180);
+        setTimeout(function () { card.classList.remove("shaking"); }, 400);
+      }
+    }
+
+    card.addEventListener("click", draw);
+    drawBtn.addEventListener("click", draw);
+  </script>
+</body>
+</html>
