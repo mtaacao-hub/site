@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Sueca — Ricardo Mauad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <style>
+    :root {
+      --bg-deep: #0e2a3a;
+      --bg-deep2: #153b50;
+      --surface: #ffffff;
+      --text: #1c2b33;
+      --text-muted: #5f7482;
+      --border: #d7e1e6;
+      --accent: #2f8ba0;
+      --accent-dark: #226777;
+      --gold: #d9a441;
+      --gold-dark: #b4822c;
+      --font-heading: "Lora", Georgia, "Times New Roman", serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg-deep);
+      background-image: radial-gradient(circle at 15% 10%, rgba(255,255,255,0.05), transparent 40%),
+                         radial-gradient(circle at 90% 85%, rgba(217,164,65,0.12), transparent 45%);
+      color: var(--text);
+      font-family: var(--font-body);
+    }
+    body { min-height: 100vh; padding: 24px 16px 64px; }
+    h1, h2, h3 { font-family: var(--font-heading); font-weight: 600; margin: 0; }
+    p { margin: 0; }
+
+    .wrap { max-width: 920px; margin: 0 auto; }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    .home-link {
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1rem;
+      color: #f2ece9;
+      text-decoration: none;
+      opacity: 0.85;
+    }
+    .home-link:hover { opacity: 1; }
+    .counter {
+      font-size: 0.76rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #a9c3cd;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .intro { text-align: center; max-width: 480px; margin: 4px auto 28px; }
+    .intro .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    .intro h1 { font-size: 1.5rem; color: #fff; margin-bottom: 8px; }
+    .intro p { color: #a9c3cd; font-size: 0.92rem; line-height: 1.55; }
+
+    /* ===== Stage / card draw ===== */
+    .stage-area { display: flex; flex-direction: column; align-items: center; }
+    .stage { position: relative; width: 260px; height: 360px; perspective: 1400px; }
+    .deck-shadow { position: absolute; inset: 0; border-radius: 16px; background: var(--surface); border: 1px solid rgba(0,0,0,0.08); }
+    .deck-shadow.s1 { transform: rotate(-6deg) translateY(6px); opacity: 0.5; }
+    .deck-shadow.s2 { transform: rotate(5deg) translateY(10px); opacity: 0.35; }
+
+    .card {
+      position: absolute; inset: 0; border-radius: 16px;
+      cursor: pointer; transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(.3,.1,.25,1);
+      box-shadow: 0 16px 36px rgba(0,0,0,0.35);
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute; inset: 0; border-radius: 16px; backface-visibility: hidden;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 26px; text-align: center;
+    }
+    .card-back { background: linear-gradient(155deg, var(--accent) 0%, var(--accent-dark) 75%); border: 1px solid rgba(255,255,255,0.12); }
+    .card-back .suit { font-size: 2.6rem; color: rgba(255,255,255,0.85); }
+    .card-back .hint { position: absolute; bottom: 22px; font-size: 0.74rem; color: rgba(255,255,255,0.55); letter-spacing: 0.04em; }
+
+    .card-front { background: var(--surface); border: 1px solid var(--border); transform: rotateY(180deg); gap: 10px; }
+    .card-front .card-name { font-family: var(--font-heading); font-weight: 700; font-size: 1.1rem; color: var(--accent-dark); text-transform: uppercase; letter-spacing: 0.02em; }
+    .card-front .card-text { font-size: 0.98rem; line-height: 1.5; color: var(--text); white-space: pre-line; }
+    .card-front .hold-badge {
+      font-size: 0.68rem; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--gold-dark); background: #fbeed9; border: 1px solid #ecd3a3;
+      padding: 3px 9px; border-radius: 20px;
+    }
+
+    .draw-actions { margin-top: 26px; display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 360px; }
+    .btn { font-family: var(--font-body); font-weight: 600; font-size: 0.92rem; padding: 12px 22px; border-radius: 6px; border: none; cursor: pointer; }
+    .btn-draw { background: var(--gold); color: #3a2a0d; }
+    .btn-draw:hover { background: var(--gold-dark); color: #fff; }
+    .btn-draw:disabled { opacity: 0.5; cursor: default; }
+    .btn-ghost { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #e7eef1; }
+    .btn-ghost:hover { background: rgba(255,255,255,0.08); }
+
+    .pending-box { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 16px; width: 100%; display: none; }
+    .pending-box.show { display: block; }
+    .pending-box label { display: block; font-size: 0.76rem; color: #a9c3cd; margin-bottom: 6px; }
+    .pending-box input, .pending-box textarea {
+      width: 100%; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.95);
+      border-radius: 6px; padding: 9px 10px; font-size: 0.9rem; font-family: var(--font-body); margin-bottom: 10px;
+    }
+    .pending-box textarea { resize: vertical; min-height: 54px; }
+    .pending-row { display: flex; gap: 10px; }
+    .btn-hold { background: var(--accent); color: #fff; flex: 1; }
+    .btn-hold:hover { background: var(--accent-dark); }
+    .btn-discard { background: rgba(255,255,255,0.12); color: #e7eef1; flex: 1; }
+    .btn-discard:hover { background: rgba(255,255,255,0.2); }
+
+    /* ===== Panels ===== */
+    .panels { margin-top: 48px; display: grid; grid-template-columns: 1fr; gap: 20px; }
+    @media (min-width: 720px) { .panels { grid-template-columns: 1fr 1fr; } }
+    .panel { background: var(--surface); border-radius: 12px; padding: 20px; }
+    .panel h2 { font-size: 1rem; color: var(--accent-dark); margin-bottom: 4px; }
+    .panel .panel-sub { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px; }
+    .panel.rules-panel { grid-column: 1 / -1; background: #fbeed9; border: 1px solid #ecd3a3; }
+    .panel.rules-panel h2 { color: var(--gold-dark); }
+
+    .empty-note { font-size: 0.85rem; color: var(--text-muted); font-style: italic; }
+
+    .chip-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip {
+      background: #eef6f8; border: 1px solid #d3e6ea; border-radius: 8px;
+      padding: 8px 12px; font-size: 0.82rem; cursor: pointer; color: var(--accent-dark); font-weight: 600;
+      transition: background 0.15s;
+    }
+    .chip:hover { background: #dcedf1; }
+
+    .hand-item {
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+    }
+    .hand-item:last-child { margin-bottom: 0; }
+    .hand-item .hi-name { font-weight: 700; font-size: 0.88rem; color: var(--text); }
+    .hand-item .hi-holder { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .hand-item .hi-holder input { border: none; border-bottom: 1px dashed var(--border); font-size: 0.8rem; font-family: var(--font-body); color: var(--text); padding: 2px 0; width: 140px; }
+    .hand-item .btn-release { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-size: 0.76rem; cursor: pointer; color: var(--text-muted); white-space: nowrap; }
+    .hand-item .btn-release:hover { background: #f3f3f2; }
+
+    .rule-card { background: #fff; border: 1px solid #ecd3a3; border-radius: 8px; padding: 14px; margin-bottom: 10px; }
+    .rule-card:last-child { margin-bottom: 0; }
+    .rule-card .rc-holder { font-size: 0.78rem; color: var(--gold-dark); font-weight: 700; margin-bottom: 6px; }
+    .rule-card textarea {
+      width: 100%; border: 1px solid #ecd3a3; border-radius: 6px; padding: 8px 10px;
+      font-family: var(--font-body); font-size: 0.88rem; color: var(--text); resize: vertical; min-height: 44px;
+    }
+
+    .footnote { margin-top: 44px; max-width: 480px; text-align: center; font-size: 0.76rem; line-height: 1.6; color: #93a9b3; margin-left: auto; margin-right: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a href="index.html" class="home-link">Ricardo Mauad</a>
+      <span class="counter" id="counter">56 cartas no baralho</span>
+    </div>
+
+    <div class="intro">
+      <p class="eyebrow">Jogo de cartas</p>
+      <h1>Sueca</h1>
+      <p>Puxe uma carta. Algumas ficam na mão de alguém até serem usadas — as outras vão pra pilha de descarte, e podem voltar ao jogo com "Vale a pena ver de novo".</p>
+    </div>
+
+    <div class="stage-area">
+      <div class="stage">
+        <div class="deck-shadow s2"></div>
+        <div class="deck-shadow s1"></div>
+        <div class="card" id="card">
+          <div class="card-face card-back">
+            <span class="suit">♠</span>
+            <span class="hint">toque pra virar</span>
+          </div>
+          <div class="card-face card-front">
+            <span class="hold-badge" id="hold-badge" style="display:none;">pode ficar na mão</span>
+            <div class="card-name" id="card-name"></div>
+            <div class="card-text" id="card-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="draw-actions">
+        <button class="btn btn-draw" id="draw-btn">Puxar carta</button>
+
+        <div class="pending-box" id="pending-box">
+          <label for="holder-name">Ficou na mão de quem? (deixe em branco pra descartar)</label>
+          <input type="text" id="holder-name" placeholder="nome da pessoa">
+          <div id="rule-text-wrap" style="display:none;">
+            <label for="rule-text">Qual foi a regra inventada?</label>
+            <textarea id="rule-text" placeholder="ex: ninguém pode falar o nome do Marcos"></textarea>
+          </div>
+          <div class="pending-row">
+            <button class="btn btn-hold" id="hold-btn">Guardar na mão</button>
+            <button class="btn btn-discard" id="discard-btn">Descartar</button>
+          </div>
+        </div>
+
+        <button class="btn btn-ghost" id="reset-btn">Embaralhar tudo de novo</button>
+      </div>
+    </div>
+
+    <div class="panels">
+      <div class="panel rules-panel">
+        <h2>Regras em jogo</h2>
+        <p class="panel-sub">Cartas "Regra" que já saíram — a regra inventada por cada um.</p>
+        <div id="rules-list"><p class="empty-note">Nenhuma regra em jogo ainda.</p></div>
+      </div>
+
+      <div class="panel">
+        <h2>Na mão de alguém</h2>
+        <p class="panel-sub">Maldição, Anjo, Passe livre, Mão na mesa e outras seguradas pra depois.</p>
+        <div id="hand-list"><p class="empty-note">Ninguém está segurando carta.</p></div>
+      </div>
+
+      <div class="panel">
+        <h2>Pilha de descarte</h2>
+        <p class="panel-sub">Clique numa carta pra usá-la de novo (Vale a pena ver de novo).</p>
+        <div id="discard-list"><p class="empty-note">Ainda não foi descartada nenhuma carta.</p></div>
+      </div>
+    </div>
+
+    <p class="footnote">Jogo pensado pra ser jogado com responsabilidade — ninguém é obrigado a beber álcool, pode trocar por água ou suco à vontade.</p>
+  </div>
+
+  <script>
+    var CARD_DEFS = [
+      { name: "Roda a roda", text: "Escolha alguém para jogar par ou ímpar. O perdedor deve beber uma dose e girar sobre seu eixo a soma dos números jogados", count: 2 },
+      { name: "Mão na mesa", text: "Quem tirou esta carta guarda e a usa quando quiser.\n\nDiscretamente, o jogador coloca a mão na mesa, o último que colocar, bebe uma dose!", count: 3, holdable: true },
+      { name: "Espelho, espelho meu", text: "Você escolhe um participante, ele deve tomar o mesmo número de doses que você decidir beber", count: 3 },
+      { name: "Queima-regra", text: "Queime uma das regras inventadas por outro jogador", count: 2 },
+      { name: "Jogo do Pi", text: "Troque os números múltiplos de 3 e os que contenham o número três por “Pi”.\n\nEx: 1, 2, PI, 4, 5, PI, 7 … 22, PI, PI, 25", count: 3 },
+      { name: "Mulheres bebem", text: "A mulherada bebe uma dose!", count: 2 },
+      { name: "Homens bebem", text: "Os rapazes viram uma dose!", count: 2 },
+      { name: "Passe livre!", text: "Apertado?\n\nSorte a sua, esta carta vale uma ida ao toalete!", count: 3, holdable: true },
+      { name: "Regra", text: "Você que manda!\n\nInvente uma nova regra, quem não obedecê-la deve beber uma dose", count: 4, holdable: true, isRule: true },
+      { name: "Dia do Marcos", text: "Foi o marquinho que botou pá nois beber!\n\nTodos bebem três doses!", count: 1 },
+      { name: "Valentines", text: "Love is in the air!\n\nTodos os casais devem beber uma dose cada", count: 2 },
+      { name: "Karaokê", text: "Comece a cantar uma música, o próximo deve continuá-la. Aquele que errar ou não souber, bebe uma dose!", count: 2 },
+      { name: "Anjo", text: "Você foi agraciado com poderes divinos!\n\nNão precisa beber durante uma rodada!\n\nApós, entregue esta carta a outro jogador", count: 1, holdable: true },
+      { name: "Lúcifer", text: "O anjo caiu!\nQuem tiver a carta Anjo deve beber três doses!\n\nCaso o Anjo não esteja em jogo, devolva a carta para o deck, embaralhe e jogue novamente", count: 1 },
+      { name: "Vale a pena ver de novo", text: "Escolha uma carta da pilha de descarte e a use novamente", count: 2 },
+      { name: "Paredão", text: "Você é o líder!\n\nEscolha duas pessoas para o paredão, o mais votado pelos jogadores, bebe!", count: 2 },
+      { name: "1 dose", text: "Escolha um participante para beber uma dose!", count: 3 },
+      { name: "2 doses", text: "Fazendo inimigos!\n\nEscolha duas pessoas para beberem uma dose cada ou um para tomar uma dose dupla!", count: 3 },
+      { name: "3 doses", text: "Um é pouco, dois é bom... TRÊS É DEMAIS!\n\nEscolha três jogadores para beber uma dose cada!", count: 3 },
+      { name: "Você bebe!", text: "Que felicidade!\n\nTome uma dose dupla!", count: 3 },
+      { name: "Que horas são?!", text: "Todos gritam:\nÉ HORA DO GOLÃO!\ne bebem uma dose", count: 4 },
+      { name: "Forrest Gump", text: "Comece uma história, o próximo deve repeti-la e complementar. A rodada acaba quando alguém errar a história, o felizardo bebe uma dose!", count: 3 },
+      { name: "Bênção", text: "Glória, glória, aleluia!\nTem o poder divino de anular a carta Maldição.\n\nCaso a Maldição não esteja em jogo, devolva a carta para o deck, embaralhe e jogue novamente", count: 1, holdable: true },
+      { name: "Maldição", text: "Você foi amaldiçoado!\nPor uma rodada deverá beber em dobro!\n\nApós, transfere a maldição a outro jogador", count: 1, holdable: true }
+    ];
+
+    var TOTAL_CARDS = CARD_DEFS.reduce(function (sum, d) { return sum + d.count; }, 0);
+
+    var drawPile = [];
+    var discardPile = [];
+    var handCards = [];
+    var uidCounter = 1;
+    var pendingCard = null;
+    var flipped = false;
+
+    function buildFullDeck() {
+      var deck = [];
+      CARD_DEFS.forEach(function (def) {
+        for (var i = 0; i < def.count; i++) {
+          deck.push({ uid: uidCounter++, name: def.name, text: def.text, holdable: !!def.holdable, isRule: !!def.isRule });
+        }
+      });
+      return deck;
+    }
+
+    function shuffle(arr) {
+      for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+      }
+      return arr;
+    }
+
+    function resetGame() {
+      drawPile = shuffle(buildFullDeck());
+      discardPile = [];
+      handCards = [];
+      pendingCard = null;
+      flipped = false;
+      card.classList.remove("flipped");
+      drawBtn.disabled = false;
+      drawBtn.textContent = "Puxar carta";
+      pendingBox.classList.remove("show");
+      renderAll();
+    }
+
+    var card = document.getElementById("card");
+    var cardName = document.getElementById("card-name");
+    var cardText = document.getElementById("card-text");
+    var holdBadge = document.getElementById("hold-badge");
+    var drawBtn = document.getElementById("draw-btn");
+    var resetBtn = document.getElementById("reset-btn");
+    var counter = document.getElementById("counter");
+    var pendingBox = document.getElementById("pending-box");
+    var holderInput = document.getElementById("holder-name");
+    var ruleWrap = document.getElementById("rule-text-wrap");
+    var ruleTextInput = document.getElementById("rule-text");
+    var holdBtn = document.getElementById("hold-btn");
+    var discardBtn = document.getElementById("discard-btn");
+    var rulesList = document.getElementById("rules-list");
+    var handList = document.getElementById("hand-list");
+    var discardList = document.getElementById("discard-list");
+
+    function showCardFace(c) {
+      cardName.textContent = c.name;
+      cardText.textContent = c.text;
+      holdBadge.style.display = c.holdable ? "inline-block" : "none";
+    }
+
+    function drawCard() {
+      if (drawPile.length === 0) return;
+      var c = drawPile.pop();
+      pendingCard = c;
+      showCardFace(c);
+
+      if (!flipped) {
+        card.classList.add("flipped");
+        flipped = true;
+      }
+
+      holderInput.value = "";
+      ruleTextInput.value = "";
+      ruleWrap.style.display = c.isRule ? "block" : "none";
+      pendingBox.classList.add("show");
+
+      counter.textContent = drawPile.length + " cartas no baralho";
+      if (drawPile.length === 0) {
+        drawBtn.disabled = true;
+        drawBtn.textContent = "Baralho acabou";
+      }
+    }
+
+    function resolvePending(toHand) {
+      if (!pendingCard) return;
+      if (toHand) {
+        pendingCard.holder = holderInput.value.trim() || "alguém";
+        pendingCard.ruleText = pendingCard.isRule ? ruleTextInput.value.trim() : "";
+        handCards.push(pendingCard);
+      } else {
+        discardPile.push(pendingCard);
+      }
+      pendingCard = null;
+      pendingBox.classList.remove("show");
+      renderAll();
+    }
+
+    function releaseFromHand(uid) {
+      var idx = handCards.findIndex(function (c) { return c.uid === uid; });
+      if (idx === -1) return;
+      var c = handCards.splice(idx, 1)[0];
+      delete c.holder;
+      delete c.ruleText;
+      discardPile.push(c);
+      renderAll();
+    }
+
+    function replayFromDiscard(uid) {
+      var c = discardPile.find(function (c) { return c.uid === uid; });
+      if (!c) return;
+      showCardFace(c);
+      if (!flipped) { card.classList.add("flipped"); flipped = true; }
+      pendingCard = null;
+      pendingBox.classList.remove("show");
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, function (m) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[m];
+      });
+    }
+
+    function renderAll() {
+      // hand list (non-rule cards)
+      var handNonRule = handCards.filter(function (c) { return !c.isRule; });
+      if (handNonRule.length === 0) {
+        handList.innerHTML = '<p class="empty-note">Ninguém está segurando carta.</p>';
+      } else {
+        handList.innerHTML = handNonRule.map(function (c) {
+          return '<div class="hand-item">' +
+            '<div><div class="hi-name">' + escapeHtml(c.name) + '</div>' +
+            '<div class="hi-holder">na mão de <input type="text" data-uid="' + c.uid + '" class="holder-edit" value="' + escapeHtml(c.holder) + '"></div></div>' +
+            '<button class="btn-release" data-uid="' + c.uid + '">devolver</button>' +
+            '</div>';
+        }).join("");
+      }
+
+      // rules panel
+      var ruleCards = handCards.filter(function (c) { return c.isRule; });
+      if (ruleCards.length === 0) {
+        rulesList.innerHTML = '<p class="empty-note">Nenhuma regra em jogo ainda.</p>';
+      } else {
+        rulesList.innerHTML = ruleCards.map(function (c) {
+          return '<div class="rule-card">' +
+            '<div class="rc-holder">regra de <input type="text" data-uid="' + c.uid + '" class="holder-edit" value="' + escapeHtml(c.holder) + '" style="border:none;background:transparent;font-weight:700;color:inherit;width:120px;"></div>' +
+            '<textarea data-uid="' + c.uid + '" class="rule-edit" placeholder="qual foi a regra?">' + escapeHtml(c.ruleText || "") + '</textarea>' +
+            '<div style="text-align:right; margin-top:8px;"><button class="btn-release" data-uid="' + c.uid + '">encerrar regra</button></div>' +
+            '</div>';
+        }).join("");
+      }
+
+      // discard pile
+      if (discardPile.length === 0) {
+        discardList.innerHTML = '<p class="empty-note">Ainda não foi descartada nenhuma carta.</p>';
+      } else {
+        discardList.innerHTML = '<div class="chip-list">' + discardPile.map(function (c) {
+          return '<span class="chip" data-uid="' + c.uid + '">' + escapeHtml(c.name) + '</span>';
+        }).join("") + '</div>';
+      }
+
+      // wire up dynamic handlers
+      Array.prototype.forEach.call(document.querySelectorAll(".btn-release"), function (btn) {
+        btn.addEventListener("click", function () { releaseFromHand(Number(btn.getAttribute("data-uid"))); });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".holder-edit"), function (inp) {
+        inp.addEventListener("input", function () {
+          var c = handCards.find(function (c) { return c.uid === Number(inp.getAttribute("data-uid")); });
+          if (c) c.holder = inp.value;
+        });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".rule-edit"), function (ta) {
+        ta.addEventListener("input", function () {
+          var c = handCards.find(function (c) { return c.uid === Number(ta.getAttribute("data-uid")); });
+          if (c) c.ruleText = ta.value;
+        });
+      });
+      Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (chip) {
+        chip.addEventListener("click", function () { replayFromDiscard(Number(chip.getAttribute("data-uid"))); });
+      });
+    }
+
+    drawBtn.addEventListener("click", drawCard);
+    holdBtn.addEventListener("click", function () { resolvePending(true); });
+    discardBtn.addEventListener("click", function () { resolvePending(false); });
+    resetBtn.addEventListener("click", resetGame);
+
+    resetGame();
+  </script>
+</body>
+</html>
