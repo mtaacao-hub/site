@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Super Trunfo — Ricardo Mauad</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" href="images/favicon-32.png" sizes="32x32" type="image/png">
+  <link rel="icon" href="images/favicon-16.png" sizes="16x16" type="image/png">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <style>
+    :root {
+      --bg-deep: #1b1033;
+      --bg-deep2: #2a1850;
+      --surface: #ffffff;
+      --text: #231a35;
+      --text-muted: #6b5f80;
+      --border: #e2d9f0;
+      --accent: #8a4fd6;
+      --accent-dark: #6a35b0;
+      --gold: #e0b84b;
+      --gold-dark: #b8922f;
+      --font-heading: "Lora", Georgia, "Times New Roman", serif;
+      --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; min-height: 100%;
+      background: var(--bg-deep);
+      background-image: radial-gradient(circle at 15% 10%, rgba(224,184,75,0.12), transparent 40%),
+                         radial-gradient(circle at 90% 85%, rgba(138,79,214,0.25), transparent 45%);
+      color: var(--text); font-family: var(--font-body);
+    }
+    body { min-height: 100vh; padding: 24px 16px 64px; }
+    h1, h2, h3 { font-family: var(--font-heading); font-weight: 600; margin: 0; }
+    p { margin: 0; }
+    .wrap { max-width: 640px; margin: 0 auto; }
+
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+    .home-link { font-family: var(--font-heading); font-weight: 700; font-size: 1rem; color: #f0e9fa; text-decoration: none; opacity: 0.85; }
+    .home-link:hover { opacity: 1; }
+
+    .intro { text-align: center; max-width: 480px; margin: 4px auto 32px; }
+    .intro .eyebrow { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; font-weight: 700; color: var(--gold); margin-bottom: 8px; }
+    .intro h1 { font-size: 1.6rem; color: #fff; margin-bottom: 8px; }
+    .intro p { color: #c9bde0; font-size: 0.92rem; line-height: 1.55; }
+
+    .panel { background: var(--surface); border-radius: 14px; padding: 26px; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+    .field input { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 11px 13px; font-size: 1rem; font-family: var(--font-body); }
+    .field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+    .btn { font-family: var(--font-body); font-weight: 600; font-size: 0.95rem; padding: 13px 22px; border-radius: 8px; border: none; cursor: pointer; width: 100%; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; }
+    .btn-gold { background: var(--gold); color: #3a2a0d; }
+    .btn-gold:hover { background: var(--gold-dark); color: #fff; }
+    .btn-link { background: none; border: none; color: var(--accent); font-weight: 600; cursor: pointer; font-size: 0.88rem; padding: 6px; }
+
+    .divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+    .error-msg { background: #fde8e8; border: 1px solid #f3b9b9; color: #9c2b2b; padding: 10px 14px; border-radius: 8px; font-size: 0.86rem; margin-bottom: 16px; }
+
+    /* lobby */
+    .room-code { text-align: center; margin-bottom: 22px; }
+    .room-code .label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+    .room-code .code { font-family: var(--font-heading); font-size: 2.4rem; font-weight: 700; letter-spacing: 0.1em; color: var(--accent-dark); }
+    .room-code .hint { font-size: 0.8rem; color: var(--text-muted); margin-top: 6px; }
+
+    .player-list { list-style: none; margin: 0 0 22px; padding: 0; }
+    .player-list li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; font-size: 0.92rem; }
+    .player-list li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; }
+    .player-list li .you-tag { margin-left: auto; font-size: 0.72rem; color: var(--gold-dark); font-weight: 700; text-transform: uppercase; }
+    .player-list li .host-tag { font-size: 0.72rem; color: var(--text-muted); }
+
+    .waiting-note { text-align: center; font-size: 0.86rem; color: var(--text-muted); margin-top: 10px; }
+
+    /* hand */
+    .hand-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 540px) { .hand-grid { grid-template-columns: 1fr 1fr; } }
+    .trump-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--surface); }
+    .trump-card .tc-photo { width: 100%; height: 190px; object-fit: cover; display: block; background: var(--bg-deep2); }
+    .trump-card .tc-top { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%); color: #fff; padding: 12px 14px; text-align: center; }
+    .trump-card .tc-name { font-family: var(--font-heading); font-weight: 700; font-size: 1rem; }
+    .trump-card .tc-stats { padding: 4px 0; }
+    .trump-card .tc-stat { display: flex; justify-content: space-between; padding: 9px 16px; font-size: 0.88rem; border-top: 1px solid var(--border); }
+    .trump-card .tc-stat .sv { font-weight: 700; color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+
+    .count-note { text-align: center; color: #c9bde0; font-size: 0.84rem; margin-bottom: 20px; }
+
+    [hidden] { display: none !important; }
+    .footnote { margin-top: 44px; max-width: 480px; text-align: center; font-size: 0.76rem; line-height: 1.6; color: #9385a8; margin-left: auto; margin-right: auto; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a href="index.html" class="home-link">Ricardo Mauad</a>
+    </div>
+
+    <div class="intro">
+      <p class="eyebrow">Jogo de cartas</p>
+      <h1>Super Trunfo</h1>
+      <p>Crie uma sala, espere o pessoal entrar, e cada um recebe sua própria mão de cartas — sem repetir com ninguém.</p>
+    </div>
+
+    <!-- TELA 1: inicio -->
+    <div id="screen-home" class="panel">
+      <div id="home-error" class="error-msg" hidden></div>
+
+      <div class="field">
+        <label for="name-input">Seu nome</label>
+        <input type="text" id="name-input" placeholder="como te chamam na mesa" maxlength="30">
+      </div>
+
+      <button class="btn btn-primary" id="create-btn">Criar sala nova</button>
+
+      <div class="divider">ou</div>
+
+      <div class="field">
+        <label for="code-input">Código da sala</label>
+        <input type="text" id="code-input" placeholder="ex: F3K9Q" maxlength="6" style="text-transform:uppercase;">
+      </div>
+      <button class="btn btn-gold" id="join-btn">Entrar na sala</button>
+    </div>
+
+    <!-- TELA 2: lobby -->
+    <div id="screen-lobby" class="panel" hidden>
+      <div class="room-code">
+        <div class="label">Código da sala</div>
+        <div class="code" id="lobby-code">—</div>
+        <div class="hint">Passe esse código pra quem for jogar</div>
+      </div>
+
+      <ul class="player-list" id="player-list"></ul>
+
+      <button class="btn btn-primary" id="start-btn" hidden>Começar jogo</button>
+      <p class="waiting-note" id="waiting-note">Esperando o anfitrião começar o jogo…</p>
+      <button class="btn-link" id="leave-btn">Sair da sala</button>
+    </div>
+
+    <!-- TELA 3: sua mao -->
+    <div id="screen-hand" hidden>
+      <p class="count-note" id="hand-count"></p>
+      <div class="hand-grid" id="hand-grid"></div>
+      <div style="text-align:center; margin-top:28px;">
+        <button class="btn-link" id="leave-btn-2">Sair da sala</button>
+      </div>
+    </div>
+
+    <p class="footnote">Baralho Super Trunfo Golão — 36 cartas. Link não divulgado, não aparece em nenhum menu do site.</p>
+  </div>
+
+  <script>
+    var API = "/.netlify/functions/";
+    var state = JSON.parse(localStorage.getItem("supertrunfo") || "null");
+
+    var screenHome = document.getElementById("screen-home");
+    var screenLobby = document.getElementById("screen-lobby");
+    var screenHand = document.getElementById("screen-hand");
+    var nameInput = document.getElementById("name-input");
+    var codeInput = document.getElementById("code-input");
+    var homeError = document.getElementById("home-error");
+    var lobbyCode = document.getElementById("lobby-code");
+    var playerList = document.getElementById("player-list");
+    var startBtn = document.getElementById("start-btn");
+    var waitingNote = document.getElementById("waiting-note");
+    var handCount = document.getElementById("hand-count");
+    var handGrid = document.getElementById("hand-grid");
+
+    var pollTimer = null;
+
+    function saveState() { localStorage.setItem("supertrunfo", JSON.stringify(state)); }
+    function clearState() { state = null; localStorage.removeItem("supertrunfo"); }
+
+    function showScreen(name) {
+      screenHome.hidden = name !== "home";
+      screenLobby.hidden = name !== "lobby";
+      screenHand.hidden = name !== "hand";
+    }
+
+    function showError(msg) {
+      homeError.textContent = msg;
+      homeError.hidden = false;
+    }
+
+    async function api(path, opts) {
+      var res = await fetch(API + path, opts);
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error(data.error || "Erro inesperado");
+      return data;
+    }
+
+    function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+    // o banco da sala pode levar alguns segundos pra propagar depois de
+    // criada -- tenta de novo por ate ~15s antes de desistir, em vez de
+    // mostrar erro na cara de quem acabou de entrar com o codigo certo.
+    async function apiRetry(path, opts, attempts) {
+      attempts = attempts || 8;
+      var lastErr;
+      for (var i = 0; i < attempts; i++) {
+        try {
+          return await api(path, opts);
+        } catch (e) {
+          lastErr = e;
+          if (i < attempts - 1) await sleep(2000);
+        }
+      }
+      throw lastErr;
+    }
+
+    var createBtn = document.getElementById("create-btn");
+    createBtn.addEventListener("click", async function () {
+      homeError.hidden = true;
+      var name = nameInput.value.trim();
+      if (!name) { showError("Digite seu nome primeiro."); return; }
+      createBtn.disabled = true;
+      createBtn.textContent = "Criando…";
+      try {
+        var data = await api("room-create", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: name }),
+        });
+        state = { code: data.code, playerId: data.playerId, name: data.name };
+        saveState();
+        await enterLobby();
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        createBtn.disabled = false;
+        createBtn.textContent = "Criar sala nova";
+      }
+    });
+
+    var joinBtn = document.getElementById("join-btn");
+    joinBtn.addEventListener("click", async function () {
+      homeError.hidden = true;
+      var name = nameInput.value.trim();
+      var code = codeInput.value.trim().toUpperCase();
+      if (!name) { showError("Digite seu nome primeiro."); return; }
+      if (!code) { showError("Digite o código da sala."); return; }
+      joinBtn.disabled = true;
+      joinBtn.textContent = "Entrando…";
+      try {
+        var data = await apiRetry("room-join", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code: code, name: name }),
+        });
+        state = { code: data.code, playerId: data.playerId, name: data.name };
+        saveState();
+        await enterLobby();
+      } catch (e) {
+        showError(e.message);
+      } finally {
+        joinBtn.disabled = false;
+        joinBtn.textContent = "Entrar na sala";
+      }
+    });
+
+    startBtn.addEventListener("click", async function () {
+      startBtn.disabled = true;
+      try {
+        await api("room-start", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ code: state.code, playerId: state.playerId }),
+        });
+      } catch (e) {
+        alert(e.message);
+        startBtn.disabled = false;
+      }
+    });
+
+    function leaveRoom() {
+      clearInterval(pollTimer);
+      clearState();
+      showScreen("home");
+    }
+    document.getElementById("leave-btn").addEventListener("click", leaveRoom);
+    document.getElementById("leave-btn-2").addEventListener("click", leaveRoom);
+
+    function renderPlayers(players, hostId) {
+      playerList.innerHTML = players.map(function (p) {
+        var isYou = p.id === state.playerId;
+        var isHost = p.id === hostId;
+        return '<li><span class="dot"></span>' + escapeHtml(p.name) +
+          (isHost ? ' <span class="host-tag">(anfitrião)</span>' : '') +
+          (isYou ? '<span class="you-tag">você</span>' : '') + '</li>';
+      }).join("");
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, function (m) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[m];
+      });
+    }
+
+    function formatStat(name, value) {
+      var str = Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
+      return name === "Calvície" ? str + "%" : str;
+    }
+
+    function renderHand(data) {
+      handCount.textContent = "Você recebeu " + data.cards.length + " carta" + (data.cards.length === 1 ? "" : "s");
+      handGrid.innerHTML = data.cards.map(function (c) {
+        var statsHtml = data.stats.map(function (st) {
+          return '<div class="tc-stat"><span>' + escapeHtml(st) + '</span><span class="sv">' + formatStat(st, c.stats[st]) + '</span></div>';
+        }).join("");
+        return '<div class="trump-card">' +
+          '<img class="tc-photo" src="' + c.img + '" alt="' + escapeHtml(c.name) + '">' +
+          '<div class="tc-top"><div class="tc-name">' + escapeHtml(c.name) + '</div></div>' +
+          '<div class="tc-stats">' + statsHtml + '</div>' +
+          '</div>';
+      }).join("");
+    }
+
+    var pollFails = 0;
+
+    async function enterLobby() {
+      showScreen("lobby");
+      lobbyCode.textContent = state.code;
+      pollFails = 0;
+      // primeira leitura logo apos criar/entrar precisa de retry generoso --
+      // é quando a sala tem mais chance de ainda nao ter propagado.
+      try {
+        var data = await apiRetry("room-state?code=" + state.code, {});
+        applyRoomState(data);
+      } catch (e) {
+        showScreen("home");
+        clearState();
+        showError("Não consegui confirmar a sala. Tenta de novo.");
+        return;
+      }
+      pollTimer = setInterval(poll, 2500);
+    }
+
+    function applyRoomState(data) {
+      pollFails = 0;
+      renderPlayers(data.players, data.hostId);
+      var isHost = data.hostId === state.playerId;
+      startBtn.hidden = !isHost;
+      waitingNote.hidden = isHost;
+      startBtn.disabled = data.players.length < 2;
+    }
+
+    async function poll() {
+      try {
+        var data = await api("room-state?code=" + state.code, {});
+        if (data.started) {
+          clearInterval(pollTimer);
+          await loadHand();
+          return;
+        }
+        applyRoomState(data);
+      } catch (e) {
+        // a sala pode so estar demorando a propagar -- so desiste depois
+        // de varias falhas seguidas (uns 20s), nao na primeira.
+        pollFails++;
+        if (pollFails < 8) return;
+        clearInterval(pollTimer);
+        clearState();
+        showScreen("home");
+        showError("A sala não existe mais. Crie ou entre em outra.");
+      }
+    }
+
+    async function loadHand() {
+      try {
+        var data = await apiRetry("room-hand?code=" + state.code + "&playerId=" + state.playerId, {});
+        showScreen("hand");
+        renderHand(data);
+      } catch (e) {
+        clearState();
+        showScreen("home");
+        showError(e.message);
+      }
+    }
+
+    // resume de sessao
+    if (state && state.code && state.playerId) {
+      nameInput.value = state.name || "";
+      (async function () {
+        try {
+          var data = await apiRetry("room-state?code=" + state.code, {});
+          if (data.started) {
+            await loadHand();
+          } else {
+            enterLobby();
+          }
+        } catch (e) {
+          clearState();
+          showScreen("home");
+        }
+      })();
+    } else {
+      showScreen("home");
+    }
+  </script>
+</body>
+</html>

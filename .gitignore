@@ -1,6 +1,9 @@
 # Local Netlify folder
 .netlify
 
+# Node dependencies (used to bundle Netlify Functions)
+node_modules
+
 # Never commit secrets
 .env
 .env.*
@@ -14,3 +17,12 @@ roteiro-video-vendas.md
 # Pagina do curso ainda em rascunho (preco/bonus entre colchetes) —
 # tirar desta lista quando estiver pronta para ir ao ar.
 curso-financas-pessoais.html
+
+# Super Trunfo: fotos reais de amigos do Ricardo + os dados/apelidos/stats
+# deles. O repo GitHub e publico -- mesmo supertrunfo.html sendo um link
+# nao divulgado (noindex, sem link em menu), um repo publico deixaria essas
+# fotos navegaveis por qualquer um que achasse o repo. Fica so local +
+# no deploy da Netlify (netlify/functions/_cards.js e images/supertrunfo/
+# nunca devem perder essa exclusao).
+netlify/functions/_cards.js
+images/supertrunfo/

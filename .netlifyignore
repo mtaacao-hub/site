@@ -1,5 +1,14 @@
 # Arquivos internos de trabalho — nunca devem ir para o site publicado.
-# Sintaxe igual .gitignore; o Netlify CLI respeita este arquivo no deploy.
+#
+# AVISO (2026-10-04): este arquivo NAO tem efeito real sobre
+# `netlify deploy --dir`. Confirmado empiricamente -- CLAUDE.md foi
+# servido com HTTP 200 mesmo estando listado aqui. O Netlify CLI nao
+# respeita .netlifyignore em deploys de diretorio (so dotfiles/dotfolders
+# sao pulados por padrao). A exclusao real acontece em
+# /home/proezas/deploy-netlify.sh, que copia o site para uma pasta
+# temporaria SEM esses arquivos antes de rodar `netlify deploy`. Mantido
+# aqui só como lista de referência legível — atualize os dois lugares
+# juntos ao adicionar um novo arquivo interno.
 
 CLAUDE.md
 COMO-EDITAR.md
