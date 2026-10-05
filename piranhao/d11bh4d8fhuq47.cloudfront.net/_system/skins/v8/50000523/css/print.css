@@ -1,0 +1,395 @@
+body {
+	font: 0.80em Arial, Tahoma, Verdana, sans-serif;
+	margin: 0;
+	padding: 0;
+	color: #352E2E;
+}
+.hidden, #hidden {
+	position: absolute;
+	display: none;
+}
+.cleaner {
+	display: block;
+	clear: both;
+	visibility: hidden;
+	overflow: hidden;
+	width: 100%;
+	height: 0;
+	line-height: 0;
+	margin: 0;
+	padding: 0;
+}
+
+/* ------- HEADER ---------- */
+#logozone #logo a, #logozone #logo a:hover {
+	text-decoration: none;
+	color: #78265E;
+}
+#logozone #moto {
+	font-size: 1.3em;
+	font-weight: bold;
+	color: #797979;
+}
+/* ------- HEADER --------- */
+
+/* ------  MAIN ------------ */
+.box {
+	margin: 0 0 20px 0;
+	padding: 0 0 0 0;
+}
+.boxTitle h1, .boxTitle h2 {
+	color: #352E2E;
+	line-height: 1.5em;
+	font-size: 1.8em;
+	font-weight: normal;
+}
+.boxContent {
+	margin: 10px 0 0 0;
+	padding: 0 10px 0 10px;
+}
+#sidebar .boxTitle h2 {
+	color: #A9261A;
+	line-height: 1.4em;
+	font-size: 1.5em;
+}
+#sidebar .boxContent {
+	margin: 10px 0 0 0;
+	padding: 0 0 0 5px;
+}
+/* ------  MAIN ------------ */
+
+/* ----- CONTACT ------------ */
+#contact p {
+	margin-bottom: 5px;
+}
+.name {
+	color: #A9261A;
+	font-weight: bold;
+}
+#contact a {
+	color: #A9261A;
+	text-decoration: underline;
+}
+#contact a:hover {
+	color: #78265E;
+	text-decoration: underline;
+}
+/* ----- CONTACT ------------ */
+
+/* -------- ARTICLES -------- */
+.articleTime ins {
+	color: #919192;
+	text-decoration: none;
+	font-weight: bold;
+	font-size: 0.8em;
+}
+#sidebar .article {
+	padding: 2px 10px;
+}
+.article h3 {
+	font-size: 1.2em;
+}
+.article h3 a {
+	color: #A9261A;
+	text-decoration: none;
+}
+.article h3 a:hover {
+	color: #78265E;
+	text-decoration: underline;
+}
+.article ins {
+	text-decoration: none;
+	color: #888888;
+	font-size: 0.85em;
+}
+.article .articleContent {
+	margin-top: 5px;
+	margin-bottom: 10px;
+	overflow: hidden;
+	line-height: 1.8em;
+}
+.article .articleContent img {
+	margin: 5px;
+}
+/* -------- ARTICLES -------- */
+
+/* ------- LINK and INFO ----- */
+.archive {
+	margin-bottom: 5px;
+}
+.back {
+	margin-top: 5px;
+}
+/* ------- LINK and INFO ----- */
+
+/* ------- WSW -------------- */
+.boxContent img {
+	margin: 5px;
+}
+.boxContent p {
+	margin-bottom: 7px;
+	line-height: 1.7em;
+}
+a {
+	color: #A9261A;
+	text-decoration: underline;
+}
+a:hover {
+	color: #78265E;
+	text-decoration: underline;
+}
+h1, h2 {
+	margin-bottom: 7px;
+	font-weight: bold;
+	font-size: 1.8em;
+	color: #C95236;
+}
+h3 {
+	margin-bottom: 7px;
+	font-weight: bold;
+	font-size: 1.5em;
+	color: #78265e;
+}
+h4 {
+	margin-bottom: 7px;
+	font-weight: bold;
+	font-size: 1.3em;
+	color: #78265e;
+}
+h5, h6 {
+	margin-bottom: 7px;
+	font-weight: bold;
+	font-size: 1.1em;
+}
+.boxContent ol {
+	margin-left: 40px;
+}
+.boxContent ol li ol {
+	margin-left: 20px;
+}
+.boxContent ol li {
+	list-style-image: none;
+	list-style-position: outside;
+	list-style-type: decimal;
+	padding-bottom: 2px;
+	padding-top: 2px;
+}
+.boxContent ul {
+	padding-left: 15px;
+}
+.boxContent ul li {
+	background: url(../img/li.jpg) no-repeat 0px 5px;
+	padding: 3px 0 2px 20px;
+}
+blockquote {
+	color: #C95236;
+	font-style: italic;
+	margin: 0 5px;
+	padding: 5px;
+}
+table {
+	border-collapse: collapse;
+	margin: 0;
+}
+.modernTable {
+	border-collapse: collapse;
+	margin: 0;
+}
+.modernTable thead tr td {
+	background: #C95236;
+	border: 1px solid #C95236;
+	font-weight: bold;
+	padding-left: 5px;
+	padding-right: 5px;
+	margin: 0;
+}
+.modernTable tbody tr td {
+	background: none;
+	border: 1px solid #C95236;
+	padding-left: 8px;
+	padding-right: 5px;
+	margin: 0;
+}
+.rbcWidgetArea {
+	margin-top: 5px;
+	margin-bottom: 5px;
+}
+/* ------- WSW --------------- */
+
+/* ------ DISCUSSION --------- */
+.post {
+	border: 1px solid #C1C1C1;
+	height: auto;
+	margin: 0 0 15px 120px;
+	padding: 0 0 5px;
+}
+.level-1 {
+	margin-left: 5px;
+}
+.level-2 {
+	margin-left: 30px;
+}
+.level-3 {
+	margin-left: 60px;
+}
+.level-4 {
+	margin-left: 90px;
+}
+.post .head {
+	padding: 7px;
+	color: #1B1B1B;
+}
+.post .text {
+	padding: 7px;
+}
+.post .head h3 {
+	font-size: 1em;
+	font-weight: bold;
+	padding: 0;
+	margin: 0;
+	text-decoration: none;
+	color: #A9261A;
+}
+.post .head p {
+	margin: 0;
+	padding: 0;
+}
+.post .head .date, .post .head .user, .post .head .title {
+	font-weight: bold;
+	color: #1b1b1b;
+}
+.post .head ins {
+	text-decoration: none;
+}
+.post .head em {
+	text-decoration: underline;
+}
+.post .reply {
+	float: right;
+	margin-right: 10px;
+}
+.post .reply a {
+	font-weight: bold;
+	color: #A9261A;
+}
+.post .reply a:hover {
+  color: #78265E;
+}
+.newPost {
+	font-weight: bold;
+	margin-top: 5px;
+}
+/* ------ DISCUSSION --------- */
+
+/* ------ FAQ ---------------- */
+.question h3.title {
+	text-decoration: none;
+	color: #A9261A;
+	font-size: 1.1em;
+	margin-bottom: 0;
+}
+#sidebar .question h3.title {
+	background: none;
+	padding-left: 0;
+}
+#sidebar .question .answerBlock {
+	padding-left: 0;
+}
+/* ------ FAQ ---------------- */
+
+/* ----- LINKS -------------- */
+.item {
+	margin-bottom: 10px;
+	padding-bottom: 5px;
+}
+.item h2.title {
+	font-size: 1.1em;
+	margin-bottom: 5px;
+}
+.item h2.title a {
+	color: #A9261A;
+}
+.item h2.title a:hover {
+	color: #78265E;
+}
+.item .uri { 
+	color: #888888;
+	font-size: 0.9em; 
+	margin-left: 25px;
+}
+.item .uri a {
+	color: #888888;
+}
+.item .uri a:hover {
+	color: #1B1B1B;
+}
+.item .size {
+	margin-left: 25px;
+	color: #888888;
+	font-style: italic;
+	text-transform: lowercase;
+}
+.itemContent {
+	line-height: 1.5em;
+	margin-left: 25px;
+}
+/* ----- LINKS -------------- */
+
+/* ---- SERVERMAP ----------- */
+ul.ServerMap {
+	padding-left: 5px;
+	margin-left: 10px;
+}
+ul.ServerMap li {
+	list-style-image: none;
+	list-style-position: outside;
+	list-style-type: none;
+	background: none;
+	padding: 4px 0 4px 0;
+}
+ul.ServerMap li a {
+	background: url(../img/butterfly_faq.jpg) no-repeat left;
+	padding-left: 20px;
+	font-weight: bold;
+	font-size: 1em;
+	text-decoration: underline;
+}
+ul.ServerMap ul {
+	padding: 5px 0 0 15px;
+}
+ul.ServerMap ul li a {
+	background: url(../img/arrow_sitemap.jpg) no-repeat 0px 6px;
+	padding-left: 15px;
+	font-weight: normal;
+	color: #1B1B1B;
+	text-decoration: underline;
+}
+ul.ServerMap ul li a:hover {
+	color: #888888;
+} 
+/* ---- SERVERMAP ----------- */
+
+/* ---- PRODUCTS ------------ */
+.product {
+	margin-bottom: 10px;
+	margin-top: 10px;
+}
+.product .title {
+	font-size: 1.1em;
+	font-weight: bold;
+}
+.product .title a {
+	color: #A9261A;
+}
+.product .title a:hover {
+	color: #78265E;
+}
+/* ---- PRODUCTS ------------ */
+
+/* ---- POLL ---------------- */
+.poll img, .poll a img, .box_content .poll img, .box_content .poll a img {
+	border: none;
+	text-decoration: none;
+	margin: 0;
+}
+/* ---- POLL ---------------- */
