@@ -283,11 +283,13 @@ section { padding: 64px 0; }
 .card-soon p { color: var(--color-text-muted); margin-bottom: 0; }
 .card-soon.is-live {
   border-style: solid;
+  border-width: 2px;
+  border-color: var(--color-green);
   opacity: 1;
   display: block;
   color: inherit;
 }
-.card-soon.is-live:hover { border-color: var(--color-green); text-decoration: none; }
+.card-soon.is-live:hover { border-color: var(--color-green-dark); text-decoration: none; }
 .badge-soon {
   display: inline-block;
   font-size: 0.72rem;
