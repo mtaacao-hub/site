@@ -679,6 +679,6 @@ canvas.growth-chart { width: 100%; height: 220px; display: block; }
   .nav.open { display: flex; }
   .nav-link { padding: 12px 8px; }
   .nav-toggle { display: block; }
-  .logo { font-size: 1.1rem; white-space: nowrap; }
-  .logo-mark { width: 42px; height: 42px; }
+  .logo { font-size: 1.3rem; white-space: nowrap; }
+  .logo-mark { width: 46px; height: 46px; }
 }
