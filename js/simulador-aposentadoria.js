@@ -90,7 +90,11 @@
         inputAte.step = "1";
         inputAte.value = Math.round(resolved[i].end);
         inputAte.addEventListener("input", function () {
-          fasesAporte[i].ateIdade = parseFloat(inputAte.value);
+          var v = parseFloat(inputAte.value);
+          fasesAporte[i].ateIdade = isNaN(v) ? null : v;
+          update();
+        });
+        inputAte.addEventListener("change", function () {
           renderFasesPreservingFocus();
           update();
         });
