@@ -41,6 +41,7 @@
   td:nth-child(2){text-align:left;color:var(--muted);max-width:270px;overflow:hidden;text-overflow:ellipsis}
   tbody tr:hover{background:rgba(201,162,39,.07)}
   .na{color:rgba(244,239,227,.3)}
+  td.divg{color:#E8A33D}
   .nota{margin-top:22px;padding:16px 18px;border-radius:11px;background:rgba(0,0,0,.25);
         border:1px solid rgba(244,239,227,.12);font-size:.78rem;line-height:1.65;color:var(--muted)}
   .nota b{color:var(--cream)}
@@ -64,8 +65,10 @@
 
   <h1>Base de fundamentos — CVM</h1>
   <p class="sub">Dados extraídos direto dos Dados Abertos da CVM (demonstrações anuais e trimestrais).
-  <b>LPA 12m</b> e <b>VPA atual</b> são as janelas móveis, comparáveis com Status Invest e Fundamentus.
-  <b>LPA ano</b> e <b>VPA ano</b> são o último exercício fechado.</p>
+  <b>LPA 12m</b> é o nosso cálculo — lucro atribuível ao controlador dos últimos 12 meses dividido
+  pelas ações em circulação. <b>LPA 12m publ.</b> é o mesmo período montado a partir dos LPAs que a
+  própria empresa publicou; quando os dois discordam em mais de 10%, o publicado aparece marcado
+  com <b>≠</b>. <b>LPA ano</b> e <b>VPA ano</b> são o último exercício fechado.</p>
 
   <div class="meta" id="meta"></div>
 
@@ -81,14 +84,15 @@
         <th data-col="ticker">Ticker</th>
         <th data-col="nome">Empresa</th>
         <th data-col="lpa">LPA ano</th>
-        <th data-col="lpa_ttm">LPA 12m</th>
+        <th data-col="lpa_ttm_calc">LPA 12m</th>
+        <th data-col="lpa_ttm">LPA 12m publ.</th>
         <th data-col="vpa">VPA ano</th>
         <th data-col="vpa_atual">VPA atual</th>
         <th data-col="dpa_60m">DPA 60m</th>
         <th data-col="dpa_medio">DPA méd</th>
         <th data-col="cagr_60m">CAGR 60m</th>
       </tr></thead>
-      <tbody id="corpo"><tr><td colspan="9" class="carregando">Carregando…</td></tr></tbody>
+      <tbody id="corpo"><tr><td colspan="10" class="carregando">Carregando…</td></tr></tbody>
     </table>
   </div>
 
@@ -114,12 +118,13 @@
       var e=d.empresas[cnpj], r=e.resumo||{};
       dados.push({
         ticker:(e.tickers||[]).join(" "), nome:e.nome,
-        lpa:n(r.lpa), lpa_ttm:n(r.lpa_ttm), ttm_flag:!!r.lpa_ttm_inconsistente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
+        lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
+        divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
         dpa_60m:n(r.dpa_60m), dpa_medio:n(r.dpa_medio), cagr_60m:n(r.cagr_60m)
       });
     });
     var comTicker=dados.filter(function(x){return x.ticker;}).length;
-    var comTtm=dados.filter(function(x){return x.lpa_ttm!==null;}).length;
+    var comTtm=dados.filter(function(x){return x.lpa_ttm_calc!==null;}).length;
     document.getElementById("meta").innerHTML =
       '<span class="chip"><b>'+dados.length+'</b> empresas</span>'+
       '<span class="chip"><b>'+comTicker+'</b> com ticker</span>'+
@@ -127,23 +132,30 @@
       '<span class="chip">exercícios <b>'+d.anos.join("–")+'</b></span>'+
       '<span class="chip">atualizado <b>'+(d.gerado_em||"").slice(0,10)+'</b></span>';
     document.getElementById("nota").innerHTML =
-      '<b>Por que nem toda empresa tem LPA 12m:</b> muitas companhias não publicam a linha de lucro por ação '+
-      'nas demonstrações trimestrais — só na anual. Além disso, quando as três pontas do cálculo '+
-      '(trimestral atual, trimestral do ano anterior e exercício fechado) não usam a mesma forma de apresentar o LPA, '+
-      'o resultado fica suspeito. Esses casos vêm marcados com <b>!</b> ao lado do número — publicados para você poder '+
-      'comparar, mas sem garantia. Exemplo real: a Vale reporta LPA de 9M/2025 maior que o do ano inteiro, e por isso '+
-      'o TTM dela (0,52 aqui, 0,49 no Fundamentus) sai de uma subtração entre bases que não fecham.<br><br>'+
+      '<b>Como o LPA de 12 meses é calculado:</b> lucro atribuível aos controladores do acumulado do ano '+
+      '+ exercício fechado anterior − acumulado equivalente do ano anterior, dividido pelas ações em '+
+      'circulação (descontadas as em tesouraria) do trimestre mais recente. Na WEG isso dá 1,4941, o '+
+      'mesmo número do Status Invest e do Fundamentus.<br><br>'+
+      '<b>Por que não usamos só o LPA que a empresa publica:</b> a apresentação varia e às vezes não é '+
+      'comparável entre períodos. O Itaú lança na linha-pai a soma de ON + PN (8,10 quando o LPA real é '+
+      '4,05). A Engie bonificou 40% das ações em 2025 e não reapresentou o LPA dos trimestres anteriores, '+
+      'então somar e subtrair aqueles LPAs mistura bases diferentes. Lucro em reais é sempre comparável; '+
+      'LPA por ação muda de base sem avisar. Onde os dois caminhos discordam em mais de 10%, a coluna '+
+      '<b>LPA 12m publ.</b> vem marcada com <b>≠</b>.<br><br>'+
+      '<b>Ressalva:</b> o LPA oficial usa a média ponderada de ações do período; nós usamos a quantidade '+
+      'do fim do período, porque é a que a CVM informa por trimestre. Em empresa que emitiu ou recomprou '+
+      'ação no meio do período isso gera diferença de alguns por cento.<br><br>'+
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+'. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
-    corpo.innerHTML='<tr><td colspan="9" class="carregando">Não consegui carregar os dados.</td></tr>';
+    corpo.innerHTML='<tr><td colspan="10" class="carregando">Não consegui carregar os dados.</td></tr>';
   });
 
   function render(){
     var termo=busca.value.trim().toLowerCase();
     var lista=dados.filter(function(x){
       if(soTicker.checked && !x.ticker) return false;
-      if(soTtm.checked && x.lpa_ttm===null) return false;
+      if(soTtm.checked && x.lpa_ttm_calc===null) return false;
       if(!termo) return true;
       return x.ticker.toLowerCase().indexOf(termo)>=0 || x.nome.toLowerCase().indexOf(termo)>=0;
     });
@@ -156,11 +168,14 @@
     });
     corpo.innerHTML = lista.length ? lista.slice(0,400).map(function(x){
       return "<tr><td>"+esc(x.ticker||"—")+"</td><td>"+esc(x.nome)+"</td>"+
-        "<td>"+fmt(x.lpa)+"</td><td>"+fmt(x.lpa_ttm)+"</td>"+
+        "<td>"+fmt(x.lpa)+"</td>"+
+        "<td>"+fmt(x.lpa_ttm_calc)+"</td>"+
+        "<td"+(x.divg?' class="divg" title="a empresa publica o LPA numa base que nao fecha com lucro/acoes"':"")+">"+
+          fmt(x.lpa_ttm)+(x.divg?" \u2260":"")+"</td>"+
         "<td>"+fmt(x.vpa)+"</td><td>"+fmt(x.vpa_atual)+"</td>"+
         "<td>"+fmt(x.dpa_60m)+"</td><td>"+fmt(x.dpa_medio)+"</td>"+
         "<td>"+fmt(x.cagr_60m,"%")+"</td></tr>";
-    }).join("") : '<tr><td colspan="9" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="10" class="carregando">Nada encontrado.</td></tr>';
   }
 
   busca.addEventListener("input",render);
