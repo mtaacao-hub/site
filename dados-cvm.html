@@ -130,7 +130,9 @@
       '<b>Por que nem toda empresa tem LPA 12m:</b> muitas companhias não publicam a linha de lucro por ação '+
       'nas demonstrações trimestrais — só na anual. Além disso, quando as três pontas do cálculo '+
       '(trimestral atual, trimestral do ano anterior e exercício fechado) não usam a mesma forma de apresentar o LPA, '+
-      'o resultado fica sem sentido; nesses casos o número é <b>omitido de propósito</b> em vez de publicado errado.<br><br>'+
+      'o resultado fica suspeito. Esses casos vêm marcados com <b>!</b> ao lado do número — publicados para você poder '+
+      'comparar, mas sem garantia. Exemplo real: a Vale reporta LPA de 9M/2025 maior que o do ano inteiro, e por isso '+
+      'o TTM dela (0,52 aqui, 0,49 no Fundamentus) sai de uma subtração entre bases que não fecham.<br><br>'+
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+'. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
