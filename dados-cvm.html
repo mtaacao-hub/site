@@ -143,8 +143,12 @@
       'LPA por ação muda de base sem avisar. Onde os dois caminhos discordam em mais de 10%, a coluna '+
       '<b>LPA 12m publ.</b> vem marcada com <b>≠</b>.<br><br>'+
       '<b>Ressalva:</b> o LPA oficial usa a média ponderada de ações do período; nós usamos a quantidade '+
-      'do fim do período, porque é a que a CVM informa por trimestre. Em empresa que emitiu ou recomprou '+
-      'ação no meio do período isso gera diferença de alguns por cento.<br><br>'+
+      'do fim do período, porque é a que a CVM informa por trimestre.<br><br>'+
+      '<b>Por que pode divergir do Fundamentus:</b> conferindo contra as telas deles, o patrimônio e o '+
+      'lucro daqui batem na casa do milhão (WEG, Vale e Engie conferidas). A diferença fica no número de '+
+      'ações: eles usam uma contagem corrente de mercado, bruta, enquanto aqui vale a declarada no mesmo '+
+      'balanço e em circulação, descontando as ações em tesouraria. Onde a empresa tem muita ação em '+
+      'tesouraria — a Vale tem 4,3% do total — as duas convenções dão resultados diferentes.<br><br>'+
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+'. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
