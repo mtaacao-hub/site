@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Calculadora de Preço-Teto — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #10233B;
+    --navy-deep: #0c1a2c;
+    --navy-light: #152c47;
+    --gold: #C9A227;
+    --gold-soft: rgba(201,162,39,0.18);
+    --cream: #F4EFE3;
+    --muted: rgba(244,239,227,0.62);
+    --line: rgba(201,162,39,0.25);
+    --good: #4ea36b;
+    --bad: #c8553d;
+    --font: "Poppins", Arial, Helvetica, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(160deg,#0c1a2c 0%,#10233B 55%,#152c47 100%);
+    background-attachment: fixed;
+    color: var(--cream);
+    font-family: var(--font);
+    padding: 32px 20px 64px;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+
+  header.top { display: flex; align-items: center; gap: 12px; margin-bottom: 36px; }
+  header.top .brand { font-weight: 800; font-size: 1rem; color: var(--gold); letter-spacing: 0.02em; }
+
+  h1 { font-size: 2rem; font-weight: 800; margin: 0 0 10px; line-height: 1.2; }
+  .sub { color: var(--muted); font-size: 0.98rem; line-height: 1.6; max-width: 640px; margin: 0 0 32px; }
+
+  .layout { display: grid; grid-template-columns: 1fr; gap: 24px; }
+  @media (min-width: 900px) { .layout { grid-template-columns: 380px 1fr; align-items: start; } }
+
+  .panel {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+  }
+  .panel h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gold); margin: 0 0 18px; font-weight: 700; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 0.82rem; margin-bottom: 6px; font-weight: 600; }
+  .field .tip { display: block; font-size: 0.74rem; color: var(--muted); margin-top: 4px; line-height: 1.45; font-weight: 400; }
+  .field input {
+    width: 100%; padding: 11px 13px; font-size: 1rem; font-family: var(--font);
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(244,239,227,0.18);
+    border-radius: 8px; color: var(--cream);
+  }
+  .field input:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: transparent; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .results { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 620px) { .results { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); } }
+
+  .card {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px;
+    display: flex; flex-direction: column;
+  }
+  .card .method { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.09em; color: var(--gold); font-weight: 700; margin-bottom: 4px; }
+  .card .method-sub { font-size: 0.76rem; color: var(--muted); margin-bottom: 16px; line-height: 1.4; }
+  .card .price { font-size: 2rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .card .price.na { font-size: 1.05rem; color: var(--muted); font-weight: 600; }
+  .card .price-label { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+  .card .margin { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(244,239,227,0.12); font-size: 0.86rem; }
+  .card .margin .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .val.pos { color: var(--good); }
+  .val.neg { color: var(--bad); }
+  .card .extra { margin-top: 10px; font-size: 0.8rem; color: var(--muted); }
+  .card .formula { margin-top: 14px; font-size: 0.72rem; color: var(--muted); line-height: 1.5; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .quote-bar {
+    background: var(--gold-soft); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem; display: flex;
+    justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .quote-bar strong { font-variant-numeric: tabular-nums; }
+
+  .method-notes { margin-top: 28px; }
+  .method-notes details {
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin-bottom: 10px;
+    background: rgba(255,255,255,0.03);
+  }
+  .method-notes summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--gold); }
+  .method-notes p { font-size: 0.86rem; line-height: 1.65; color: var(--muted); margin: 12px 0 0; }
+
+  .disclaimer {
+    margin-top: 32px; padding: 18px 20px; border-radius: 12px;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(244,239,227,0.12);
+    font-size: 0.8rem; line-height: 1.6; color: var(--muted);
+  }
+  footer.bottom { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; justify-content: center; }
+  footer.bottom .handle { font-weight: 800; font-size: 0.95rem; color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <svg width="35" height="22" viewBox="0 0 200 120" fill="none" aria-hidden="true">
+      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+      </g>
+    </svg>
+    <span class="brand">Muita Ação</span>
+  </header>
+
+  <h1>Calculadora de preço-teto</h1>
+  <p class="sub">Três métodos clássicos de valuation — Bazin, Graham e Lynch — calculados com os números que <strong>você</strong> informa. Serve pra entender como cada escola chega a um "preço justo" diferente a partir dos mesmos dados.</p>
+
+  <div class="layout">
+
+    <div class="panel">
+      <h2>Dados da empresa</h2>
+
+      <div class="field">
+        <label for="ticker">Empresa ou ticker (opcional)</label>
+        <input type="text" id="ticker" placeholder="ex: TAEE11" maxlength="20">
+      </div>
+
+      <div class="field">
+        <label for="cotacao">Cotação atual (R$)</label>
+        <input type="number" id="cotacao" value="35.00" min="0" step="0.01" inputmode="decimal">
+      </div>
+
+      <div class="field">
+        <label for="dpa">Dividendos por ação — média anual (R$)</label>
+        <input type="number" id="dpa" value="2.60" min="0" step="0.01" inputmode="decimal">
+        <span class="tip">Média de proventos (dividendos + JCP) por ação dos últimos 3 a 5 anos, pra não distorcer com um ano atípico.</span>
+      </div>
+
+      <div class="field">
+        <label for="yield-min">Dividend yield mínimo exigido (% a.a.)</label>
+        <input type="number" id="yield-min" value="6" min="0.1" step="0.5" inputmode="decimal">
+        <span class="tip">Bazin usava 6%. Quem exige mais retorno usa 8% ou 10% — e chega a um preço-teto menor.</span>
+      </div>
+
+      <div class="field row2">
+        <div>
+          <label for="lpa">LPA (R$)</label>
+          <input type="number" id="lpa" value="3.10" step="0.01" inputmode="decimal">
+        </div>
+        <div>
+          <label for="vpa">VPA (R$)</label>
+          <input type="number" id="vpa" value="12.40" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+      <span class="tip" style="display:block;margin:-10px 0 16px;color:var(--muted);font-size:0.74rem;">Lucro por ação dos últimos 12 meses e valor patrimonial por ação.</span>
+
+      <div class="field">
+        <label for="crescimento">Crescimento esperado dos lucros (% a.a.)</label>
+        <input type="number" id="crescimento" value="8" min="0" step="0.5" inputmode="decimal">
+        <span class="tip">Usado só no método de Lynch. Uma referência é o crescimento médio do lucro nos últimos 3-5 anos — com pé no chão.</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="quote-bar">
+        <span id="quote-label">Cotação informada</span>
+        <strong id="quote-value">R$ 35,00</strong>
+      </div>
+
+      <div class="results">
+
+        <div class="card">
+          <div class="method">Décio Bazin</div>
+          <div class="method-sub">Preço-teto por dividendos</div>
+          <div class="price" id="bazin-price">—</div>
+          <div class="price-label">preço-teto</div>
+          <div class="margin">Margem: <span class="val" id="bazin-margin">—</span></div>
+          <div class="extra" id="bazin-extra"></div>
+          <div class="formula" id="bazin-formula"></div>
+        </div>
+
+        <div class="card">
+          <div class="method">Benjamin Graham</div>
+          <div class="method-sub">Valor intrínseco</div>
+          <div class="price" id="graham-price">—</div>
+          <div class="price-label">preço justo</div>
+          <div class="margin">Margem: <span class="val" id="graham-margin">—</span></div>
+          <div class="extra" id="graham-extra"></div>
+          <div class="formula" id="graham-formula"></div>
+        </div>
+
+        <div class="card">
+          <div class="method">Peter Lynch</div>
+          <div class="method-sub">Valor justo pelo crescimento</div>
+          <div class="price" id="lynch-price">—</div>
+          <div class="price-label">preço justo</div>
+          <div class="margin">Margem: <span class="val" id="lynch-margin">—</span></div>
+          <div class="extra" id="lynch-extra"></div>
+          <div class="formula" id="lynch-formula"></div>
+        </div>
+
+      </div>
+
+      <div class="method-notes">
+        <details>
+          <summary>Como funciona o método de Bazin</summary>
+          <p>Décio Bazin partia de uma ideia simples: uma ação só vale a pena se os dividendos que ela paga representarem, no mínimo, 6% ao ano sobre o preço pago. Invertendo a conta, o preço máximo a pagar é o dividendo médio dividido por 0,06. É um método que só olha para a distribuição de caixa ao acionista — ignora crescimento, patrimônio e qualidade do negócio. Funciona melhor em empresas maduras e com histórico estável de proventos; faz pouco sentido em empresa que reinveste tudo e distribui pouco.</p>
+        </details>
+        <details>
+          <summary>Como funciona o método de Graham</summary>
+          <p>Graham considerava razoável pagar até 15 vezes o lucro e até 1,5 vez o patrimônio líquido. Multiplicando os dois limites (15 × 1,5 = 22,5) e tirando a raiz do produto com LPA e VPA, chega-se a um valor intrínseco que equilibra lucro e patrimônio. Só é aplicável quando lucro e patrimônio são positivos — com prejuízo ou patrimônio negativo, a fórmula não tem resultado real. Por olhar muito para o passado contábil, tende a subestimar empresas de crescimento acelerado e superestimar empresas em setores que exigem muito capital.</p>
+        </details>
+        <details>
+          <summary>Como funciona o método de Lynch</summary>
+          <p>Lynch comparava o quanto se paga pelo lucro com o ritmo em que esse lucro cresce. A versão simplificada do preço justo é o lucro por ação multiplicado pela taxa de crescimento esperada. O indicador PEG resume a mesma ideia: é o P/L dividido pelo crescimento — abaixo de 1 sugere que se está pagando pouco pelo crescimento, acima de 1 sugere o contrário. O ponto frágil é que tudo depende da taxa de crescimento estimada, que é uma premissa sua sobre o futuro — e crescimento passado não se repete automaticamente.</p>
+        </details>
+      </div>
+
+      <div class="disclaimer">
+        Esta é uma ferramenta educacional. Os três métodos são fórmulas públicas e consagradas de valuation, aplicadas <strong>exclusivamente sobre os números que você mesmo informa</strong> — a calculadora não busca dados de mercado, não avalia a qualidade do negócio e não sabe nada sobre a sua situação. Ela não constitui recomendação de investimento, análise de valor mobiliário, nem promessa ou garantia de rentabilidade. Métodos diferentes chegam a números bem diferentes para a mesma empresa — isso é esperado, e é justamente o ponto.
+      </div>
+
+      <footer class="bottom">
+        <svg width="28" height="18" viewBox="0 0 200 120" fill="none" aria-hidden="true">
+          <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+            <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+            <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+            <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+            <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+            <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+          </g>
+        </svg>
+        <span class="handle">@muitaacao</span>
+      </footer>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var inputs = ["ticker","cotacao","dpa","yield-min","lpa","vpa","crescimento"].map($);
+
+  function brl(v) {
+    return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function pct(v) {
+    return (v >= 0 ? "+" : "") + v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+  }
+  function num(id) {
+    var v = parseFloat($(id).value.replace(",", "."));
+    return isNaN(v) ? null : v;
+  }
+
+  function setMargin(elId, preco, cotacao) {
+    var el = $(elId);
+    if (preco === null || cotacao === null || cotacao <= 0) {
+      el.textContent = "—";
+      el.className = "val";
+      return;
+    }
+    var margem = ((preco - cotacao) / cotacao) * 100;
+    el.textContent = pct(margem);
+    el.className = "val " + (margem >= 0 ? "pos" : "neg");
+  }
+
+  function setPrice(elId, valor, naMsg) {
+    var el = $(elId);
+    if (valor === null) {
+      el.textContent = naMsg || "Inaplicável";
+      el.className = "price na";
+    } else {
+      el.textContent = brl(valor);
+      el.className = "price";
+    }
+  }
+
+  function calc() {
+    var cotacao = num("cotacao");
+    var dpa = num("dpa");
+    var yieldMin = num("yield-min");
+    var lpa = num("lpa");
+    var vpa = num("vpa");
+    var g = num("crescimento");
+
+    var ticker = $("ticker").value.trim();
+    $("quote-label").textContent = ticker ? "Cotação informada — " + ticker.toUpperCase() : "Cotação informada";
+    $("quote-value").textContent = cotacao !== null ? brl(cotacao) : "—";
+
+    // ---- Bazin: PT = DPA medio / yield minimo ----
+    var bazin = null;
+    if (dpa !== null && dpa > 0 && yieldMin !== null && yieldMin > 0) {
+      bazin = dpa / (yieldMin / 100);
+      $("bazin-formula").textContent = brl(dpa) + " ÷ " + (yieldMin / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+      $("bazin-extra").textContent = cotacao !== null && cotacao > 0
+        ? "Yield na cotação atual: " + ((dpa / cotacao) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%"
+        : "";
+    } else {
+      $("bazin-formula").textContent = "";
+      $("bazin-extra").textContent = "Precisa de dividendo médio e yield mínimo maiores que zero.";
+    }
+    setPrice("bazin-price", bazin);
+    setMargin("bazin-margin", bazin, cotacao);
+
+    // ---- Graham: VI = raiz(22,5 x LPA x VPA) ----
+    var graham = null;
+    if (lpa !== null && vpa !== null && lpa > 0 && vpa > 0) {
+      graham = Math.sqrt(22.5 * lpa * vpa);
+      $("graham-formula").textContent = "√(22,5 × " + brl(lpa) + " × " + brl(vpa) + ")";
+      $("graham-extra").textContent = cotacao !== null && cotacao > 0
+        ? "P/L " + (cotacao / lpa).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) +
+          "  ·  P/VP " + (cotacao / vpa).toLocaleString("pt-BR", { maximumFractionDigits: 2 })
+        : "";
+    } else {
+      $("graham-formula").textContent = "";
+      $("graham-extra").textContent = "Só se aplica com lucro e patrimônio por ação positivos.";
+    }
+    setPrice("graham-price", graham);
+    setMargin("graham-margin", graham, cotacao);
+
+    // ---- Lynch: preco justo = LPA x g  |  PEG = (P/L) / g ----
+    var lynch = null;
+    if (lpa !== null && lpa > 0 && g !== null && g > 0) {
+      lynch = lpa * g;
+      $("lynch-formula").textContent = brl(lpa) + " × " + g.toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+      if (cotacao !== null && cotacao > 0) {
+        var peg = (cotacao / lpa) / g;
+        var leitura = peg < 1 ? "abaixo de 1" : (peg > 1 ? "acima de 1" : "igual a 1");
+        $("lynch-extra").textContent = "PEG " + peg.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + " (" + leitura + ")";
+      } else {
+        $("lynch-extra").textContent = "";
+      }
+    } else {
+      $("lynch-formula").textContent = "";
+      $("lynch-extra").textContent = "Precisa de lucro por ação e crescimento maiores que zero.";
+    }
+    setPrice("lynch-price", lynch);
+    setMargin("lynch-margin", lynch, cotacao);
+  }
+
+  inputs.forEach(function (el) { if (el) el.addEventListener("input", calc); });
+  calc();
+})();
+</script>
+</body>
+</html>
