@@ -133,8 +133,11 @@
       <h2>Dados da empresa</h2>
 
       <div class="field">
-        <label for="ticker">Empresa ou ticker (opcional)</label>
-        <input type="text" id="ticker" placeholder="ex: TAEE11" maxlength="20">
+        <label for="ticker">Empresa ou ticker</label>
+        <input type="text" id="ticker" placeholder="ex: TAEE11" maxlength="20"
+               list="tickers" autocomplete="off" spellcheck="false">
+        <datalist id="tickers"></datalist>
+        <span class="tip" id="ticker-status">Digite um ticker para puxar os números da CVM e da B3, ou preencha à mão.</span>
       </div>
 
       <div class="field">
@@ -251,6 +254,74 @@
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+
+  // ---- base de fundamentos (CVM) + cotação (B3) -------------------------
+  // A base é carregada uma vez e indexada por ticker. Preencher os campos não
+  // os trava: tudo continua editável, porque a premissa de crescimento e o
+  // yield exigido são escolha de quem usa, não dado de balanço.
+  var BASE = null, INDICE = {};
+
+  function fmtData(iso) {
+    if (!iso) return "";
+    var p = String(iso).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
+  }
+
+  function indexar(d) {
+    var lista = [];
+    Object.keys(d.empresas).forEach(function (cnpj) {
+      var e = d.empresas[cnpj], r = e.resumo || {}, mkt = e.mercado || {};
+      (e.tickers || []).forEach(function (tk) {
+        INDICE[tk] = { nome: e.nome, resumo: r, mercado: mkt[tk] || {} };
+        lista.push(tk);
+      });
+    });
+    lista.sort();
+    $("tickers").innerHTML = lista.map(function (t) {
+      return '<option value="' + t + '"></option>';
+    }).join("");
+  }
+
+  function carregarBase() {
+    return fetch("dados-cvm.json").then(function (r) { return r.json(); })
+      .then(function (d) { BASE = d; indexar(d); return d; });
+  }
+
+  function preencher(tk) {
+    var reg = INDICE[tk];
+    var status = $("ticker-status");
+    if (!reg) {
+      status.textContent = BASE
+        ? "Sem dados para esse ticker — preencha à mão."
+        : "Carregando a base…";
+      return;
+    }
+    var r = reg.resumo, m = reg.mercado, usados = [], faltando = [];
+
+    function por(id, valor, rotulo) {
+      if (valor === undefined || valor === null) { faltando.push(rotulo); return; }
+      $(id).value = Number(valor).toFixed(2);
+      usados.push(rotulo);
+    }
+    por("cotacao", m.preco, "cotação");
+    // Bazin pede média de vários anos, não o último: usamos a janela de 60
+    // meses e só caímos nos 12 meses quando não há histórico suficiente.
+    por("dpa", r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_ttm, "dividendos");
+    por("lpa", r.lpa_ttm_calc, "LPA");
+    por("vpa", r.vpa_atual, "VPA");
+    if (r.cagr_60m !== undefined && r.cagr_60m !== null) {
+      // crescimento passado é ponto de partida, não previsão — fica editável
+      $("crescimento").value = Math.max(0, Number(r.cagr_60m)).toFixed(1);
+      usados.push("crescimento histórico");
+    }
+
+    var txt = reg.nome + " — carregado: " + usados.join(", ") + ".";
+    if (m.data) txt += " Cotação de " + fmtData(m.data) + ".";
+    if (r.lpa_ttm_calc_ate) txt += " Balanço até " + fmtData(r.lpa_ttm_calc_ate) + ".";
+    if (faltando.length) txt += " Sem dado de " + faltando.join(" e ") + " — preencha à mão.";
+    status.textContent = txt;
+    calc();
+  }
   var inputs = ["ticker","cotacao","dpa","yield-min","lpa","vpa","crescimento"].map($);
 
   function brl(v) {
@@ -351,6 +422,23 @@
   }
 
   inputs.forEach(function (el) { if (el) el.addEventListener("input", calc); });
+
+  var tickerEl = $("ticker"), timer = null;
+  function tentarPreencher() {
+    var tk = (tickerEl.value || "").trim().toUpperCase();
+    if (tk.length < 4) return;
+    if (!BASE) { carregarBase().then(function () { preencher(tk); }); return; }
+    preencher(tk);
+  }
+  tickerEl.addEventListener("change", tentarPreencher);
+  tickerEl.addEventListener("input", function () {
+    clearTimeout(timer);
+    timer = setTimeout(tentarPreencher, 400);
+  });
+  carregarBase().catch(function () {
+    $("ticker-status").textContent =
+      "Não consegui carregar a base — preencha os campos à mão.";
+  });
   calc();
 })();
 </script>
