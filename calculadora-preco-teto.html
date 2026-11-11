@@ -355,8 +355,8 @@
     por("dpa", r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_ttm, "dividendos");
     por("lpa", r.lpa_ttm_calc, "LPA");
     por("vpa", r.vpa_atual, "VPA");
-    // fluxo de caixa livre por ação: vem do exercício fechado (anual), porque
-    // capex trimestral é irregular demais para anualizar sem distorcer
+    // fluxo de caixa livre por ação dos últimos 12 meses, somando caixa real
+    // de quatro trimestres (acumulado atual + ano cheio − acumulado anterior)
     por("fcl", r.fcl_acao, "fluxo de caixa livre");
     if (r.cagr_60m !== undefined && r.cagr_60m !== null) {
       // crescimento passado é ponto de partida, não previsão — fica editável
