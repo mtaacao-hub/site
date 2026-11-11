@@ -33,7 +33,7 @@
   table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:860px}
   th{text-align:right;padding:12px 10px;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;
      color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
-  th:first-child,th:nth-child(2),th:nth-child(3){text-align:left}
+  th:first-child,th:nth-child(2),th:nth-child(3),th:nth-child(4){text-align:left}
   th:hover{color:var(--cream)}
   td{padding:10px;text-align:right;border-bottom:1px solid rgba(244,239,227,.07);
      font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -76,7 +76,7 @@
   <div class="meta" id="meta"></div>
 
   <div class="controls">
-    <input type="search" id="busca" placeholder="Buscar por ticker, empresa ou setor…" autocomplete="off">
+    <input type="search" id="busca" placeholder="Buscar por ticker, empresa, setor ou subsetor…" autocomplete="off">
     <label class="only"><input type="checkbox" id="so-ticker" checked> só empresas com ticker</label>
     <label class="only"><input type="checkbox" id="so-ttm"> só com LPA 12m</label>
     <label class="only"><input type="checkbox" id="so-magic"> só no ranking Magic Formula</label>
@@ -88,6 +88,7 @@
         <th data-col="ticker">Ticker</th>
         <th data-col="nome">Empresa</th>
         <th data-col="setor">Setor</th>
+        <th data-col="subsetor">Subsetor</th>
         <th data-col="preco">Preço</th>
         <th data-col="p_l">P/L</th>
         <th data-col="p_vp">P/VP</th>
@@ -104,7 +105,7 @@
         <th data-col="dpa_medio">DPA méd</th>
         <th data-col="cagr_60m">CAGR 60m</th>
       </tr></thead>
-      <tbody id="corpo"><tr><td colspan="18" class="carregando">Carregando…</td></tr></tbody>
+      <tbody id="corpo"><tr><td colspan="19" class="carregando">Carregando…</td></tr></tbody>
     </table>
   </div>
 
@@ -136,7 +137,8 @@
       tks.forEach(function(tk){
         var m=mkt[tk]||{};
         dados.push({
-          ticker:tk, nome:e.nome, setor:e.setor||"",
+          ticker:tk, nome:e.nome,
+          setor:e.setor_b3||e.setor||"", subsetor:e.subsetor||e.segmento||"",
           preco:n(m.preco), p_l:n(m.p_l), p_vp:n(m.p_vp), dy:n(m.dy),
           roic:n(r.roic), roic_incerto:!!r.roic_incerto,
           ev_ebit:n(m.ev_ebit), magic:n(m.magic_rank),
@@ -180,7 +182,12 @@
       'são a operação delas, então EV/EBIT não quer dizer nada — e, seguindo Greenblatt, '+
       'também ficam de fora as de energia elétrica e saneamento, cujo retorno é definido por '+
       'regulação tarifária e não por vantagem competitiva. O setor vem do cadastro de companhias '+
-      'abertas da CVM, e dá para buscar por ele no campo acima.<br><br>'+
+      'da B3 (setor econômico / subsetor / segmento), com o cadastro da CVM cobrindo quem a B3 não '+
+      'classificou. Dá para buscar por setor ou subsetor no campo acima.<br><br>'+
+      '<b>Janelas:</b> LPA, EBIT, fluxo de caixa livre e dividendos são todos de 12 meses móveis; '+
+      'patrimônio, dívida e capital empregado vêm do último balanço trimestral; o preço é do último '+
+      'pregão. O EV/EBIT já usou EBIT do exercício fechado com preço de hoje — misturava três datas '+
+      'na mesma conta e foi corrigido.<br><br>'+
       '<b>ROIC marcado com ?:</b> nosso capital empregado é capital de giro + imobilizado. Isso deixa de '+
       'fora, de propósito, o intangível — Greenblatt não quer ágio de aquisição inflando o capital — mas '+
       'também deixa de fora "Propriedades para Investimento", onde fica o ativo de imobiliária. Quando o '+
@@ -192,7 +199,7 @@
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+' e arquivo de pregão da B3. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
-    corpo.innerHTML='<tr><td colspan="18" class="carregando">Não consegui carregar os dados.</td></tr>';
+    corpo.innerHTML='<tr><td colspan="19" class="carregando">Não consegui carregar os dados.</td></tr>';
   });
 
   function render(){
@@ -203,7 +210,8 @@
       if(soMagic.checked && x.magic===null) return false;
       if(!termo) return true;
       return x.ticker.toLowerCase().indexOf(termo)>=0 || x.nome.toLowerCase().indexOf(termo)>=0
-          || x.setor.toLowerCase().indexOf(termo)>=0;
+          || x.setor.toLowerCase().indexOf(termo)>=0
+          || x.subsetor.toLowerCase().indexOf(termo)>=0;
     });
     lista.sort(function(a,b){
       var va=a[ordem.col], vb=b[ordem.col];
@@ -215,6 +223,7 @@
     corpo.innerHTML = lista.length ? lista.slice(0,400).map(function(x){
       return "<tr><td>"+esc(x.ticker||"—")+"</td><td>"+esc(x.nome)+"</td>"+
         "<td class=\"setor\">"+esc(x.setor||"—")+"</td>"+
+        "<td class=\"setor\">"+esc(x.subsetor||"—")+"</td>"+
         "<td>"+fmt(x.preco)+"</td>"+
         "<td>"+fmt(x.p_l)+"</td><td>"+fmt(x.p_vp)+"</td><td>"+fmt(x.dy,"%")+"</td>"+
         "<td"+(x.roic_incerto?' class="divg" title="a nossa proxy de capital empregado não captura a base de ativos desta empresa"':"")+">"+
@@ -228,7 +237,7 @@
         "<td>"+fmt(x.vpa)+"</td><td>"+fmt(x.vpa_atual)+"</td>"+
         "<td>"+fmt(x.dpa_60m)+"</td><td>"+fmt(x.dpa_medio)+"</td>"+
         "<td>"+fmt(x.cagr_60m,"%")+"</td></tr>";
-    }).join("") : '<tr><td colspan="18" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="19" class="carregando">Nada encontrado.</td></tr>';
   }
 
   busca.addEventListener("input",render);
