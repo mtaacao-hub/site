@@ -64,7 +64,9 @@
   </header>
 
   <h1>Base de fundamentos — CVM</h1>
-  <p class="sub">Dados extraídos direto dos Dados Abertos da CVM (demonstrações anuais e trimestrais).
+  <p class="sub">Fundamentos dos Dados Abertos da CVM (demonstrações anuais e trimestrais);
+  cotação do arquivo de pregão da B3. Uma linha por ticker — ON e PN dividem o LPA e o VPA,
+  mas têm preço próprio, logo P/L e P/VP próprios.
   <b>LPA 12m</b> é o nosso cálculo — lucro atribuível ao controlador dos últimos 12 meses dividido
   pelas ações em circulação. <b>LPA 12m publ.</b> é o mesmo período montado a partir dos LPAs que a
   própria empresa publicou; quando os dois discordam em mais de 10%, o publicado aparece marcado
@@ -83,6 +85,10 @@
       <thead><tr>
         <th data-col="ticker">Ticker</th>
         <th data-col="nome">Empresa</th>
+        <th data-col="preco">Preço</th>
+        <th data-col="p_l">P/L</th>
+        <th data-col="p_vp">P/VP</th>
+        <th data-col="dy">DY</th>
         <th data-col="lpa">LPA ano</th>
         <th data-col="lpa_ttm_calc">LPA 12m</th>
         <th data-col="lpa_ttm">LPA 12m publ.</th>
@@ -92,7 +98,7 @@
         <th data-col="dpa_medio">DPA méd</th>
         <th data-col="cagr_60m">CAGR 60m</th>
       </tr></thead>
-      <tbody id="corpo"><tr><td colspan="10" class="carregando">Carregando…</td></tr></tbody>
+      <tbody id="corpo"><tr><td colspan="14" class="carregando">Carregando…</td></tr></tbody>
     </table>
   </div>
 
@@ -115,12 +121,20 @@
 
   fetch("dados-cvm.json").then(function(r){ return r.json(); }).then(function(d){
     Object.keys(d.empresas).forEach(function(cnpj){
-      var e=d.empresas[cnpj], r=e.resumo||{};
-      dados.push({
-        ticker:(e.tickers||[]).join(" "), nome:e.nome,
-        lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
-        divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
-        dpa_60m:n(r.dpa_60m), dpa_medio:n(r.dpa_medio), cagr_60m:n(r.cagr_60m)
+      var e=d.empresas[cnpj], r=e.resumo||{}, mkt=e.mercado||{};
+      // uma linha por TICKER: ON e PN têm preço diferente, logo P/L e P/VP
+      // diferentes, ainda que partilhem LPA e VPA.
+      var tks=(e.tickers||[]);
+      if(!tks.length) tks=[""];
+      tks.forEach(function(tk){
+        var m=mkt[tk]||{};
+        dados.push({
+          ticker:tk, nome:e.nome,
+          preco:n(m.preco), p_l:n(m.p_l), p_vp:n(m.p_vp), dy:n(m.dy),
+          lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
+          divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
+          dpa_60m:n(r.dpa_60m), dpa_medio:n(r.dpa_medio), cagr_60m:n(r.cagr_60m)
+        });
       });
     });
     var comTicker=dados.filter(function(x){return x.ticker;}).length;
@@ -130,6 +144,7 @@
       '<span class="chip"><b>'+comTicker+'</b> com ticker</span>'+
       '<span class="chip"><b>'+comTtm+'</b> com LPA 12m</span>'+
       '<span class="chip">exercícios <b>'+d.anos.join("–")+'</b></span>'+
+      '<span class="chip">pregão <b>'+(d.pregao||"—")+'</b></span>'+
       '<span class="chip">atualizado <b>'+(d.gerado_em||"").slice(0,10)+'</b></span>';
     document.getElementById("nota").innerHTML =
       '<b>Como o LPA de 12 meses é calculado:</b> lucro atribuível aos controladores do acumulado do ano '+
@@ -149,10 +164,13 @@
       'ações: eles usam uma contagem corrente de mercado, bruta, enquanto aqui vale a declarada no mesmo '+
       'balanço e em circulação, descontando as ações em tesouraria. Onde a empresa tem muita ação em '+
       'tesouraria — a Vale tem 4,3% do total — as duas convenções dão resultados diferentes.<br><br>'+
-      '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+'. Conteúdo educacional — não é recomendação de investimento.';
+      '<b>Dividend yield:</b> usa o dividendo PAGO em caixa nos últimos 12 meses, extraído da '+
+      'demonstração de fluxo de caixa. Não é a mesma coisa que dividendo declarado referente ao '+
+      'exercício — o pagamento costuma cair no ano seguinte ao lucro que o originou.<br><br>'+
+      '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+' e arquivo de pregão da B3. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
-    corpo.innerHTML='<tr><td colspan="10" class="carregando">Não consegui carregar os dados.</td></tr>';
+    corpo.innerHTML='<tr><td colspan="14" class="carregando">Não consegui carregar os dados.</td></tr>';
   });
 
   function render(){
@@ -172,6 +190,8 @@
     });
     corpo.innerHTML = lista.length ? lista.slice(0,400).map(function(x){
       return "<tr><td>"+esc(x.ticker||"—")+"</td><td>"+esc(x.nome)+"</td>"+
+        "<td>"+fmt(x.preco)+"</td>"+
+        "<td>"+fmt(x.p_l)+"</td><td>"+fmt(x.p_vp)+"</td><td>"+fmt(x.dy,"%")+"</td>"+
         "<td>"+fmt(x.lpa)+"</td>"+
         "<td>"+fmt(x.lpa_ttm_calc)+"</td>"+
         "<td"+(x.divg?' class="divg" title="a empresa publica o LPA numa base que nao fecha com lucro/acoes"':"")+">"+
@@ -179,7 +199,7 @@
         "<td>"+fmt(x.vpa)+"</td><td>"+fmt(x.vpa_atual)+"</td>"+
         "<td>"+fmt(x.dpa_60m)+"</td><td>"+fmt(x.dpa_medio)+"</td>"+
         "<td>"+fmt(x.cagr_60m,"%")+"</td></tr>";
-    }).join("") : '<tr><td colspan="10" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="14" class="carregando">Nada encontrado.</td></tr>';
   }
 
   busca.addEventListener("input",render);
