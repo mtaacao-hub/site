@@ -78,6 +78,7 @@
     <input type="search" id="busca" placeholder="Buscar por ticker ou nome da empresa…" autocomplete="off">
     <label class="only"><input type="checkbox" id="so-ticker" checked> só empresas com ticker</label>
     <label class="only"><input type="checkbox" id="so-ttm"> só com LPA 12m</label>
+    <label class="only"><input type="checkbox" id="so-magic"> só no ranking Magic Formula</label>
   </div>
 
   <div class="tabela">
@@ -89,6 +90,9 @@
         <th data-col="p_l">P/L</th>
         <th data-col="p_vp">P/VP</th>
         <th data-col="dy">DY</th>
+        <th data-col="roic">ROIC</th>
+        <th data-col="ev_ebit">EV/EBIT</th>
+        <th data-col="magic">Magic</th>
         <th data-col="lpa">LPA ano</th>
         <th data-col="lpa_ttm_calc">LPA 12m</th>
         <th data-col="lpa_ttm">LPA 12m publ.</th>
@@ -98,7 +102,7 @@
         <th data-col="dpa_medio">DPA méd</th>
         <th data-col="cagr_60m">CAGR 60m</th>
       </tr></thead>
-      <tbody id="corpo"><tr><td colspan="14" class="carregando">Carregando…</td></tr></tbody>
+      <tbody id="corpo"><tr><td colspan="17" class="carregando">Carregando…</td></tr></tbody>
     </table>
   </div>
 
@@ -110,6 +114,7 @@
   var dados=[], ordem={col:"ticker",asc:true};
   var corpo=document.getElementById("corpo"), busca=document.getElementById("busca");
   var soTicker=document.getElementById("so-ticker"), soTtm=document.getElementById("so-ttm");
+  var soMagic=document.getElementById("so-magic");
 
   function n(v,casas){ return (v===undefined||v===null) ? null : v; }
   function fmt(v,suf){
@@ -131,6 +136,8 @@
         dados.push({
           ticker:tk, nome:e.nome,
           preco:n(m.preco), p_l:n(m.p_l), p_vp:n(m.p_vp), dy:n(m.dy),
+          roic:n(r.roic), roic_incerto:!!r.roic_incerto,
+          ev_ebit:n(m.ev_ebit), magic:n(m.magic_rank),
           lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
           divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
           dpa_60m:n(r.dpa_60m), dpa_medio:n(r.dpa_medio), cagr_60m:n(r.cagr_60m)
@@ -164,13 +171,23 @@
       'ações: eles usam uma contagem corrente de mercado, bruta, enquanto aqui vale a declarada no mesmo '+
       'balanço e em circulação, descontando as ações em tesouraria. Onde a empresa tem muita ação em '+
       'tesouraria — a Vale tem 4,3% do total — as duas convenções dão resultados diferentes.<br><br>'+
+      '<b>Magic Formula (Greenblatt):</b> não é preço justo — é um ranking. Ordena por earnings yield '+
+      '(EBIT ÷ valor da firma, o quanto a empresa está barata) e por ROIC (EBIT ÷ capital empregado, '+
+      'o quanto ela é boa), e soma as duas posições. #1 é a melhor combinação das duas. Entram só papéis '+
+      'com volume acima de R$ 1 mi/dia; empresas financeiras ficam de fora porque dívida e capital de giro '+
+      'são a operação delas, então EV/EBIT não quer dizer nada.<br><br>'+
+      '<b>ROIC marcado com ?:</b> nosso capital empregado é capital de giro + imobilizado. Isso deixa de '+
+      'fora, de propósito, o intangível — Greenblatt não quer ágio de aquisição inflando o capital — mas '+
+      'também deixa de fora "Propriedades para Investimento", onde fica o ativo de imobiliária. Quando o '+
+      'capital empregado não chega a 5% do ativo total, a conta não capturou a base de ativos e o ROIC '+
+      'sai marcado e fora do ranking.<br><br>'+
       '<b>Dividend yield:</b> usa o dividendo PAGO em caixa nos últimos 12 meses, extraído da '+
       'demonstração de fluxo de caixa. Não é a mesma coisa que dividendo declarado referente ao '+
       'exercício — o pagamento costuma cair no ano seguinte ao lucro que o originou.<br><br>'+
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+' e arquivo de pregão da B3. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
-    corpo.innerHTML='<tr><td colspan="14" class="carregando">Não consegui carregar os dados.</td></tr>';
+    corpo.innerHTML='<tr><td colspan="17" class="carregando">Não consegui carregar os dados.</td></tr>';
   });
 
   function render(){
@@ -178,6 +195,7 @@
     var lista=dados.filter(function(x){
       if(soTicker.checked && !x.ticker) return false;
       if(soTtm.checked && x.lpa_ttm_calc===null) return false;
+      if(soMagic.checked && x.magic===null) return false;
       if(!termo) return true;
       return x.ticker.toLowerCase().indexOf(termo)>=0 || x.nome.toLowerCase().indexOf(termo)>=0;
     });
@@ -192,6 +210,10 @@
       return "<tr><td>"+esc(x.ticker||"—")+"</td><td>"+esc(x.nome)+"</td>"+
         "<td>"+fmt(x.preco)+"</td>"+
         "<td>"+fmt(x.p_l)+"</td><td>"+fmt(x.p_vp)+"</td><td>"+fmt(x.dy,"%")+"</td>"+
+        "<td"+(x.roic_incerto?' class="divg" title="a nossa proxy de capital empregado não captura a base de ativos desta empresa"':"")+">"+
+          fmt(x.roic,"%")+(x.roic_incerto?" ?":"")+"</td>"+
+        "<td>"+fmt(x.ev_ebit)+"</td>"+
+        "<td>"+(x.magic===null?'<span class="na">—</span>':"#"+x.magic)+"</td>"+
         "<td>"+fmt(x.lpa)+"</td>"+
         "<td>"+fmt(x.lpa_ttm_calc)+"</td>"+
         "<td"+(x.divg?' class="divg" title="a empresa publica o LPA numa base que nao fecha com lucro/acoes"':"")+">"+
@@ -199,12 +221,13 @@
         "<td>"+fmt(x.vpa)+"</td><td>"+fmt(x.vpa_atual)+"</td>"+
         "<td>"+fmt(x.dpa_60m)+"</td><td>"+fmt(x.dpa_medio)+"</td>"+
         "<td>"+fmt(x.cagr_60m,"%")+"</td></tr>";
-    }).join("") : '<tr><td colspan="14" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="17" class="carregando">Nada encontrado.</td></tr>';
   }
 
   busca.addEventListener("input",render);
   soTicker.addEventListener("change",render);
   soTtm.addEventListener("change",render);
+  soMagic.addEventListener("change",render);
   Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"),function(th){
     th.addEventListener("click",function(){
       var c=th.getAttribute("data-col");

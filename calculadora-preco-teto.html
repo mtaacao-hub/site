@@ -77,6 +77,7 @@
   .card .price { font-size: 2rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
   .card .price.na { font-size: 1.05rem; color: var(--muted); font-weight: 600; }
   .card .price-label { font-size: 0.74rem; color: var(--muted); margin-top: 4px; }
+  .card.destaque { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
   .card .margin { margin-top: 16px; padding-top: 14px; border-top: 1px solid rgba(244,239,227,0.12); font-size: 0.86rem; }
   .card .margin .val { font-weight: 700; font-variant-numeric: tabular-nums; }
   .val.pos { color: var(--good); }
@@ -169,6 +170,23 @@
       </div>
       <span class="tip" style="display:block;margin:-10px 0 16px;color:var(--muted);font-size:0.74rem;">Lucro por ação dos últimos 12 meses e valor patrimonial por ação.</span>
 
+      <div class="field row2">
+        <div>
+          <label for="fcl">Fluxo de caixa livre por ação (R$)</label>
+          <input type="number" id="fcl" value="2.00" step="0.01" inputmode="decimal">
+        </div>
+        <div>
+          <label for="desconto">Taxa de desconto (% a.a.)</label>
+          <input type="number" id="desconto" value="12" min="0.1" step="0.5" inputmode="decimal">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="perpetuidade">Crescimento na perpetuidade (% a.a.)</label>
+        <input type="number" id="perpetuidade" value="4" step="0.5" inputmode="decimal">
+        <span class="tip">Depois do 5º ano a empresa cresce para sempre nessa taxa. Tem que ser menor que a taxa de desconto, senão a conta não fecha — e, na prática, nada cresce para sempre acima da economia.</span>
+      </div>
+
       <div class="field">
         <label for="crescimento">Crescimento esperado dos lucros (% a.a.)</label>
         <input type="number" id="crescimento" value="8" min="0" step="0.5" inputmode="decimal">
@@ -214,6 +232,26 @@
           <div class="formula" id="lynch-formula"></div>
         </div>
 
+        <div class="card">
+          <div class="method">Fluxo de caixa descontado</div>
+          <div class="method-sub">Valor presente do caixa futuro</div>
+          <div class="price" id="dcf-price">—</div>
+          <div class="price-label">valor intrínseco</div>
+          <div class="margin">Margem: <span class="val" id="dcf-margin">—</span></div>
+          <div class="extra" id="dcf-extra"></div>
+          <div class="formula" id="dcf-formula"></div>
+        </div>
+
+        <div class="card destaque">
+          <div class="method">Média dos métodos</div>
+          <div class="method-sub">Consenso entre os que se aplicam</div>
+          <div class="price" id="media-price">—</div>
+          <div class="price-label">preço justo médio</div>
+          <div class="margin">Margem: <span class="val" id="media-margin">—</span></div>
+          <div class="extra" id="media-extra"></div>
+          <div class="formula" id="media-formula"></div>
+        </div>
+
       </div>
 
       <div class="method-notes">
@@ -229,10 +267,18 @@
           <summary>Como funciona o método de Lynch</summary>
           <p>Lynch comparava o quanto se paga pelo lucro com o ritmo em que esse lucro cresce. A versão simplificada do preço justo é o lucro por ação multiplicado pela taxa de crescimento esperada. O indicador PEG resume a mesma ideia: é o P/L dividido pelo crescimento — abaixo de 1 sugere que se está pagando pouco pelo crescimento, acima de 1 sugere o contrário. O ponto frágil é que tudo depende da taxa de crescimento estimada, que é uma premissa sua sobre o futuro — e crescimento passado não se repete automaticamente.</p>
         </details>
+        <details>
+          <summary>Como funciona o fluxo de caixa descontado</summary>
+          <p>É o método que menos depende de atalho contábil e o que mais depende de premissa sua. A ideia: uma empresa vale o caixa que ela ainda vai gerar, trazido para hoje. Projetamos o fluxo de caixa livre por ação crescendo à taxa esperada por cinco anos, descontamos cada ano pela taxa exigida, e somamos a isso o valor da perpetuidade — o que a empresa vale do sexto ano em diante, crescendo para sempre na taxa de perpetuidade. Duas armadilhas: a perpetuidade costuma responder por mais da metade do resultado, e pequenas mudanças na taxa de desconto mexem muito no valor. Por isso vale mexer nos números e ver o quanto o resultado balança — se balança demais, o método está dizendo que não sabe.</p>
+        </details>
+        <details>
+          <summary>Por que uma média, e o que ela não é</summary>
+          <p>Cada método enxerga uma coisa: Bazin olha o caixa distribuído, Graham o lucro e o patrimônio, Lynch o crescimento, o fluxo descontado o caixa futuro. A média é só uma forma de não se agarrar a um único ângulo — ela entra com os métodos que se aplicam no caso, ignorando os que não se aplicam. Não é "o" preço certo: quando os métodos discordam muito entre si, a média esconde justamente a informação mais útil, que é o tamanho da discordância. Olhe a dispersão antes de olhar a média.</p>
+        </details>
       </div>
 
       <div class="disclaimer">
-        Esta é uma ferramenta educacional. Os três métodos são fórmulas públicas e consagradas de valuation, aplicadas <strong>exclusivamente sobre os números que você mesmo informa</strong> — a calculadora não busca dados de mercado, não avalia a qualidade do negócio e não sabe nada sobre a sua situação. Ela não constitui recomendação de investimento, análise de valor mobiliário, nem promessa ou garantia de rentabilidade. Métodos diferentes chegam a números bem diferentes para a mesma empresa — isso é esperado, e é justamente o ponto.
+        Esta é uma ferramenta educacional. Os três métodos são fórmulas públicas e consagradas de valuation, aplicadas sobre números que você pode digitar ou puxar da base pública da CVM e do pregão da B3. Os dados vêm das demonstrações entregues pelas próprias companhias; as premissas — crescimento, yield exigido, taxa de desconto — são suas, e mudam bastante o resultado. A calculadora não avalia a qualidade do negócio e não sabe nada sobre a sua situação. Ela não constitui recomendação de investimento, análise de valor mobiliário, nem promessa ou garantia de rentabilidade. Métodos diferentes chegam a números bem diferentes para a mesma empresa — isso é esperado, e é justamente o ponto.
       </div>
 
       <footer class="bottom">
@@ -309,6 +355,9 @@
     por("dpa", r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_ttm, "dividendos");
     por("lpa", r.lpa_ttm_calc, "LPA");
     por("vpa", r.vpa_atual, "VPA");
+    // fluxo de caixa livre por ação: vem do exercício fechado (anual), porque
+    // capex trimestral é irregular demais para anualizar sem distorcer
+    por("fcl", r.fcl_acao, "fluxo de caixa livre");
     if (r.cagr_60m !== undefined && r.cagr_60m !== null) {
       // crescimento passado é ponto de partida, não previsão — fica editável
       $("crescimento").value = Math.max(0, Number(r.cagr_60m)).toFixed(1);
@@ -322,7 +371,8 @@
     status.textContent = txt;
     calc();
   }
-  var inputs = ["ticker","cotacao","dpa","yield-min","lpa","vpa","crescimento"].map($);
+  var inputs = ["ticker","cotacao","dpa","yield-min","lpa","vpa","crescimento",
+                "fcl","desconto","perpetuidade"].map($);
 
   function brl(v) {
     return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -365,6 +415,10 @@
     var lpa = num("lpa");
     var vpa = num("vpa");
     var g = num("crescimento");
+
+    var fcl = num("fcl");
+    var desconto = num("desconto");
+    var perpetuidade = num("perpetuidade");
 
     var ticker = $("ticker").value.trim();
     $("quote-label").textContent = ticker ? "Cotação informada — " + ticker.toUpperCase() : "Cotação informada";
@@ -419,6 +473,73 @@
     }
     setPrice("lynch-price", lynch);
     setMargin("lynch-margin", lynch, cotacao);
+
+    // ---- Fluxo de caixa descontado ----
+    // 5 anos de projecao + perpetuidade de Gordon. A perpetuidade exige
+    // desconto > crescimento perpetuo: sem isso o denominador vira zero ou
+    // negativo e o "valor" explode pro infinito, que nao e resultado, e erro
+    // de premissa. Por isso recusamos a conta em vez de mostrar um numero.
+    var dcf = null, pesoPerp = null;
+    if (fcl !== null && fcl > 0 && desconto !== null && desconto > 0 &&
+        perpetuidade !== null && g !== null) {
+      var r_ = desconto / 100, gp = perpetuidade / 100, gc = g / 100;
+      if (gp >= r_) {
+        $("dcf-formula").textContent = "";
+        $("dcf-extra").textContent =
+          "A perpetuidade (" + perpetuidade.toLocaleString("pt-BR") +
+          "%) precisa ser menor que a taxa de desconto (" +
+          desconto.toLocaleString("pt-BR") + "%).";
+      } else {
+        var soma = 0, fluxo = fcl;
+        for (var ano = 1; ano <= 5; ano++) {
+          fluxo = fluxo * (1 + gc);
+          soma += fluxo / Math.pow(1 + r_, ano);
+        }
+        var terminal = (fluxo * (1 + gp)) / (r_ - gp);
+        var terminalVP = terminal / Math.pow(1 + r_, 5);
+        dcf = soma + terminalVP;
+        pesoPerp = (terminalVP / dcf) * 100;
+        $("dcf-formula").textContent =
+          "5 anos a " + g.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) +
+          "% + perpetuidade a " + perpetuidade.toLocaleString("pt-BR") +
+          "%, descontado a " + desconto.toLocaleString("pt-BR") + "%";
+        // quanto do valor vem da perpetuidade e a informacao mais honesta
+        // deste metodo: acima de 70% o resultado e quase so premissa
+        $("dcf-extra").textContent =
+          "Perpetuidade responde por " +
+          pesoPerp.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) +
+          "% do valor" + (pesoPerp > 70 ? " — muito sensível à premissa." : ".");
+      }
+    } else {
+      $("dcf-formula").textContent = "";
+      $("dcf-extra").textContent = "Precisa de fluxo de caixa livre por ação positivo.";
+    }
+    setPrice("dcf-price", dcf);
+    setMargin("dcf-margin", dcf, cotacao);
+
+    // ---- Media dos metodos que se aplicam ----
+    // Entram so os que produziram numero. A dispersao vai junto de proposito:
+    // quando os metodos discordam muito, a media esconde o que mais importa.
+    var valores = [bazin, graham, lynch, dcf].filter(function (v) {
+      return v !== null && isFinite(v) && v > 0;
+    });
+    var media = null;
+    if (valores.length) {
+      media = valores.reduce(function (a, b) { return a + b; }, 0) / valores.length;
+      var menor = Math.min.apply(null, valores), maior = Math.max.apply(null, valores);
+      $("media-formula").textContent =
+        valores.length + " de 4 métodos · de " + brl(menor) + " a " + brl(maior);
+      var dispersao = media > 0 ? ((maior - menor) / media) * 100 : 0;
+      $("media-extra").textContent = dispersao > 80
+        ? "Os métodos discordam muito — olhe cada um antes da média."
+        : "Dispersão entre os métodos: " +
+          dispersao.toLocaleString("pt-BR", { maximumFractionDigits: 0 }) + "%.";
+    } else {
+      $("media-formula").textContent = "";
+      $("media-extra").textContent = "Nenhum método se aplica com esses números.";
+    }
+    setPrice("media-price", media);
+    setMargin("media-margin", media, cotacao);
   }
 
   inputs.forEach(function (el) { if (el) el.addEventListener("input", calc); });
