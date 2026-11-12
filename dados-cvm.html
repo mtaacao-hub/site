@@ -80,6 +80,7 @@
     <label class="only"><input type="checkbox" id="so-ticker" checked> só empresas com ticker</label>
     <label class="only"><input type="checkbox" id="so-ttm"> só com LPA 12m</label>
     <label class="only"><input type="checkbox" id="so-magic"> só no ranking Magic Formula</label>
+    <label class="only"><input type="checkbox" id="so-atual"> esconder balanço desatualizado</label>
   </div>
 
   <div class="tabela">
@@ -119,6 +120,7 @@
   var corpo=document.getElementById("corpo"), busca=document.getElementById("busca");
   var soTicker=document.getElementById("so-ticker"), soTtm=document.getElementById("so-ttm");
   var soMagic=document.getElementById("so-magic");
+  var soAtual=document.getElementById("so-atual");
 
   function n(v,casas){ return (v===undefined||v===null) ? null : v; }
   function fmt(v,suf){
@@ -143,6 +145,7 @@
           preco:n(m.preco), p_l:n(m.p_l), p_vp:n(m.p_vp), dy:n(m.dy),
           roic:n(r.roic), roic_incerto:!!r.roic_incerto,
           balanco:r.vpa_data||"", defasado:!!r.balanco_defasado,
+          divulgou:r.divulgou_ate||"", divulgou_em:r.divulgou_em||"", doc:r.documento_cvm||"",
           ev_ebit:n(m.ev_ebit), magic:n(m.magic_rank),
           lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
           divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
@@ -193,7 +196,11 @@
       'Por isso a coluna <b>Balanço</b> mostra a data de cada uma, e quem está atrás da mais recente '+
       'do arquivo vem marcada. Atenção ao comparar: lucro de 12 meses fechado em setembro contra um '+
       'fechado em junho não são a mesma janela. Daqui não dá para distinguir quem ainda não divulgou '+
-      'de quem divulgou e a CVM não publicou.<br><br>'+
+      'de quem divulgou e a CVM não publicou — por isso lemos também o índice de documentos '+
+      'entregues ao RAD da CVM. Quando a empresa já entregou um trimestre que ainda não está no '+
+      'arquivo, aparece um <b>▲</b> ao lado da data, e o link leva ao documento original na CVM. '+
+      'Esse índice é usado só como sinal de que o nosso número envelheceu: nenhum valor da tabela '+
+      'vem dele.<br><br>'+
       '<b>Janelas:</b> LPA, EBIT, fluxo de caixa livre e dividendos são todos de 12 meses móveis; '+
       'patrimônio, dívida e capital empregado vêm do último balanço trimestral; o preço é do último '+
       'pregão. O EV/EBIT já usou EBIT do exercício fechado com preço de hoje — misturava três datas '+
@@ -218,6 +225,7 @@
       if(soTicker.checked && !x.ticker) return false;
       if(soTtm.checked && x.lpa_ttm_calc===null) return false;
       if(soMagic.checked && x.magic===null) return false;
+      if(soAtual.checked && x.divulgou) return false;
       if(!termo) return true;
       return x.ticker.toLowerCase().indexOf(termo)>=0 || x.nome.toLowerCase().indexOf(termo)>=0
           || x.setor.toLowerCase().indexOf(termo)>=0
@@ -240,8 +248,13 @@
           fmt(x.roic,"%")+(x.roic_incerto?" ?":"")+"</td>"+
         "<td>"+fmt(x.ev_ebit)+"</td>"+
         "<td>"+(x.magic===null?'<span class="na">—</span>':"#"+x.magic)+"</td>"+
-        "<td"+(x.defasado?' class="divg" title="o arquivo da CVM ainda não traz o trimestre mais recente para esta empresa"':"")+">"+
-          (x.balanco?esc(x.balanco.split("-").reverse().join("/")):'<span class="na">—</span>')+"</td>"+
+        "<td"+(x.divulgou?' class="divg"':"")+">"+
+          (x.balanco?esc(x.balanco.split("-").reverse().join("/")):'<span class="na">—</span>')+
+          (x.divulgou
+            ? " <a href=\""+esc(x.doc)+"\" target=\"_blank\" rel=\"noopener\" title=\"já divulgou "+
+              esc(x.divulgou.split('-').reverse().join('/'))+" em "+esc(x.divulgou_em)+
+              " — ainda não publicado pela CVM. Clique para o documento original.\">▲</a>"
+            : "")+"</td>"+
         "<td>"+fmt(x.lpa)+"</td>"+
         "<td>"+fmt(x.lpa_ttm_calc)+"</td>"+
         "<td"+(x.divg?' class="divg" title="a empresa publica o LPA numa base que nao fecha com lucro/acoes"':"")+">"+
@@ -256,6 +269,7 @@
   soTicker.addEventListener("change",render);
   soTtm.addEventListener("change",render);
   soMagic.addEventListener("change",render);
+  soAtual.addEventListener("change",render);
   Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"),function(th){
     th.addEventListener("click",function(){
       var c=th.getAttribute("data-col");
