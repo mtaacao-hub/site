@@ -96,6 +96,10 @@
         <th data-col="p_vp">P/VP</th>
         <th data-col="dy">DY</th>
         <th data-col="roic">ROIC</th>
+        <th data-col="roe">ROE</th>
+        <th data-col="mrg">Mrg. líq.</th>
+        <th data-col="divpl">Dív.Líq/PL</th>
+        <th data-col="vpa_ind">VPA indiv.</th>
         <th data-col="ev_ebit">EV/EBIT</th>
         <th data-col="magic">Magic</th>
         <th data-col="balanco">Balanço</th>
@@ -108,7 +112,7 @@
         <th data-col="dpa_medio">DPA méd</th>
         <th data-col="cagr_60m">CAGR 60m</th>
       </tr></thead>
-      <tbody id="corpo"><tr><td colspan="20" class="carregando">Carregando…</td></tr></tbody>
+      <tbody id="corpo"><tr><td colspan="24" class="carregando">Carregando…</td></tr></tbody>
     </table>
   </div>
 
@@ -146,11 +150,14 @@
           setor:e.setor_b3||e.setor||"", subsetor:e.subsetor||e.segmento||"",
           preco:n(m.preco), p_l:n(m.p_l), p_vp:n(m.p_vp), dy:n(m.dy),
           roic:n(r.roic), roic_incerto:!!r.roic_incerto,
+          roe:n(r.roe), mrg:n(r.margem_liquida), divpl:n(r.div_liq_patrimonio),
           balanco:r.vpa_data||"", defasado:!!r.balanco_defasado,
           divulgou:r.divulgou_ate||"", divulgou_em:r.divulgou_em||"", doc:r.documento_cvm||"",
-          provisorio:!!r.provisorio,
+          provisorio:!!r.provisorio, rad:!!r.fonte_rad,
+          prevista:r.divulgacao_prevista||"",
           ev_ebit:n(m.ev_ebit), magic:n(m.magic_rank),
-          lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
+          vpa_ind:n((e.anos&&e.anos[Object.keys(e.anos).sort().pop()]||{}).vpa_individual),
+        lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
           divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
           dpa_60m:n(r.dpa_60m), dpa_medio:n(r.dpa_medio), cagr_60m:n(r.cagr_60m)
         });
@@ -204,7 +211,21 @@
       'arquivo, aparece um <b>▲</b> ao lado da data, e o link leva ao documento original na CVM. '+
       'Esse índice é usado só como sinal de que o nosso número envelheceu: nenhum valor da tabela '+
       'vem dele.<br><br>'+
-      '<b>Números provisórios.</b> Para as empresas que já divulgaram e a CVM ainda não publicou, '+
+      '<b>Quem ainda não divulgou.</b> Uma coisa é a empresa não ter divulgado o trimestre; outra é '+
+      'ela ter divulgado e a CVM não ter publicado. Da nossa base sozinha os dois casos são '+
+      'indistinguíveis, então cruzamos com uma agenda de resultados: quem ainda vai divulgar aparece '+
+      'com <b>prev.</b> e a data esperada. Isso não é número, é expectativa de terceiro — pode mudar.'+
+      '<br><br>'+
+      '<b>Bancos têm duas bases.</b> O patrimônio individual (só a holding) difere do consolidado '+
+      '(o grupo todo), e vários sites usam o individual: no Itaú são R$ 218.927 mi contra R$ 229.270 mi. '+
+      'Em empresa não-financeira os dois são idênticos, então só os bancos carregam as duas — são 6 na '+
+      'base. Os indicadores usam o consolidado, porque é ele que reproduz o lucro por ação que o próprio '+
+      'banco publica.<br><br>'+
+      '<b>Lido direto do RAD.</b> Quando a empresa já entregou um trimestre que o lote semanal da '+
+      'CVM ainda não traz, o ITR é baixado do RAD — o sistema de documentos da própria CVM — no mesmo '+
+      'dia da entrega, e os números saem do PDF oficial. Essas linhas vêm marcadas com <b>CVM</b>. '+
+      'É a mesma fonte do resto da base, só por outro caminho.<br><br>'+
+      '<b>Números provisórios.</b> Se o RAD falhar, as empresas que já divulgaram e a CVM ainda não publicou, '+
       'o VPA, o LPA e a quantidade de ações são preenchidos provisoriamente e marcados com '+
       '<b>prov.</b> — some sozinho quando o lote da CVM sai, porque o pipeline reconstrói tudo do '+
       'zero a partir dela. Banco fica de fora disso de propósito: o mercado usa as demonstrações '+
@@ -232,7 +253,7 @@
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+' e arquivo de pregão da B3. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
-    corpo.innerHTML='<tr><td colspan="20" class="carregando">Não consegui carregar os dados.</td></tr>';
+    corpo.innerHTML='<tr><td colspan="24" class="carregando">Não consegui carregar os dados.</td></tr>';
   });
 
   function render(){
@@ -263,10 +284,16 @@
         "<td>"+fmt(x.p_l)+"</td><td>"+fmt(x.p_vp)+"</td><td>"+fmt(x.dy,"%")+"</td>"+
         "<td"+(x.roic_incerto?' class="divg" title="a nossa proxy de capital empregado não captura a base de ativos desta empresa"':"")+">"+
           fmt(x.roic,"%")+(x.roic_incerto?" ?":"")+"</td>"+
+        "<td>"+fmt(x.roe,"%")+"</td><td>"+fmt(x.mrg,"%")+"</td><td>"+fmt(x.divpl)+"</td>"+
+        "<td"+(x.vpa_ind!==null?' title="patrimônio da holding sozinha; vários sites usam esta base para banco"':"")+">"+
+          fmt(x.vpa_ind)+"</td>"+
         "<td>"+fmt(x.ev_ebit)+"</td>"+
         "<td>"+(x.magic===null?'<span class="na">—</span>':"#"+x.magic)+"</td>"+
         "<td"+(x.divulgou||x.provisorio?' class="divg"':"")+">"+
           (x.balanco?esc(x.balanco.split("-").reverse().join("/")):'<span class="na">—</span>')+
+          (x.prevista&&!x.divulgou?" <i title=\"ainda não divulgou o trimestre; data prevista pela agenda de resultados\">prev. "+
+              esc(x.prevista.slice(8)+"/"+x.prevista.slice(5,7))+"</i>":"")+
+          (x.rad?" <b title=\"lido direto do documento oficial no RAD da CVM, antes do lote semanal dos Dados Abertos\">CVM</b>":"")+
           (x.provisorio?" <b title=\"número provisório: a empresa já divulgou este trimestre, mas a CVM ainda não publicou o arquivo. Volta a ser dado da CVM assim que o lote sair.\">prov.</b>":"")+
           (x.divulgou
             ? " <a href=\""+esc(x.doc)+"\" target=\"_blank\" rel=\"noopener\" title=\"já divulgou "+
@@ -280,7 +307,7 @@
         "<td>"+fmt(x.vpa)+"</td><td>"+fmt(x.vpa_atual)+"</td>"+
         "<td>"+fmt(x.dpa_60m)+"</td><td>"+fmt(x.dpa_medio)+"</td>"+
         "<td>"+fmt(x.cagr_60m,"%")+"</td></tr>";
-    }).join("") : '<tr><td colspan="20" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="24" class="carregando">Nada encontrado.</td></tr>';
   }
 
   busca.addEventListener("input",render);
