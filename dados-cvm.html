@@ -81,6 +81,7 @@
     <label class="only"><input type="checkbox" id="so-ttm"> só com LPA 12m</label>
     <label class="only"><input type="checkbox" id="so-magic"> só no ranking Magic Formula</label>
     <label class="only"><input type="checkbox" id="so-atual"> esconder balanço desatualizado</label>
+    <label class="only"><input type="checkbox" id="so-cvm"> só dado confirmado pela CVM</label>
   </div>
 
   <div class="tabela">
@@ -121,6 +122,7 @@
   var soTicker=document.getElementById("so-ticker"), soTtm=document.getElementById("so-ttm");
   var soMagic=document.getElementById("so-magic");
   var soAtual=document.getElementById("so-atual");
+  var soCvm=document.getElementById("so-cvm");
 
   function n(v,casas){ return (v===undefined||v===null) ? null : v; }
   function fmt(v,suf){
@@ -146,6 +148,7 @@
           roic:n(r.roic), roic_incerto:!!r.roic_incerto,
           balanco:r.vpa_data||"", defasado:!!r.balanco_defasado,
           divulgou:r.divulgou_ate||"", divulgou_em:r.divulgou_em||"", doc:r.documento_cvm||"",
+          provisorio:!!r.provisorio,
           ev_ebit:n(m.ev_ebit), magic:n(m.magic_rank),
           lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
           divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
@@ -201,6 +204,12 @@
       'arquivo, aparece um <b>▲</b> ao lado da data, e o link leva ao documento original na CVM. '+
       'Esse índice é usado só como sinal de que o nosso número envelheceu: nenhum valor da tabela '+
       'vem dele.<br><br>'+
+      '<b>Números provisórios.</b> Para as empresas que já divulgaram e a CVM ainda não publicou, '+
+      'o VPA, o LPA e a quantidade de ações são preenchidos provisoriamente e marcados com '+
+      '<b>prov.</b> — some sozinho quando o lote da CVM sai, porque o pipeline reconstrói tudo do '+
+      'zero a partir dela. Banco fica de fora disso de propósito: o mercado usa as demonstrações '+
+      'individuais de instituição financeira, e é a base consolidada que reproduz o lucro por ação '+
+      'que o próprio banco publica. Quem quiser só o que a CVM já confirmou tem o filtro acima.<br><br>'+
       '<b>Janelas:</b> LPA, EBIT, fluxo de caixa livre e dividendos são todos de 12 meses móveis; '+
       'patrimônio, dívida e capital empregado vêm do último balanço trimestral; o preço é do último '+
       'pregão. O EV/EBIT já usou EBIT do exercício fechado com preço de hoje — misturava três datas '+
@@ -226,6 +235,7 @@
       if(soTtm.checked && x.lpa_ttm_calc===null) return false;
       if(soMagic.checked && x.magic===null) return false;
       if(soAtual.checked && x.divulgou) return false;
+      if(soCvm.checked && x.provisorio) return false;
       if(!termo) return true;
       return x.ticker.toLowerCase().indexOf(termo)>=0 || x.nome.toLowerCase().indexOf(termo)>=0
           || x.setor.toLowerCase().indexOf(termo)>=0
@@ -248,8 +258,9 @@
           fmt(x.roic,"%")+(x.roic_incerto?" ?":"")+"</td>"+
         "<td>"+fmt(x.ev_ebit)+"</td>"+
         "<td>"+(x.magic===null?'<span class="na">—</span>':"#"+x.magic)+"</td>"+
-        "<td"+(x.divulgou?' class="divg"':"")+">"+
+        "<td"+(x.divulgou||x.provisorio?' class="divg"':"")+">"+
           (x.balanco?esc(x.balanco.split("-").reverse().join("/")):'<span class="na">—</span>')+
+          (x.provisorio?" <b title=\"número provisório: a empresa já divulgou este trimestre, mas a CVM ainda não publicou o arquivo. Volta a ser dado da CVM assim que o lote sair.\">prov.</b>":"")+
           (x.divulgou
             ? " <a href=\""+esc(x.doc)+"\" target=\"_blank\" rel=\"noopener\" title=\"já divulgou "+
               esc(x.divulgou.split('-').reverse().join('/'))+" em "+esc(x.divulgou_em)+
@@ -270,6 +281,7 @@
   soTtm.addEventListener("change",render);
   soMagic.addEventListener("change",render);
   soAtual.addEventListener("change",render);
+  soCvm.addEventListener("change",render);
   Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"),function(th){
     th.addEventListener("click",function(){
       var c=th.getAttribute("data-col");
