@@ -96,6 +96,7 @@
         <th data-col="roic">ROIC</th>
         <th data-col="ev_ebit">EV/EBIT</th>
         <th data-col="magic">Magic</th>
+        <th data-col="balanco">Balanço</th>
         <th data-col="lpa">LPA ano</th>
         <th data-col="lpa_ttm_calc">LPA 12m</th>
         <th data-col="lpa_ttm">LPA 12m publ.</th>
@@ -105,7 +106,7 @@
         <th data-col="dpa_medio">DPA méd</th>
         <th data-col="cagr_60m">CAGR 60m</th>
       </tr></thead>
-      <tbody id="corpo"><tr><td colspan="19" class="carregando">Carregando…</td></tr></tbody>
+      <tbody id="corpo"><tr><td colspan="20" class="carregando">Carregando…</td></tr></tbody>
     </table>
   </div>
 
@@ -141,6 +142,7 @@
           setor:e.setor_b3||e.setor||"", subsetor:e.subsetor||e.segmento||"",
           preco:n(m.preco), p_l:n(m.p_l), p_vp:n(m.p_vp), dy:n(m.dy),
           roic:n(r.roic), roic_incerto:!!r.roic_incerto,
+          balanco:r.vpa_data||"", defasado:!!r.balanco_defasado,
           ev_ebit:n(m.ev_ebit), magic:n(m.magic_rank),
           lpa:n(r.lpa), lpa_ttm_calc:n(r.lpa_ttm_calc), lpa_ttm:n(r.lpa_ttm),
           divg:!!r.lpa_ttm_divergente, vpa:n(r.vpa), vpa_atual:n(r.vpa_atual),
@@ -156,6 +158,7 @@
       '<span class="chip"><b>'+comTtm+'</b> com LPA 12m</span>'+
       '<span class="chip">exercícios <b>'+d.anos.join("–")+'</b></span>'+
       '<span class="chip">pregão <b>'+(d.pregao||"—")+'</b></span>'+
+      '<span class="chip">balanço mais recente <b>'+(d.balanco_corrente||"—")+'</b></span>'+
       '<span class="chip">atualizado <b>'+(d.gerado_em||"").slice(0,10)+'</b></span>';
     document.getElementById("nota").innerHTML =
       '<b>Como o LPA de 12 meses é calculado:</b> lucro atribuível aos controladores do acumulado do ano '+
@@ -184,6 +187,13 @@
       'regulação tarifária e não por vantagem competitiva. O setor vem do cadastro de companhias '+
       'da B3 (setor econômico / subsetor / segmento), com o cadastro da CVM cobrindo quem a B3 não '+
       'classificou. Dá para buscar por setor ou subsetor no campo acima.<br><br>'+
+      '<b>Nem toda empresa está no mesmo trimestre.</b> A CVM publica os Dados Abertos num lote '+
+      '<b>semanal</b> — domingo de manhã, os três arquivos juntos. Durante a temporada de balanços, '+
+      'uma empresa que já divulgou ao mercado pode passar dias aqui ainda com o trimestre anterior. '+
+      'Por isso a coluna <b>Balanço</b> mostra a data de cada uma, e quem está atrás da mais recente '+
+      'do arquivo vem marcada. Atenção ao comparar: lucro de 12 meses fechado em setembro contra um '+
+      'fechado em junho não são a mesma janela. Daqui não dá para distinguir quem ainda não divulgou '+
+      'de quem divulgou e a CVM não publicou.<br><br>'+
       '<b>Janelas:</b> LPA, EBIT, fluxo de caixa livre e dividendos são todos de 12 meses móveis; '+
       'patrimônio, dívida e capital empregado vêm do último balanço trimestral; o preço é do último '+
       'pregão. O EV/EBIT já usou EBIT do exercício fechado com preço de hoje — misturava três datas '+
@@ -199,7 +209,7 @@
       '<b>Fonte:</b> '+esc(d.fonte||"CVM Dados Abertos")+' e arquivo de pregão da B3. Conteúdo educacional — não é recomendação de investimento.';
     render();
   }).catch(function(){
-    corpo.innerHTML='<tr><td colspan="19" class="carregando">Não consegui carregar os dados.</td></tr>';
+    corpo.innerHTML='<tr><td colspan="20" class="carregando">Não consegui carregar os dados.</td></tr>';
   });
 
   function render(){
@@ -230,6 +240,8 @@
           fmt(x.roic,"%")+(x.roic_incerto?" ?":"")+"</td>"+
         "<td>"+fmt(x.ev_ebit)+"</td>"+
         "<td>"+(x.magic===null?'<span class="na">—</span>':"#"+x.magic)+"</td>"+
+        "<td"+(x.defasado?' class="divg" title="o arquivo da CVM ainda não traz o trimestre mais recente para esta empresa"':"")+">"+
+          (x.balanco?esc(x.balanco.split("-").reverse().join("/")):'<span class="na">—</span>')+"</td>"+
         "<td>"+fmt(x.lpa)+"</td>"+
         "<td>"+fmt(x.lpa_ttm_calc)+"</td>"+
         "<td"+(x.divg?' class="divg" title="a empresa publica o LPA numa base que nao fecha com lucro/acoes"':"")+">"+
@@ -237,7 +249,7 @@
         "<td>"+fmt(x.vpa)+"</td><td>"+fmt(x.vpa_atual)+"</td>"+
         "<td>"+fmt(x.dpa_60m)+"</td><td>"+fmt(x.dpa_medio)+"</td>"+
         "<td>"+fmt(x.cagr_60m,"%")+"</td></tr>";
-    }).join("") : '<tr><td colspan="19" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="20" class="carregando">Nada encontrado.</td></tr>';
   }
 
   busca.addEventListener("input",render);
