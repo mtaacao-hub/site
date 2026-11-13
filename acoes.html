@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Raio-X da Ação — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#10233B; --navy-2:#0c1a2c; --gold:#C9A227; --cream:#F4EFE3;
+    --muted:rgba(244,239,227,.58); --line:rgba(201,162,39,.22);
+    --verde:#3FA76A; --vermelho:#D2574B;
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:linear-gradient(165deg,#0b1826 0%,var(--navy) 55%,#152c47 100%);
+       background-attachment:fixed;color:var(--cream);font-family:var(--font);
+       padding:22px 16px 70px;font-size:14px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  a{color:var(--gold)}
+
+  header.topo{display:flex;align-items:center;gap:11px;margin-bottom:22px;flex-wrap:wrap}
+  .marca{font-weight:800;color:var(--gold);font-size:.95rem;letter-spacing:.01em}
+  .busca{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  input[type=search]{min-width:230px;padding:11px 14px;border-radius:10px;font-family:var(--font);
+    font-size:.95rem;background:rgba(0,0,0,.3);border:1px solid rgba(244,239,227,.18);color:var(--cream)}
+  input[type=search]:focus{outline:2px solid var(--gold);outline-offset:1px}
+
+  /* ---------- cabecalho da empresa ---------- */
+  .ficha{border:1px solid var(--line);border-radius:14px;padding:20px 22px;
+    background:rgba(255,255,255,.045);margin-bottom:18px}
+  .ficha .linha1{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .papel{font-size:1.75rem;font-weight:800;color:var(--gold);letter-spacing:.01em}
+  .empresa{font-size:1rem;color:var(--cream)}
+  .setor{font-size:.8rem;color:var(--muted)}
+  .cotacao{margin-left:auto;text-align:right}
+  .cotacao .v{font-size:1.75rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .cotacao .d{font-size:.78rem;color:var(--muted)}
+  .avisos{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .tag{font-size:.7rem;padding:4px 10px;border-radius:20px;border:1px solid var(--line);
+    background:rgba(0,0,0,.2);color:var(--muted)}
+  .tag.alerta{border-color:rgba(210,87,75,.5);color:#E89A92}
+
+  /* ---------- grafico ---------- */
+  .grafico{border:1px solid var(--line);border-radius:14px;padding:16px 18px 10px;
+    background:rgba(255,255,255,.045);margin-bottom:18px}
+  .periodos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+  .periodos button{background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--muted);
+    padding:6px 13px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:.78rem;
+    font-weight:600;transition:.15s}
+  .periodos button:hover{color:var(--cream)}
+  .periodos button[aria-pressed=true]{background:var(--gold);color:#10233B;border-color:var(--gold)}
+  canvas{width:100%;height:260px;display:block}
+  .resumo-grafico{display:flex;gap:18px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);
+    padding:8px 2px 2px}
+  .resumo-grafico b{color:var(--cream);font-variant-numeric:tabular-nums}
+
+  /* ---------- precos de valuation ---------- */
+  .valuation{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;
+    margin-bottom:18px}
+  .metodo{border:1px solid var(--line);border-radius:12px;padding:14px 15px;
+    background:rgba(255,255,255,.045)}
+  .metodo.media{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .metodo .nome{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);
+    font-weight:700}
+  .metodo .preco{font-size:1.35rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+  .metodo .margem{font-size:.8rem;font-weight:700;margin-top:3px}
+  .metodo .nota{font-size:.68rem;color:var(--muted);margin-top:6px;line-height:1.45}
+  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:rgba(244,239,227,.3)}
+
+  /* ---------- paineis de indicadores ---------- */
+  .paineis{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:14px}
+  .painel{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.045);
+    padding:14px 16px}
+  .painel h3{margin:0 0 10px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--gold);font-weight:700}
+  .painel dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:7px 10px;align-items:baseline}
+  .painel dt{color:var(--muted);font-size:.82rem}
+  .painel dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;font-size:.88rem}
+
+  /* ---------- lista ---------- */
+  .lista{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04);
+    overflow-x:auto;margin-top:22px}
+  table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:620px}
+  th{text-align:right;padding:11px 10px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
+  th:first-child,th:nth-child(2){text-align:left}
+  td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(244,239,227,.06);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  td:first-child{text-align:left;font-weight:700;color:var(--gold);cursor:pointer}
+  td:nth-child(2){text-align:left;color:var(--muted);max-width:210px;overflow:hidden;text-overflow:ellipsis}
+  tbody tr:hover{background:rgba(201,162,39,.07);cursor:pointer}
+
+  .rodape{margin-top:24px;padding:15px 17px;border-radius:11px;background:rgba(0,0,0,.26);
+    border:1px solid rgba(244,239,227,.1);font-size:.76rem;line-height:1.68;color:var(--muted)}
+  .rodape b{color:var(--cream)}
+  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);
+    margin:26px 0 10px;font-weight:700}
+  .carregando{padding:50px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topo">
+    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
+      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+      </g>
+    </svg>
+    <span class="marca">Muita Ação</span>
+    <div class="busca">
+      <input type="search" id="busca" placeholder="Ticker, empresa ou setor…" list="tickers" autocomplete="off" spellcheck="false">
+      <datalist id="tickers"></datalist>
+    </div>
+  </header>
+
+  <div id="conteudo"><div class="carregando">Carregando a base…</div></div>
+
+  <h2 class="sec" id="tit-lista">Todas as empresas</h2>
+  <div class="lista">
+    <table>
+      <thead><tr>
+        <th data-col="ticker">Ticker</th><th data-col="nome">Empresa</th>
+        <th data-col="preco">Preço</th><th data-col="p_l">P/L</th><th data-col="p_vp">P/VP</th>
+        <th data-col="dy">DY</th><th data-col="roe">ROE</th><th data-col="roic">ROIC</th>
+        <th data-col="margem">Teto médio</th>
+      </tr></thead>
+      <tbody id="corpo"><tr><td colspan="9" class="carregando">…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="rodape" id="rodape"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = null, HIST = {}, LISTA = [], ATUAL = null, PERIODO = 252;
+  var ordem = { col: "preco", asc: false };
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- formatacao ----------
+  function brl(v, casas) {
+    if (v === null || v === undefined || !isFinite(v)) return null;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: casas === undefined ? 2 : casas,
+                                       maximumFractionDigits: casas === undefined ? 2 : casas });
+  }
+  function num(v, casas, sufixo) {
+    var s = brl(v, casas);
+    return s === null ? '<span class="na">—</span>' : s + (sufixo || "");
+  }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+  function dataBR(iso) {
+    if (!iso) return "—";
+    var p = String(iso).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
+  }
+
+  // ---------- precos pelos metodos de valuation ----------
+  // As premissas sao as classicas de cada autor, fixas aqui: a calculadora
+  // dedicada e o lugar de mexer nelas. O que muda entre empresas sao os
+  // fundamentos, nao as premissas.
+  var YIELD_BAZIN = 6, DESCONTO = 12, PERPETUIDADE = 4;
+  function precos(r) {
+    var saida = {}, dpa = r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_declarado;
+    if (dpa > 0) saida.Bazin = dpa / (YIELD_BAZIN / 100);
+    if (r.lpa_ttm_calc > 0 && r.vpa_atual > 0)
+      saida.Graham = Math.sqrt(22.5 * r.lpa_ttm_calc * r.vpa_atual);
+    var g = r.cagr_60m;
+    if (r.lpa_ttm_calc > 0 && g > 0) saida.Lynch = r.lpa_ttm_calc * g;
+    if (r.fcl_acao > 0 && g !== undefined && g !== null) {
+      var cresc = Math.max(0, Math.min(g, 25)) / 100, taxa = DESCONTO / 100, perp = PERPETUIDADE / 100;
+      if (perp < taxa) {
+        var fluxo = r.fcl_acao, soma = 0, i;
+        for (i = 1; i <= 5; i++) { fluxo *= (1 + cresc); soma += fluxo / Math.pow(1 + taxa, i); }
+        saida.DCF = soma + (fluxo * (1 + perp)) / (taxa - perp) / Math.pow(1 + taxa, 5);
+      }
+    }
+    var vals = Object.keys(saida).map(function (k) { return saida[k]; })
+                     .filter(function (v) { return isFinite(v) && v > 0; });
+    if (vals.length) saida["Média"] = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    return saida;
+  }
+
+  // ---------- grafico ----------
+  function desenhar(canvas, serie, cor) {
+    var dpr = window.devicePixelRatio || 1;
+    var L = canvas.clientWidth, A = canvas.clientHeight;
+    canvas.width = L * dpr; canvas.height = A * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, L, A);
+    if (!serie || serie.length < 2) {
+      ctx.fillStyle = "rgba(244,239,227,.4)"; ctx.font = "13px Poppins, Arial";
+      ctx.fillText("Sem histórico para este período.", 12, A / 2);
+      return;
+    }
+    var mg = { e: 52, d: 10, t: 14, b: 22 };
+    var precosArr = serie.map(function (p) { return p[1]; });
+    var min = Math.min.apply(null, precosArr), max = Math.max.apply(null, precosArr);
+    if (max === min) { max += 1; min -= 1; }
+    var folga = (max - min) * 0.08; min -= folga; max += folga;
+    var px = function (i) { return mg.e + (L - mg.e - mg.d) * (i / (serie.length - 1)); };
+    var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
+
+    // grade e escala
+    ctx.strokeStyle = "rgba(244,239,227,.08)"; ctx.fillStyle = "rgba(244,239,227,.45)";
+    ctx.font = "10px Poppins, Arial"; ctx.lineWidth = 1;
+    for (var k = 0; k <= 4; k++) {
+      var v = min + (max - min) * k / 4, y = Math.round(py(v)) + .5;
+      ctx.beginPath(); ctx.moveTo(mg.e, y); ctx.lineTo(L - mg.d, y); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(brl(v, 2), mg.e - 7, y + 3);
+    }
+    // datas nas pontas
+    ctx.textAlign = "left"; ctx.fillText(dataBR(serie[0][0]), mg.e, A - 6);
+    ctx.textAlign = "right"; ctx.fillText(dataBR(serie[serie.length - 1][0]), L - mg.d, A - 6);
+
+    // area + linha
+    var grad = ctx.createLinearGradient(0, mg.t, 0, A - mg.b);
+    grad.addColorStop(0, cor + "44"); grad.addColorStop(1, cor + "00");
+    ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
+    serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
+    ctx.lineTo(px(serie.length - 1), A - mg.b); ctx.lineTo(px(0), A - mg.b); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
+    serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
+    ctx.strokeStyle = cor; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+    // ponto final
+    ctx.beginPath(); ctx.arc(px(serie.length - 1), py(serie[serie.length - 1][1]), 3.5, 0, 7);
+    ctx.fillStyle = cor; ctx.fill();
+  }
+
+  function fatiar(ticker, dias) {
+    var s = HIST[ticker] || [];
+    if (!s.length) return [];
+    var limite = new Date(s[s.length - 1][0]);
+    limite.setDate(limite.getDate() - dias);
+    var iso = limite.toISOString().slice(0, 10);
+    var corte = s.filter(function (p) { return p[0] >= iso; });
+    return corte.length >= 2 ? corte : s.slice(-2);
+  }
+
+  // ---------- ficha da empresa ----------
+  function abrir(ticker) {
+    var item = LISTA.filter(function (x) { return x.ticker === ticker; })[0];
+    if (!item) return;
+    ATUAL = item;
+    var r = item.resumo, m = item.mercado, p = precos(r);
+    var serie = fatiar(ticker, PERIODO);
+    var varPct = serie.length > 1 ? (serie[serie.length - 1][1] / serie[0][1] - 1) * 100 : null;
+    var cor = (varPct === null || varPct >= 0) ? "#3FA76A" : "#D2574B";
+
+    var avisos = [];
+    if (r.fonte_rad) avisos.push('<span class="tag">balanço lido direto do RAD da CVM</span>');
+    if (r.provisorio) avisos.push('<span class="tag alerta">número provisório</span>');
+    if (r.divulgou_ate) avisos.push('<span class="tag alerta">já divulgou ' + dataBR(r.divulgou_ate) + ', CVM ainda não publicou</span>');
+    if (r.divulgacao_prevista) avisos.push('<span class="tag">divulga em ' + dataBR(r.divulgacao_prevista) + '</span>');
+    if (r.roic_incerto) avisos.push('<span class="tag alerta">ROIC pouco confiável nesta empresa</span>');
+
+    var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "Média"].map(function (nome) {
+      var v = p[nome], destaque = nome === "Média" ? " media" : "";
+      if (v === undefined) {
+        return '<div class="metodo' + destaque + '"><div class="nome">' + nome + '</div>' +
+               '<div class="preco na">—</div><div class="nota">Não se aplica com os números desta empresa.</div></div>';
+      }
+      var marg = m.preco ? (v / m.preco - 1) * 100 : null;
+      return '<div class="metodo' + destaque + '"><div class="nome">' + nome + '</div>' +
+        '<div class="preco">R$ ' + brl(v) + '</div>' +
+        (marg === null ? "" : '<div class="margem ' + (marg >= 0 ? "pos" : "neg") + '">' +
+          (marg >= 0 ? "+" : "") + brl(marg, 1) + '% vs cotação</div>') +
+        '<div class="nota">' + NOTA[nome] + '</div></div>';
+    }).join("");
+
+    function dl(pares) {
+      return pares.filter(function (x) { return x; }).map(function (x) {
+        return "<dt>" + x[0] + "</dt><dd>" + x[1] + "</dd>";
+      }).join("");
+    }
+    $("conteudo").innerHTML =
+      '<div class="ficha"><div class="linha1">' +
+        '<span class="papel">' + esc(ticker) + '</span>' +
+        '<span class="empresa">' + esc(item.nome) + '</span>' +
+        '<span class="setor">' + esc(item.setor || "") + (item.subsetor ? " · " + esc(item.subsetor) : "") + '</span>' +
+        '<span class="cotacao"><span class="v">R$ ' + brl(m.preco) + '</span>' +
+          '<span class="d">fechamento de ' + dataBR(m.data) + '</span></span>' +
+      '</div>' + (avisos.length ? '<div class="avisos">' + avisos.join("") + "</div>" : "") + "</div>" +
+
+      '<div class="grafico"><div class="periodos" id="periodos">' +
+        [[5, "5d"], [21, "1m"], [63, "3m"], [126, "6m"], [252, "12m"], [1260, "60m"]].map(function (x) {
+          return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '">' + x[1] + "</button>";
+        }).join("") +
+      '</div><canvas id="chart"></canvas>' +
+      '<div class="resumo-grafico">' +
+        (varPct === null ? "" : '<span>No período: <b class="' + (varPct >= 0 ? "pos" : "neg") + '">' +
+          (varPct >= 0 ? "+" : "") + brl(varPct, 1) + "%</b></span>") +
+        '<span>Mínima: <b>R$ ' + brl(Math.min.apply(null, serie.map(function (x) { return x[1]; }))) + "</b></span>" +
+        '<span>Máxima: <b>R$ ' + brl(Math.max.apply(null, serie.map(function (x) { return x[1]; }))) + "</b></span>" +
+        '<span>Volume: <b>R$ ' + brl((m.volume || 0) / 1e6, 1) + " mi/dia</b></span>" +
+      "</div></div>" +
+
+      '<h2 class="sec">Quanto a ação valeria por cada método</h2>' +
+      '<div class="valuation">' + cartoes + "</div>" +
+
+      '<h2 class="sec">Indicadores</h2><div class="paineis">' +
+        '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
+          ["P/L", num(m.p_l)], ["P/VP", num(m.p_vp)], ["PSR", num(m.psr)],
+          ["P/EBIT", num(m.p_ebit)], ["P/Ativo", num(m.p_ativo)],
+          ["EV/EBIT", num(m.ev_ebit)], ["Dividend yield", num(m.dy, 2, "%")]
+        ]) + "</dl></div>" +
+        '<div class="painel"><h3>Rentabilidade</h3><dl>' + dl([
+          ["ROE", num(r.roe, 1, "%")], ["ROIC", num(r.roic, 1, "%")],
+          ["Margem bruta", num(r.margem_bruta, 1, "%")],
+          ["Margem EBIT", num(r.margem_ebit, 1, "%")],
+          ["Margem líquida", num(r.margem_liquida, 1, "%")],
+          ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%")]
+        ]) + "</dl></div>" +
+        '<div class="painel"><h3>Por ação</h3><dl>' + dl([
+          ["LPA 12 meses", num(r.lpa_ttm_calc, 2)], ["VPA", num(r.vpa_atual, 2)],
+          r.vpa_individual_atual ? ["VPA individual", num(r.vpa_individual_atual, 2)] : null,
+          ["Dividendos 12m", num(r.dpa_declarado, 4)],
+          ["Dividendos 5a (média)", num(r.dpa_60m, 4)],
+          ["Fluxo de caixa livre", num(r.fcl_acao, 2)]
+        ]) + "</dl></div>" +
+        '<div class="painel"><h3>Balanço</h3><dl>' + dl([
+          ["Patrimônio líquido", num((r.vpa_atual * r.acoes_atual) / 1e6, 0) + " mi"],
+          ["Dívida bruta", num((r.divida_bruta_atual || 0) / 1e6, 0) + " mi"],
+          ["Dívida líquida", num((r.divida_liquida_atual || 0) / 1e6, 0) + " mi"],
+          ["Dív. líquida/Patrim.", num(r.div_liq_patrimonio)],
+          ["Liquidez corrente", num(r.liquidez_corrente)],
+          ["Ações", num(r.acoes_atual, 0)]
+        ]) + "</dl></div>" +
+        '<div class="painel"><h3>Resultado (12 meses)</h3><dl>' + dl([
+          ["Receita", num((r.receita_ttm || 0) / 1e6, 0) + " mi"],
+          ["EBIT", num((r.ebit_ttm || 0) / 1e6, 0) + " mi"],
+          ["Lucro", num((r.lucro_ttm || 0) / 1e6, 0) + " mi"],
+          ["Balanço de", dataBR(r.vpa_data)],
+          ["Ranking Magic Formula", m.magic_rank ? "#" + m.magic_rank : '<span class="na">—</span>']
+        ]) + "</dl></div>" +
+      "</div>";
+
+    desenhar($("chart"), serie, cor);
+    $("periodos").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button");
+      if (!b) return;
+      PERIODO = parseInt(b.dataset.dias, 10);
+      abrir(ticker);
+      document.querySelector(".grafico").scrollIntoView({ block: "nearest" });
+    });
+    $("tit-lista").textContent = "Todas as empresas";
+  }
+
+  var NOTA = {
+    "Bazin": "Dividendo médio de 5 anos dividido por 6% ao ano.",
+    "Graham": "Raiz de 22,5 × LPA × VPA.",
+    "Lynch": "LPA vezes o crescimento do lucro.",
+    "DCF": "Fluxo de caixa livre, 5 anos a 12% e perpetuidade de 4%.",
+    "Média": "Média dos métodos que se aplicam a esta empresa."
+  };
+
+  // ---------- lista ----------
+  function render() {
+    var termo = $("busca").value.trim().toLowerCase();
+    var itens = LISTA.filter(function (x) {
+      if (!termo) return true;
+      return (x.ticker + " " + x.nome + " " + (x.setor || "") + " " + (x.subsetor || ""))
+        .toLowerCase().indexOf(termo) >= 0;
+    });
+    itens.sort(function (a, b) {
+      var va = a.ord[ordem.col], vb = b.ord[ordem.col];
+      if (va === null || va === undefined) return 1;
+      if (vb === null || vb === undefined) return -1;
+      if (typeof va === "string") return ordem.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return ordem.asc ? va - vb : vb - va;
+    });
+    $("corpo").innerHTML = itens.length ? itens.slice(0, 300).map(function (x) {
+      var marg = x.ord.margem;
+      return '<tr data-t="' + x.ticker + '"><td>' + esc(x.ticker) + "</td><td>" + esc(x.nome) + "</td>" +
+        "<td>" + num(x.mercado.preco) + "</td><td>" + num(x.mercado.p_l) + "</td>" +
+        "<td>" + num(x.mercado.p_vp) + "</td><td>" + num(x.mercado.dy, 1, "%") + "</td>" +
+        "<td>" + num(x.resumo.roe, 1, "%") + "</td><td>" + num(x.resumo.roic, 1, "%") + "</td>" +
+        '<td class="' + (marg === null ? "" : marg >= 0 ? "pos" : "neg") + '">' +
+          (marg === null ? '<span class="na">—</span>' : (marg >= 0 ? "+" : "") + brl(marg, 0) + "%") +
+        "</td></tr>";
+    }).join("") : '<tr><td colspan="9" class="carregando">Nada encontrado.</td></tr>';
+  }
+
+  // ---------- carga ----------
+  Promise.all([
+    fetch("dados-cvm.json").then(function (r) { return r.json(); }),
+    fetch("historico.json").then(function (r) { return r.json(); }).catch(function () { return {}; })
+  ]).then(function (res) {
+    BASE = res[0]; HIST = res[1] || {};
+    Object.keys(BASE.empresas).forEach(function (cnpj) {
+      var e = BASE.empresas[cnpj], r = e.resumo || {};
+      Object.keys(e.mercado || {}).forEach(function (t) {
+        var m = e.mercado[t], p = precos(r);
+        var media = p["Média"];
+        LISTA.push({
+          ticker: t, nome: e.nome, setor: e.setor_b3 || e.setor, subsetor: e.subsetor,
+          resumo: r, mercado: m,
+          ord: {
+            ticker: t, nome: e.nome, preco: m.preco, p_l: m.p_l, p_vp: m.p_vp,
+            dy: m.dy, roe: r.roe, roic: r.roic,
+            margem: (media && m.preco) ? (media / m.preco - 1) * 100 : null
+          }
+        });
+      });
+    });
+    LISTA.sort(function (a, b) { return (b.mercado.volume || 0) - (a.mercado.volume || 0); });
+    $("tickers").innerHTML = LISTA.map(function (x) {
+      return '<option value="' + x.ticker + '">' + esc(x.nome) + "</option>";
+    }).join("");
+    $("rodape").innerHTML =
+      "<b>" + LISTA.length + " papéis</b> de " + BASE.total_empresas + " empresas. " +
+      "Fundamentos dos Dados Abertos da CVM e do RAD; cotação e histórico do pregão da B3; " +
+      "classificação setorial da B3. Pregão de <b>" + dataBR(BASE.pregao) + "</b>. " +
+      "Os preços por método usam premissas fixas e clássicas de cada autor — para mexer nelas, " +
+      'use a <a href="calculadora-preco-teto.html">calculadora</a>. ' +
+      "Conteúdo educacional, não é recomendação de investimento.";
+    abrir(LISTA[0].ticker);
+    render();
+  }).catch(function (e) {
+    $("conteudo").innerHTML = '<div class="carregando">Não consegui carregar a base.</div>';
+  });
+
+  $("busca").addEventListener("input", function () {
+    var t = $("busca").value.trim().toUpperCase();
+    if (LISTA.some(function (x) { return x.ticker === t; })) abrir(t);
+    render();
+  });
+  $("corpo").addEventListener("click", function (ev) {
+    var tr = ev.target.closest("tr");
+    if (tr && tr.dataset.t) { abrir(tr.dataset.t); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"), function (th) {
+    th.addEventListener("click", function () {
+      var c = th.dataset.col;
+      ordem = (ordem.col === c) ? { col: c, asc: !ordem.asc } : { col: c, asc: c === "ticker" || c === "nome" };
+      render();
+    });
+  });
+  window.addEventListener("resize", function () {
+    if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), "#3FA76A");
+  });
+})();
+</script>
+</body>
+</html>
