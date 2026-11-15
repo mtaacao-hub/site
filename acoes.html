@@ -10,96 +10,110 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --navy:#10233B; --navy-2:#0c1a2c; --gold:#C9A227; --cream:#F4EFE3;
-    --muted:rgba(244,239,227,.58); --line:rgba(201,162,39,.22);
-    --verde:#3FA76A; --vermelho:#D2574B;
+    /* Mesma identidade da marca, invertida: o marinho deixa de ser fundo e
+       passa a ser tinta. O fundo e um off-white levemente quente, derivado
+       do creme da marca, pra que o cartao branco puro se destaque dele sem
+       precisar de borda forte nem sombra. */
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;     /* o dourado nao tem contraste pra texto pequeno no branco */
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;    /* escurecidos pra ler no claro */
     --font:"Poppins",Arial,Helvetica,sans-serif;
   }
   *{box-sizing:border-box}
-  body{margin:0;min-height:100vh;background:linear-gradient(165deg,#0b1826 0%,var(--navy) 55%,#152c47 100%);
-       background-attachment:fixed;color:var(--cream);font-family:var(--font);
-       padding:22px 16px 70px;font-size:14px;-webkit-font-smoothing:antialiased}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
   .wrap{max-width:1120px;margin:0 auto}
-  a{color:var(--gold)}
+  a{color:var(--gold-ink)}
 
-  header.topo{display:flex;align-items:center;gap:11px;margin-bottom:22px;flex-wrap:wrap}
-  .marca{font-weight:800;color:var(--gold);font-size:.95rem;letter-spacing:.01em}
+  header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:5;padding:14px 0;margin-bottom:22px;
+    background:var(--ground);border-bottom:1px solid var(--line)}
+  .marca{font-weight:800;color:var(--ink);font-size:.95rem;letter-spacing:.01em}
   .busca{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-  input[type=search]{min-width:230px;padding:11px 14px;border-radius:10px;font-family:var(--font);
-    font-size:.95rem;background:rgba(0,0,0,.3);border:1px solid rgba(244,239,227,.18);color:var(--cream)}
+  input[type=search]{min-width:230px;padding:10px 14px;border-radius:9px;font-family:var(--font);
+    font-size:.95rem;background:var(--card);border:1px solid var(--line-forte);color:var(--ink)}
+  input[type=search]::placeholder{color:var(--ink-3)}
   input[type=search]:focus{outline:2px solid var(--gold);outline-offset:1px}
 
   /* ---------- cabecalho da empresa ---------- */
-  .ficha{border:1px solid var(--line);border-radius:14px;padding:20px 22px;
-    background:rgba(255,255,255,.045);margin-bottom:18px}
+  /* Sem cartao: o nome da empresa e a cotacao sao o topo da pagina, nao um
+     bloco dentro dela. So uma regra fina embaixo. */
+  .ficha{padding:4px 2px 16px;margin-bottom:20px;border-bottom:1px solid var(--line)}
   .ficha .linha1{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
-  .papel{font-size:1.75rem;font-weight:800;color:var(--gold);letter-spacing:.01em}
-  .empresa{font-size:1rem;color:var(--cream)}
-  .setor{font-size:.8rem;color:var(--muted)}
+  .papel{font-size:2rem;font-weight:800;color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+  .empresa{font-size:1rem;color:var(--ink-2)}
+  .setor{font-size:.8rem;color:var(--ink-3)}
   .cotacao{margin-left:auto;text-align:right}
-  .cotacao .v{font-size:1.75rem;font-weight:800;font-variant-numeric:tabular-nums}
-  .cotacao .d{font-size:.78rem;color:var(--muted)}
-  .avisos{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-  .tag{font-size:.7rem;padding:4px 10px;border-radius:20px;border:1px solid var(--line);
-    background:rgba(0,0,0,.2);color:var(--muted)}
-  .tag.alerta{border-color:rgba(210,87,75,.5);color:#E89A92}
+  .cotacao .v{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  .cotacao .d{font-size:.78rem;color:var(--ink-3);display:block}
+  .avisos{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .tag{font-size:.7rem;padding:4px 10px;border-radius:20px;border:1px solid var(--line-forte);
+    background:var(--card);color:var(--ink-2)}
+  .tag.alerta{border-color:rgba(181,57,43,.35);background:#FDF4F2;color:var(--vermelho)}
 
   /* ---------- grafico ---------- */
   .grafico{border:1px solid var(--line);border-radius:14px;padding:16px 18px 10px;
-    background:rgba(255,255,255,.045);margin-bottom:18px}
-  .periodos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-  .periodos button{background:rgba(0,0,0,.25);border:1px solid var(--line);color:var(--muted);
+    background:var(--card);margin-bottom:22px}
+  .periodos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .periodos button{background:var(--card);border:1px solid var(--line-forte);color:var(--ink-2);
     padding:6px 13px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:.78rem;
     font-weight:600;transition:.15s}
-  .periodos button:hover{color:var(--cream)}
-  .periodos button[aria-pressed=true]{background:var(--gold);color:#10233B;border-color:var(--gold)}
+  .periodos button:hover{border-color:var(--gold);color:var(--ink)}
+  .periodos button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
   canvas{width:100%;height:260px;display:block}
-  .resumo-grafico{display:flex;gap:18px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);
-    padding:8px 2px 2px}
-  .resumo-grafico b{color:var(--cream);font-variant-numeric:tabular-nums}
+  .resumo-grafico{display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-3);
+    padding:10px 2px 2px}
+  .resumo-grafico b{color:var(--ink);font-variant-numeric:tabular-nums}
 
   /* ---------- precos de valuation ---------- */
   .valuation{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;
     margin-bottom:18px}
-  .metodo{border:1px solid var(--line);border-radius:12px;padding:14px 15px;
-    background:rgba(255,255,255,.045)}
-  .metodo.media{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
-  .metodo .nome{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);
+  .metodo{border:1px solid var(--line);border-radius:12px;padding:14px 15px;background:var(--card)}
+  /* o unico lugar onde o dourado e preenchimento: o numero que resume os outros */
+  .metodo.media{border-color:var(--gold);background:#FFFCF2}
+  .metodo .nome{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold-ink);
     font-weight:700}
   .metodo .preco{font-size:1.35rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
   .metodo .margem{font-size:.8rem;font-weight:700;margin-top:3px}
-  .metodo .nota{font-size:.68rem;color:var(--muted);margin-top:6px;line-height:1.45}
-  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:rgba(244,239,227,.3)}
+  .metodo .nota{font-size:.68rem;color:var(--ink-3);margin-top:7px;line-height:1.45}
+  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
 
   /* ---------- paineis de indicadores ---------- */
   .paineis{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:14px}
-  .painel{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.045);
-    padding:14px 16px}
-  .painel h3{margin:0 0 10px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;
-    color:var(--gold);font-weight:700}
-  .painel dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:7px 10px;align-items:baseline}
-  .painel dt{color:var(--muted);font-size:.82rem}
+  .painel{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px}
+  .painel h3{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--gold-ink);font-weight:700}
+  .painel dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline}
+  .painel dt,.painel dd{padding:6px 0;border-top:1px solid var(--line)}
+  .painel dt:first-of-type,.painel dd:first-of-type{border-top:0;padding-top:0}
+  .painel dt{color:var(--ink-2);font-size:.82rem}
   .painel dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;font-size:.88rem}
 
   /* ---------- lista ---------- */
-  .lista{border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.04);
-    overflow-x:auto;margin-top:22px}
+  .lista{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    overflow-x:auto;margin-top:12px}
   table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:620px}
   th{text-align:right;padding:11px 10px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
-    color:var(--gold);border-bottom:1px solid var(--line);cursor:pointer;white-space:nowrap;user-select:none}
+    color:var(--ink-2);background:var(--card);border-bottom:1px solid var(--line-forte);
+    cursor:pointer;white-space:nowrap;user-select:none;position:sticky;top:0}
+  th:hover{color:var(--gold-ink)}
   th:first-child,th:nth-child(2){text-align:left}
-  td{padding:9px 10px;text-align:right;border-bottom:1px solid rgba(244,239,227,.06);
+  td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);
     font-variant-numeric:tabular-nums;white-space:nowrap}
-  td:first-child{text-align:left;font-weight:700;color:var(--gold);cursor:pointer}
-  td:nth-child(2){text-align:left;color:var(--muted);max-width:210px;overflow:hidden;text-overflow:ellipsis}
-  tbody tr:hover{background:rgba(201,162,39,.07);cursor:pointer}
+  tbody tr:last-child td{border-bottom:0}
+  td:first-child{text-align:left;font-weight:700;color:var(--ink);cursor:pointer}
+  td:nth-child(2){text-align:left;color:var(--ink-2);max-width:210px;overflow:hidden;text-overflow:ellipsis}
+  tbody tr:hover{background:#FFFBEF;cursor:pointer}
 
-  .rodape{margin-top:24px;padding:15px 17px;border-radius:11px;background:rgba(0,0,0,.26);
-    border:1px solid rgba(244,239,227,.1);font-size:.76rem;line-height:1.68;color:var(--muted)}
-  .rodape b{color:var(--cream)}
-  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold);
-    margin:26px 0 10px;font-weight:700}
-  .carregando{padding:50px;text-align:center;color:var(--muted)}
+  .rodape{margin-top:26px;padding:16px 18px;border-radius:11px;background:var(--card);
+    border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
+  .rodape b{color:var(--ink)}
+  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);
+    margin:28px 0 11px;font-weight:700}
+  .carregando{padding:50px;text-align:center;color:var(--ink-3)}
 </style>
 </head>
 <body>
@@ -143,7 +157,7 @@
 <script>
 (function () {
   "use strict";
-  var BASE = null, HIST = {}, LISTA = [], ATUAL = null, PERIODO = 252;
+  var BASE = null, HIST = {}, LISTA = [], ATUAL = null, PERIODO = 252, CORATUAL = "#1C7F4D";
   var ordem = { col: "preco", asc: false };
   var $ = function (id) { return document.getElementById(id); };
 
@@ -203,7 +217,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, L, A);
     if (!serie || serie.length < 2) {
-      ctx.fillStyle = "rgba(244,239,227,.4)"; ctx.font = "13px Poppins, Arial";
+      ctx.fillStyle = "rgba(16,35,59,.42)"; ctx.font = "13px Poppins, Arial";
       ctx.fillText("Sem histórico para este período.", 12, A / 2);
       return;
     }
@@ -216,7 +230,7 @@
     var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
 
     // grade e escala
-    ctx.strokeStyle = "rgba(244,239,227,.08)"; ctx.fillStyle = "rgba(244,239,227,.45)";
+    ctx.strokeStyle = "rgba(16,35,59,.10)"; ctx.fillStyle = "rgba(16,35,59,.48)";
     ctx.font = "10px Poppins, Arial"; ctx.lineWidth = 1;
     for (var k = 0; k <= 4; k++) {
       var v = min + (max - min) * k / 4, y = Math.round(py(v)) + .5;
@@ -229,7 +243,7 @@
 
     // area + linha
     var grad = ctx.createLinearGradient(0, mg.t, 0, A - mg.b);
-    grad.addColorStop(0, cor + "44"); grad.addColorStop(1, cor + "00");
+    grad.addColorStop(0, cor + "2E"); grad.addColorStop(1, cor + "00");
     ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
     serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
     ctx.lineTo(px(serie.length - 1), A - mg.b); ctx.lineTo(px(0), A - mg.b); ctx.closePath();
@@ -260,7 +274,8 @@
     var r = item.resumo, m = item.mercado, p = precos(r);
     var serie = fatiar(ticker, PERIODO);
     var varPct = serie.length > 1 ? (serie[serie.length - 1][1] / serie[0][1] - 1) * 100 : null;
-    var cor = (varPct === null || varPct >= 0) ? "#3FA76A" : "#D2574B";
+    var cor = (varPct === null || varPct >= 0) ? "#1C7F4D" : "#B5392B";
+    CORATUAL = cor;
 
     var avisos = [];
     if (r.fonte_rad) avisos.push('<span class="tag">balanço lido direto do RAD da CVM</span>');
@@ -268,6 +283,7 @@
     if (r.divulgou_ate) avisos.push('<span class="tag alerta">já divulgou ' + dataBR(r.divulgou_ate) + ', CVM ainda não publicou</span>');
     if (r.divulgacao_prevista) avisos.push('<span class="tag">divulga em ' + dataBR(r.divulgacao_prevista) + '</span>');
     if (r.roic_incerto) avisos.push('<span class="tag alerta">ROIC pouco confiável nesta empresa</span>');
+    if (r.ebit_nao_recorrente) avisos.push('<span class="tag alerta">resultado com item não recorrente relevante</span>');
 
     var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "Média"].map(function (nome) {
       var v = p[nome], destaque = nome === "Média" ? " media" : "";
@@ -317,12 +333,17 @@
         '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
           ["P/L", num(m.p_l)], ["P/VP", num(m.p_vp)], ["PSR", num(m.psr)],
           ["P/EBIT", num(m.p_ebit)], ["P/Ativo", num(m.p_ativo)],
-          ["EV/EBIT", num(m.ev_ebit)], ["Dividend yield", num(m.dy, 2, "%")]
+          ["EV/EBIT", num(m.ev_ebit)],
+          ["EV/EBIT contábil", num(m.ev_ebit_contabil)],
+          ["Dividend yield", num(m.dy, 2, "%")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Rentabilidade</h3><dl>' + dl([
-          ["ROE", num(r.roe, 1, "%")], ["ROIC", num(r.roic, 1, "%")],
+          ["ROE", num(r.roe, 1, "%")],
+          ["ROIC recorrente", num(r.roic, 1, "%")],
+          ["ROIC contábil", num(r.roic_contabil, 1, "%")],
           ["Margem bruta", num(r.margem_bruta, 1, "%")],
-          ["Margem EBIT", num(r.margem_ebit, 1, "%")],
+          ["Margem EBIT recorrente", num(r.margem_ebit, 1, "%")],
+          ["Margem EBIT contábil", num(r.margem_ebit_contabil, 1, "%")],
           ["Margem líquida", num(r.margem_liquida, 1, "%")],
           ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%")]
         ]) + "</dl></div>" +
@@ -428,6 +449,13 @@
       "classificação setorial da B3. Pregão de <b>" + dataBR(BASE.pregao) + "</b>. " +
       "Os preços por método usam premissas fixas e clássicas de cada autor — para mexer nelas, " +
       'use a <a href="calculadora-preco-teto.html">calculadora</a>. ' +
+      "<br><br><b>Duas convenções de EBIT.</b> O <b>recorrente</b> é o resultado bruto menos " +
+      "despesas com vendas e administrativas; o <b>contábil</b> é a conta 3.05 da CVM, que inclui " +
+      "impairment, outras despesas operacionais e equivalência patrimonial. Cada site do mercado " +
+      "escolheu um dos dois, e reproduzimos ambos ao centésimo. Os múltiplos usam o recorrente, " +
+      "porque múltiplo existe para comparar e uma baixa de uma vez não deveria fazer a empresa " +
+      "parecer três vezes mais cara — na Vale o EV/EBIT vai de 5 para 13 só pela provisão de Samarco. " +
+      "A distância entre os dois é o próprio aviso de que houve item não recorrente grande.<br><br>" +
       "Conteúdo educacional, não é recomendação de investimento.";
     abrir(LISTA[0].ticker);
     render();
@@ -452,7 +480,7 @@
     });
   });
   window.addEventListener("resize", function () {
-    if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), "#3FA76A");
+    if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), CORATUAL);
   });
 })();
 </script>
