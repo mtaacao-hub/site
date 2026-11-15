@@ -383,19 +383,20 @@
       '<h2 class="sec">Indicadores</h2><div class="paineis">' +
         '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
           ["P/L", num(m.p_l)], ["P/VP", num(m.p_vp)], ["PSR", num(m.psr)],
-          ["P/EBIT", num(m.p_ebit)], ["P/EBIT contábil", num(m.p_ebit_contabil)],
+          ["P/EBIT", num(m.p_ebit_contabil), "P/EBIT contábil"],
+          ["P/EBIT recorrente", num(m.p_ebit), "P/EBIT"],
           ["P/Ativo", num(m.p_ativo)],
-          ["EV/EBIT", num(m.ev_ebit)],
-          ["EV/EBIT contábil", num(m.ev_ebit_contabil)],
+          ["EV/EBIT", num(m.ev_ebit_contabil), "EV/EBIT contábil"],
+          ["EV/EBIT recorrente", num(m.ev_ebit), "EV/EBIT"],
           ["Dividend yield", num(m.dy, 2, "%")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Rentabilidade</h3><dl>' + dl([
           ["ROE", num(r.roe, 1, "%")],
-          ["ROIC recorrente", num(r.roic, 1, "%"), "ROIC"],
-          ["ROIC contábil", num(r.roic_contabil, 1, "%")],
+          ["ROIC", num(r.roic, 1, "%")],
+          ["ROIC contábil", num(r.roic_contabil, 1, "%"), "ROIC contábil"],
           ["Margem bruta", num(r.margem_bruta, 1, "%")],
+          ["Margem EBIT", num(r.margem_ebit_contabil, 1, "%"), "Margem EBIT contábil"],
           ["Margem EBIT recorrente", num(r.margem_ebit, 1, "%"), "Margem EBIT"],
-          ["Margem EBIT contábil", num(r.margem_ebit_contabil, 1, "%")],
           ["Margem líquida", num(r.margem_liquida, 1, "%")],
           ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%")]
         ]) + "</dl></div>" +
@@ -603,13 +604,20 @@
       "classificação setorial da B3. Pregão de <b>" + dataBR(BASE.pregao) + "</b>. " +
       "Os preços por método usam premissas fixas e clássicas de cada autor — para mexer nelas, " +
       'use a <a href="calculadora-preco-teto.html">calculadora</a>. ' +
-      "<br><br><b>Duas convenções de EBIT.</b> O <b>recorrente</b> é o resultado bruto menos " +
-      "despesas com vendas e administrativas; o <b>contábil</b> é a conta 3.05 da CVM, que inclui " +
-      "impairment, outras despesas operacionais e equivalência patrimonial. Cada site do mercado " +
-      "escolheu um dos dois, e reproduzimos ambos ao centésimo. Os múltiplos usam o recorrente, " +
-      "porque múltiplo existe para comparar e uma baixa de uma vez não deveria fazer a empresa " +
-      "parecer três vezes mais cara — na Vale o EV/EBIT vai de 5 para 13 só pela provisão de Samarco. " +
-      "A distância entre os dois é o próprio aviso de que houve item não recorrente grande.<br><br>" +
+      "<br><br><b>Duas convenções de EBIT.</b> O <b>contábil</b> é a conta 3.05 da CVM, que inclui " +
+      "impairment, outras despesas operacionais e equivalência patrimonial; o <b>recorrente</b> é o " +
+      "resultado bruto menos despesas com vendas e administrativas. Reproduzimos os dois ao " +
+      "centésimo, e cada site do mercado escolheu um: Status Invest e Investidor10 usam o contábil, " +
+      "o Fundamentus usa o recorrente. Aqui o <b>contábil</b> é o padrão — além de ser a convenção " +
+      "de dois dos três, é o que produz menos número inútil (26 EV/EBIT negativos contra 31, e 3 " +
+      "acima de 100× contra 7). O recorrente aparece ao lado, porque ele é mais estável de um ano " +
+      "para o outro e a distância entre os dois é o próprio aviso de que houve item não recorrente " +
+      "grande: na Vale a margem EBIT é 30,4% recorrente contra 11,7% contábil, tudo provisão de " +
+      "Samarco. O <b>ROIC</b> é a exceção e segue no recorrente, porque ali o contábil não melhorou " +
+      "nada contra as referências.<br><br>" +
+      "<b>Histórico por indicador.</b> O botão ao lado de cada número abre o valor ano a ano. Cada " +
+      "ano usa o balanço daquele exercício — já reapresentado quando a empresa republicou — e o " +
+      "fechamento do último pregão do ano.<br><br>" +
       "Conteúdo educacional, não é recomendação de investimento.";
     abrir(LISTA[0].ticker);
     render();
