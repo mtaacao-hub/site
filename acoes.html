@@ -115,6 +115,25 @@
     margin:28px 0 11px;font-weight:700}
   .carregando{padding:50px;text-align:center;color:var(--ink-3)}
 
+  /* ---------- abas ---------- */
+  .abas{display:flex;gap:4px;margin:28px 0 14px;border-bottom:1px solid var(--line)}
+  .abas button{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-3);
+    padding:9px 15px;cursor:pointer;font-family:var(--font);font-size:.82rem;font-weight:700;
+    letter-spacing:.02em;transition:.15s;margin-bottom:-1px}
+  .abas button:hover{color:var(--ink)}
+  .abas button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--gold)}
+
+  /* ---------- graficos anuais ---------- */
+  .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px 10px}
+  .bloco h3{margin:0 0 2px;font-size:.84rem;font-weight:700;color:var(--ink)}
+  .bloco .sub{font-size:.7rem;color:var(--ink-3);margin-bottom:8px}
+  .bloco canvas{height:190px}
+  .legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:.7rem;color:var(--ink-2);padding:4px 0 2px}
+  .legenda i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;
+    vertical-align:baseline}
+  .vazio{padding:28px 6px;text-align:center;color:var(--ink-3);font-size:.8rem}
+
   /* ---------- historico do indicador ---------- */
   .hist{border:1px solid var(--line-forte);background:var(--card);border-radius:6px;
     padding:1px 4px 0;margin-left:5px;cursor:pointer;line-height:0;vertical-align:middle;
@@ -380,7 +399,12 @@
       '<h2 class="sec">Quanto a ação valeria por cada método</h2>' +
       '<div class="valuation">' + cartoes + "</div>" +
 
-      '<h2 class="sec">Indicadores</h2><div class="paineis">' +
+      '<div class="abas" id="abas">' +
+        '<button data-aba="ind" aria-selected="true">Indicadores</button>' +
+        '<button data-aba="gra" aria-selected="false">Gráficos</button>' +
+      '</div>' +
+      '<div id="aba-gra" hidden></div>' +
+      '<div id="aba-ind"><div class="paineis">' +
         '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
           ["P/L", num(m.p_l)], ["P/VP", num(m.p_vp)], ["PSR", num(m.psr)],
           ["P/EBIT", num(m.p_ebit_contabil), "P/EBIT contábil"],
@@ -422,7 +446,19 @@
           ["Balanço de", dataBR(r.vpa_data)],
           ["Ranking Magic Formula", m.magic_rank ? "#" + m.magic_rank : '<span class="na">—</span>']
         ]) + "</dl></div>" +
-      "</div>";
+      "</div></div>";
+
+    montarGraficos(item);
+    $("abas").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button");
+      if (!b) return;
+      Array.prototype.forEach.call($("abas").children, function (x) {
+        x.setAttribute("aria-selected", String(x === b));
+      });
+      $("aba-ind").hidden = b.dataset.aba !== "ind";
+      $("aba-gra").hidden = b.dataset.aba !== "gra";
+      if (b.dataset.aba === "gra") redesenharGraficos();
+    });
 
     desenhar($("chart"), serie, cor);
     $("periodos").addEventListener("click", function (ev) {
@@ -433,6 +469,199 @@
       document.querySelector(".grafico").scrollIntoView({ block: "nearest" });
     });
     $("tit-lista").textContent = "Todas as empresas";
+  }
+
+  // ---------- graficos anuais ----------
+  // Fonte: o bloco `anos` de cada empresa, que ja vem no dados-cvm.json. Nao
+  // precisa de arquivo novo.
+  var GRAFICOS = [];     // o que esta desenhado agora, pro resize
+
+  function milhoes(v) { return v / 1e6; }
+
+  function barras(canvas, anos, series, opt) {
+    opt = opt || {};
+    var dpr = window.devicePixelRatio || 1;
+    var L = canvas.clientWidth, A = canvas.clientHeight;
+    canvas.width = L * dpr; canvas.height = A * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, L, A);
+
+    var todos = [];
+    series.forEach(function (s) {
+      s.valores.forEach(function (v) { if (v !== null && isFinite(v)) todos.push(v); });
+    });
+    if (!todos.length) { return; }
+    var max = Math.max.apply(null, todos), min = Math.min.apply(null, todos);
+    // a base e sempre o zero quando tudo tem o mesmo sinal: barra que nao
+    // comeca no zero mente sobre a proporcao
+    if (min > 0) min = 0;
+    if (max < 0) max = 0;
+    if (max === min) max = min + 1;
+    var folga = (max - min) * 0.12;
+    max += folga;
+    if (min < 0) min -= folga;
+
+    var mg = { e: 46, d: 8, t: 10, b: 20 };
+    var larg = (L - mg.e - mg.d) / anos.length;
+    var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
+    var zero = py(0);
+
+    // grade e escala
+    ctx.font = "9px Poppins, Arial"; ctx.lineWidth = 1;
+    for (var k = 0; k <= 3; k++) {
+      var v = min + (max - min) * k / 3, y = Math.round(py(v)) + 0.5;
+      ctx.strokeStyle = "rgba(16,35,59,.08)";
+      ctx.beginPath(); ctx.moveTo(mg.e, y); ctx.lineTo(L - mg.d, y); ctx.stroke();
+      ctx.fillStyle = "rgba(16,35,59,.45)"; ctx.textAlign = "right";
+      ctx.fillText(brl(v, Math.abs(v) < 10 ? 1 : 0), mg.e - 6, y + 3);
+    }
+
+    var deBarra = series.filter(function (s) { return s.tipo !== "linha"; });
+    series.forEach(function (s, idx) {
+      if (s.tipo === "linha") {
+        ctx.beginPath();
+        s.valores.forEach(function (v, i) {
+          if (v === null || !isFinite(v)) return;
+          var x = mg.e + larg * (i + 0.5);
+          i === 0 ? ctx.moveTo(x, py(v)) : ctx.lineTo(x, py(v));
+        });
+        ctx.strokeStyle = s.cor; ctx.lineWidth = 2; ctx.stroke();
+        s.valores.forEach(function (v, i) {
+          if (v === null || !isFinite(v)) return;
+          ctx.beginPath();
+          ctx.arc(mg.e + larg * (i + 0.5), py(v), 3, 0, 7);
+          ctx.fillStyle = s.cor; ctx.fill();
+        });
+        return;
+      }
+      var n = deBarra.length, j = deBarra.indexOf(s);
+      var w = (larg * 0.62) / n;
+      s.valores.forEach(function (v, i) {
+        if (v === null || !isFinite(v)) return;
+        var x = mg.e + larg * (i + 0.19) + w * j;
+        var y = py(v);
+        ctx.fillStyle = s.cor;
+        ctx.fillRect(x, Math.min(y, zero), w - 1, Math.max(1, Math.abs(zero - y)));
+      });
+    });
+
+    // anos embaixo
+    ctx.fillStyle = "rgba(16,35,59,.5)"; ctx.textAlign = "center";
+    ctx.font = "9px Poppins, Arial";
+    anos.forEach(function (ano, i) {
+      ctx.fillText(ano, mg.e + larg * (i + 0.5), A - 6);
+    });
+  }
+
+  var COR = { azul: "#10233B", ouro: "#C9A227", verde: "#1C7F4D",
+              vermelho: "#B5392B", cinza: "#8795A6" };
+
+  function montarGraficos(item) {
+    var cnpj = item.cnpj, emp = BASE.empresas[cnpj];
+    var anosObj = (emp && emp.anos) || {};
+    var anos = Object.keys(anosObj).sort();
+    if (anos.length < 2) {
+      $("aba-gra").innerHTML = '<div class="vazio">Sem histórico anual para esta empresa.</div>';
+      GRAFICOS = [];
+      return;
+    }
+    var fin = !!(item.resumo && item.resumo.financeira);
+    var temReceita = anos.some(function (a) { return anosObj[a].receita; });
+    // alguns campos faltam em parte da base (holding sem lucro do
+    // controlador, por exemplo); aceita o primeiro que existir
+    function col(campo, f) {
+      var nomes = [].concat(campo);
+      return anos.map(function (a) {
+        for (var k = 0; k < nomes.length; k++) {
+          var v = anosObj[a][nomes[k]];
+          if (v !== undefined && v !== null) return f ? f(v) : v;
+        }
+        return null;
+      });
+    }
+    function razao(cima, baixo) {
+      return anos.map(function (a) {
+        var x = anosObj[a][cima], y = anosObj[a][baixo];
+        return (x && y) ? x / y * 100 : null;
+      });
+    }
+
+    // Consciente de setor: num banco "receita" e intermediacao financeira,
+    // margem EBIT nao existe e capex/ROIC nao dizem nada -- o proprio
+    // Fundamentus troca os graficos por outros nesses casos.
+    var defs = [];
+    if (temReceita) {
+      defs.push({ t: fin ? "Receita de intermediação financeira" : "Receita líquida",
+                  s: "R$ milhões", series: [{ nome: "Receita", cor: COR.azul,
+                     valores: col("receita", milhoes) }] });
+    }
+    defs.push({ t: "Lucro líquido e proventos", s: "R$ milhões, do controlador",
+                series: [{ nome: "Lucro", cor: COR.azul, valores: col(["lucro_ctrl", "lucro"], milhoes) },
+                         { nome: "Proventos", cor: COR.verde,
+                           valores: col("dividendos", milhoes) }] });
+    if (!fin && temReceita) {
+      defs.push({ t: "EBIT", s: "R$ milhões, as duas convenções",
+                  series: [{ nome: "Contábil", cor: COR.azul, valores: col("ebit_contabil", milhoes) },
+                           { nome: "Recorrente", cor: COR.ouro, valores: col("ebit", milhoes) }] });
+      defs.push({ t: "Margens", s: "% da receita",
+                  series: [{ nome: "Bruta", tipo: "linha", cor: COR.cinza,
+                             valores: razao("resultado_bruto", "receita") },
+                           { nome: "EBIT", tipo: "linha", cor: COR.ouro,
+                             valores: razao("ebit_contabil", "receita") },
+                           { nome: "Líquida", tipo: "linha", cor: COR.verde,
+                             valores: razao("lucro_ctrl", "receita") }] });
+    }
+    defs.push({ t: "Patrimônio líquido e ativo", s: "R$ milhões",
+                series: [{ nome: "Ativo", cor: COR.cinza, valores: col("ativo_total", milhoes) },
+                         { nome: "Patrimônio", cor: COR.azul, valores: col("pl", milhoes) }] });
+    if (!fin) {
+      defs.push({ t: "Dívida", s: "R$ milhões",
+                  series: [{ nome: "Bruta", cor: COR.cinza, valores: col("divida_bruta", milhoes) },
+                           { nome: "Líquida", tipo: "linha", cor: COR.vermelho,
+                             valores: col("divida_liquida", milhoes) }] });
+      defs.push({ t: "Caixa gerado e investido", s: "R$ milhões",
+                  series: [{ nome: "Operacional", cor: COR.verde, valores: col("fco", milhoes) },
+                           { nome: "CAPEX", cor: COR.vermelho, valores: col("capex", milhoes) }] });
+    }
+    var retorno = [{ nome: "ROE", cor: COR.azul, valores: razao("lucro_ctrl", "pl") }];
+    if (!fin) {
+      retorno.push({ nome: "ROIC", cor: COR.ouro,
+                     valores: razao("ebit_contabil", "capital_empregado") });
+    }
+    defs.push({ t: "Retorno", s: "% ao ano", series: retorno });
+
+    // grafico sem dado nenhum e pior que grafico ausente: o Itau so publica
+    // lucro, proventos e patrimonio na nossa base, e o resto sairia em branco
+    defs = defs.filter(function (d) {
+      return d.series.some(function (x) {
+        return x.valores.some(function (v) { return v !== null && isFinite(v); });
+      });
+    });
+    if (!defs.length) {
+      $("aba-gra").innerHTML = '<div class="vazio">Sem histórico anual suficiente ' +
+        'para esta empresa.</div>';
+      GRAFICOS = [];
+      return;
+    }
+    $("aba-gra").innerHTML = '<div class="graficos">' + defs.map(function (d, i) {
+      var leg = d.series.map(function (x) {
+        return '<span><i style="background:' + x.cor + '"></i>' + esc(x.nome) + "</span>";
+      }).join("");
+      return '<div class="bloco"><h3>' + esc(d.t) + "</h3>" +
+        '<div class="sub">' + esc(d.s) + "</div>" +
+        '<canvas id="g' + i + '"></canvas>' +
+        '<div class="legenda">' + leg + "</div></div>";
+    }).join("") + "</div>";
+    GRAFICOS = defs.map(function (d, i) { return { id: "g" + i, anos: anos, series: d.series }; });
+    redesenharGraficos();
+  }
+
+  function redesenharGraficos() {
+    GRAFICOS.forEach(function (g) {
+      var c = $(g.id);
+      if (c && c.clientWidth) barras(c, g.anos, g.series);
+    });
   }
 
   // ---------- historico de um indicador ----------
@@ -584,7 +813,8 @@
         var m = e.mercado[t], p = precos(r);
         var media = p["Média"];
         LISTA.push({
-          ticker: t, nome: e.nome, setor: e.setor_b3 || e.setor, subsetor: e.subsetor,
+          ticker: t, cnpj: cnpj, nome: e.nome,
+          setor: e.setor_b3 || e.setor, subsetor: e.subsetor,
           resumo: r, mercado: m,
           ord: {
             ticker: t, nome: e.nome, preco: m.preco, p_l: m.p_l, p_vp: m.p_vp,
@@ -656,6 +886,7 @@
   });
   window.addEventListener("resize", function () {
     if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), COR_LINHA);
+    if (!$("aba-gra").hidden) redesenharGraficos();
     var tit = $("modal-tit").textContent.split(" — ")[0];
     if (ATUAL && !$("modal").hidden && (SERIES[ATUAL.ticker] || {})[tit])
       desenharSerie($("modal-chart"), SERIES[ATUAL.ticker][tit], tit);
