@@ -157,7 +157,13 @@
 <script>
 (function () {
   "use strict";
-  var BASE = null, HIST = {}, LISTA = [], ATUAL = null, PERIODO = 252, CORATUAL = "#1C7F4D";
+  var BASE = null, HIST = {}, LISTA = [], ATUAL = null, PERIODO = 252;
+  // Uma cor so pra linha. Verde/vermelho conforme a variacao do periodo dava
+  // a impressao de que a cor mudava sozinha: o redesenho do resize usava
+  // verde fixo, e no celular rolar a tela recolhe a barra de endereco e
+  // dispara resize. A variacao continua colorida no texto embaixo do
+  // grafico, que e onde ela e um numero e nao um grafismo.
+  var COR_LINHA = "#10233B";
   var ordem = { col: "preco", asc: false };
   var $ = function (id) { return document.getElementById(id); };
 
@@ -274,8 +280,7 @@
     var r = item.resumo, m = item.mercado, p = precos(r);
     var serie = fatiar(ticker, PERIODO);
     var varPct = serie.length > 1 ? (serie[serie.length - 1][1] / serie[0][1] - 1) * 100 : null;
-    var cor = (varPct === null || varPct >= 0) ? "#1C7F4D" : "#B5392B";
-    CORATUAL = cor;
+    var cor = COR_LINHA;
 
     var avisos = [];
     if (r.fonte_rad) avisos.push('<span class="tag">balanço lido direto do RAD da CVM</span>');
@@ -480,7 +485,7 @@
     });
   });
   window.addEventListener("resize", function () {
-    if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), CORATUAL);
+    if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), COR_LINHA);
   });
 })();
 </script>
