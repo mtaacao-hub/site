@@ -114,6 +114,37 @@
   h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);
     margin:28px 0 11px;font-weight:700}
   .carregando{padding:50px;text-align:center;color:var(--ink-3)}
+
+  /* ---------- historico do indicador ---------- */
+  .hist{border:1px solid var(--line-forte);background:var(--card);border-radius:6px;
+    padding:1px 4px 0;margin-left:5px;cursor:pointer;line-height:0;vertical-align:middle;
+    color:var(--ink-3);transition:.15s}
+  .hist:hover{border-color:var(--gold);color:var(--gold-ink)}
+  .hist svg{display:block}
+  .modal{position:fixed;inset:0;z-index:20;background:rgba(16,35,59,.42);
+    display:flex;align-items:center;justify-content:center;padding:16px}
+  /* o display:flex acima ganha do [hidden] do navegador por especificidade:
+     sem esta linha o modal nasce aberto */
+  .modal[hidden]{display:none}
+  .modal .caixa{background:var(--card);border-radius:14px;max-width:720px;width:100%;
+    max-height:92vh;overflow-y:auto;border:1px solid var(--line-forte)}
+  .modal header{display:flex;align-items:center;gap:12px;padding:18px 22px 14px}
+  .modal h3{margin:0;font-size:1.25rem;font-weight:800;color:var(--ink)}
+  .modal .fechar{margin-left:auto;border:0;background:var(--ground);color:var(--ink-2);
+    width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;line-height:1}
+  .modal .fechar:hover{background:var(--ink);color:#fff}
+  .sumario{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--line);border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line)}
+  .sumario div{background:var(--card);padding:13px 22px}
+  .sumario dt{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);
+    font-weight:700}
+  .sumario dd{margin:3px 0 0;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .sumario .obs{font-size:.72rem;font-weight:600;color:var(--ink-2)}
+  /* .pos/.neg sozinhas perdem pra .sumario .obs na especificidade */
+  .sumario .obs.pos{color:var(--verde)} .sumario .obs.neg{color:var(--vermelho)}
+  #modal-chart{height:300px;padding:6px 10px 0}
+  .modal .nota{padding:4px 22px 18px;font-size:.72rem;color:var(--ink-3);line-height:1.6}
 </style>
 </head>
 <body>
@@ -154,10 +185,20 @@
   <div class="rodape" id="rodape"></div>
 </div>
 
+<div class="modal" id="modal" hidden>
+  <div class="caixa" role="dialog" aria-modal="true" aria-labelledby="modal-tit">
+    <header><h3 id="modal-tit"></h3>
+      <button class="fechar" id="modal-fechar" aria-label="Fechar">&times;</button></header>
+    <div class="sumario" id="modal-sumario"></div>
+    <canvas id="modal-chart"></canvas>
+    <p class="nota" id="modal-nota"></p>
+  </div>
+</div>
+
 <script>
 (function () {
   "use strict";
-  var BASE = null, HIST = {}, LISTA = [], ATUAL = null, PERIODO = 252;
+  var BASE = null, HIST = {}, SERIES = {}, LISTA = [], ATUAL = null, PERIODO = 252;
   // Uma cor so pra linha. Verde/vermelho conforme a variacao do periodo dava
   // a impressao de que a cor mudava sozinha: o redesenho do resize usava
   // verde fixo, e no celular rolar a tela recolhe a barra de endereco e
@@ -304,9 +345,14 @@
         '<div class="nota">' + NOTA[nome] + '</div></div>';
     }).join("");
 
+    // Cada linha ganha o botao de historico quando existe serie pro indicador.
+    // A chave da serie vem no 3o item do par quando o rotulo da tela e mais
+    // explicito que o nome interno ("ROIC recorrente" -> "ROIC").
     function dl(pares) {
       return pares.filter(function (x) { return x; }).map(function (x) {
-        return "<dt>" + x[0] + "</dt><dd>" + x[1] + "</dd>";
+        var chave = x[2] || x[0];
+        var tem = SERIES[ticker] && SERIES[ticker][chave] && SERIES[ticker][chave].length >= 3;
+        return "<dt>" + x[0] + (tem ? botaoHist(chave) : "") + "</dt><dd>" + x[1] + "</dd>";
       }).join("");
     }
     $("conteudo").innerHTML =
@@ -337,23 +383,24 @@
       '<h2 class="sec">Indicadores</h2><div class="paineis">' +
         '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
           ["P/L", num(m.p_l)], ["P/VP", num(m.p_vp)], ["PSR", num(m.psr)],
-          ["P/EBIT", num(m.p_ebit)], ["P/Ativo", num(m.p_ativo)],
+          ["P/EBIT", num(m.p_ebit)], ["P/EBIT contábil", num(m.p_ebit_contabil)],
+          ["P/Ativo", num(m.p_ativo)],
           ["EV/EBIT", num(m.ev_ebit)],
           ["EV/EBIT contábil", num(m.ev_ebit_contabil)],
           ["Dividend yield", num(m.dy, 2, "%")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Rentabilidade</h3><dl>' + dl([
           ["ROE", num(r.roe, 1, "%")],
-          ["ROIC recorrente", num(r.roic, 1, "%")],
+          ["ROIC recorrente", num(r.roic, 1, "%"), "ROIC"],
           ["ROIC contábil", num(r.roic_contabil, 1, "%")],
           ["Margem bruta", num(r.margem_bruta, 1, "%")],
-          ["Margem EBIT recorrente", num(r.margem_ebit, 1, "%")],
+          ["Margem EBIT recorrente", num(r.margem_ebit, 1, "%"), "Margem EBIT"],
           ["Margem EBIT contábil", num(r.margem_ebit_contabil, 1, "%")],
           ["Margem líquida", num(r.margem_liquida, 1, "%")],
           ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Por ação</h3><dl>' + dl([
-          ["LPA 12 meses", num(r.lpa_ttm_calc, 2)], ["VPA", num(r.vpa_atual, 2)],
+          ["LPA 12 meses", num(r.lpa_ttm_calc, 2), "LPA"], ["VPA", num(r.vpa_atual, 2)],
           r.vpa_individual_atual ? ["VPA individual", num(r.vpa_individual_atual, 2)] : null,
           ["Dividendos 12m", num(r.dpa_declarado, 4)],
           ["Dividendos 5a (média)", num(r.dpa_60m, 4)],
@@ -386,6 +433,107 @@
     });
     $("tit-lista").textContent = "Todas as empresas";
   }
+
+  // ---------- historico de um indicador ----------
+  // Indicador em porcentagem: a diferenca vira "pp" e o valor leva "%".
+  var EM_PCT = { "ROE": 1, "ROIC": 1, "Margem bruta": 1, "Margem EBIT": 1,
+                 "Margem EBIT contábil": 1, "Margem líquida": 1, "Dividend yield": 1 };
+
+  function botaoHist(chave) {
+    return '<button class="hist" data-ind="' + esc(chave) + '" aria-label="Histórico de ' +
+      esc(chave) + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<polyline points="3,17 9,11 13,15 21,6"/></svg></button>';
+  }
+
+  function valorHist(v, chave) {
+    return brl(v, 2) + (EM_PCT[chave] ? "%" : "");
+  }
+
+  function desenharSerie(canvas, pontos, chave) {
+    var dpr = window.devicePixelRatio || 1;
+    var L = canvas.clientWidth, A = canvas.clientHeight;
+    canvas.width = L * dpr; canvas.height = A * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, L, A);
+
+    var vals = pontos.map(function (p) { return p[1]; });
+    var media = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    var min = Math.min.apply(null, vals.concat([media]));
+    var max = Math.max.apply(null, vals.concat([media]));
+    if (max === min) { max += 1; min -= 1; }
+    // folga maior em cima: e onde ficam os rotulos de valor
+    var folga = (max - min) * 0.18;
+    min -= folga * 0.7; max += folga;
+    var mg = { e: 22, d: 22, t: 18, b: 30 };
+    var px = function (i) {
+      return pontos.length === 1 ? L / 2
+        : mg.e + (L - mg.e - mg.d) * (i / (pontos.length - 1));
+    };
+    var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
+
+    // linha da media, tracejada, como referencia visual
+    ctx.save();
+    ctx.setLineDash([5, 4]); ctx.strokeStyle = "rgba(16,35,59,.33)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(mg.e, py(media)); ctx.lineTo(L - mg.d, py(media)); ctx.stroke();
+    ctx.restore();
+
+    // a linha
+    ctx.beginPath();
+    pontos.forEach(function (p, i) {
+      if (i) { ctx.lineTo(px(i), py(p[1])); } else { ctx.moveTo(px(i), py(p[1])); }
+    });
+    ctx.strokeStyle = "#10233B"; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+
+    ctx.textAlign = "center";
+    pontos.forEach(function (p, i) {
+      var x = px(i), y = py(p[1]);
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, 7);
+      ctx.fillStyle = "#fff"; ctx.fill();
+      ctx.strokeStyle = "#10233B"; ctx.lineWidth = 2; ctx.stroke();
+      // rotulo acima, mas abaixo quando o ponto esta colado no topo
+      var acima = y - mg.t > 20;
+      ctx.font = "600 11px Poppins, Arial"; ctx.fillStyle = "#10233B";
+      ctx.fillText(valorHist(p[1], chave), x, acima ? y - 11 : y + 20);
+      ctx.font = "11px Poppins, Arial"; ctx.fillStyle = "rgba(16,35,59,.5)";
+      ctx.fillText(p[0], x, A - 9);
+    });
+  }
+
+  function abrirHist(ticker, chave) {
+    var pontos = (SERIES[ticker] || {})[chave];
+    if (!pontos || pontos.length < 2) return;
+    var vals = pontos.map(function (p) { return p[1]; });
+    var media = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    var atual = pontos[pontos.length - 1];
+    var menor = pontos.reduce(function (a, b) { return b[1] < a[1] ? b : a; });
+    var maior = pontos.reduce(function (a, b) { return b[1] > a[1] ? b : a; });
+    // contra a media: em pp quando o indicador ja e percentual, senao em %
+    var dif = EM_PCT[chave]
+      ? brl(Math.abs(atual[1] - media), 2) + "pp"
+      : (media ? brl(Math.abs(atual[1] / media - 1) * 100, 2) + "%" : "—");
+    var sinal = atual[1] >= media ? "acima" : "abaixo";
+
+    $("modal-tit").textContent = chave + " — histórico";
+    $("modal-sumario").innerHTML =
+      "<div><dt>Média</dt><dd>" + valorHist(media, chave) + "</dd></div>" +
+      "<div><dt>" + esc(atual[0]) + "</dt><dd>" + valorHist(atual[1], chave) + "</dd>" +
+        '<div class="obs ' + (atual[1] >= media ? "pos" : "neg") + '">' +
+        dif + " " + sinal + " da média</div></div>" +
+      "<div><dt>Menor</dt><dd>" + valorHist(menor[1], chave) + "</dd>" +
+        '<div class="obs">' + esc(menor[0]) + "</div></div>" +
+      "<div><dt>Maior</dt><dd>" + valorHist(maior[1], chave) + "</dd>" +
+        '<div class="obs">' + esc(maior[0]) + "</div></div>";
+    $("modal-nota").textContent =
+      "Cada ano usa o balanço daquele exercício — já reapresentado, quando a empresa " +
+      "republicou — e o fechamento do último pregão do ano.";
+    $("modal").hidden = false;
+    desenharSerie($("modal-chart"), pontos, chave);
+    $("modal-fechar").focus();
+  }
+
+  function fecharHist() { $("modal").hidden = true; }
 
   var NOTA = {
     "Bazin": "Dividendo médio de 5 anos dividido por 6% ao ano.",
@@ -425,9 +573,10 @@
   // ---------- carga ----------
   Promise.all([
     fetch("dados-cvm.json").then(function (r) { return r.json(); }),
-    fetch("historico.json").then(function (r) { return r.json(); }).catch(function () { return {}; })
+    fetch("historico.json").then(function (r) { return r.json(); }).catch(function () { return {}; }),
+    fetch("series-indicadores.json").then(function (r) { return r.json(); }).catch(function () { return {}; })
   ]).then(function (res) {
-    BASE = res[0]; HIST = res[1] || {};
+    BASE = res[0]; HIST = res[1] || {}; SERIES = res[2] || {};
     Object.keys(BASE.empresas).forEach(function (cnpj) {
       var e = BASE.empresas[cnpj], r = e.resumo || {};
       Object.keys(e.mercado || {}).forEach(function (t) {
@@ -468,6 +617,19 @@
     $("conteudo").innerHTML = '<div class="carregando">Não consegui carregar a base.</div>';
   });
 
+  $("modal-fechar").addEventListener("click", fecharHist);
+  $("modal").addEventListener("click", function (ev) {
+    if (ev.target === $("modal")) fecharHist();
+  });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !$("modal").hidden) fecharHist();
+  });
+  // delegado: os paineis sao reescritos a cada troca de empresa
+  $("conteudo").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".hist");
+    if (b && ATUAL) abrirHist(ATUAL.ticker, b.dataset.ind);
+  });
+
   $("busca").addEventListener("input", function () {
     var t = $("busca").value.trim().toUpperCase();
     if (LISTA.some(function (x) { return x.ticker === t; })) abrir(t);
@@ -486,6 +648,9 @@
   });
   window.addEventListener("resize", function () {
     if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), COR_LINHA);
+    var tit = $("modal-tit").textContent.split(" — ")[0];
+    if (ATUAL && !$("modal").hidden && (SERIES[ATUAL.ticker] || {})[tit])
+      desenharSerie($("modal-chart"), SERIES[ATUAL.ticker][tit], tit);
   });
 })();
 </script>
