@@ -412,6 +412,7 @@
           ["P/Ativo", num(m.p_ativo)],
           ["EV/EBIT", num(m.ev_ebit_contabil), "EV/EBIT contábil"],
           ["EV/EBIT recorrente", num(m.ev_ebit), "EV/EBIT"],
+          ["EV/EBITDA", num(m.ev_ebitda), "EV/EBITDA"],
           ["Dividend yield", num(m.dy, 2, "%")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Rentabilidade</h3><dl>' + dl([
@@ -421,6 +422,7 @@
           ["Margem bruta", num(r.margem_bruta, 1, "%")],
           ["Margem EBIT", num(r.margem_ebit_contabil, 1, "%"), "Margem EBIT contábil"],
           ["Margem EBIT recorrente", num(r.margem_ebit, 1, "%"), "Margem EBIT"],
+          ["Margem EBITDA", num(r.margem_ebitda, 1, "%"), "Margem EBITDA"],
           ["Margem líquida", num(r.margem_liquida, 1, "%")],
           ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%")]
         ]) + "</dl></div>" +
@@ -601,6 +603,10 @@
                          { nome: "Proventos", cor: COR.verde,
                            valores: col("dividendos", milhoes) }] });
     if (!fin && temReceita) {
+      defs.push({ t: "EBITDA", s: "R$ milhões — EBIT contábil mais depreciação",
+                  series: [{ nome: "EBITDA", cor: COR.azul, valores: col("ebitda", milhoes) },
+                           { nome: "Depreciação", cor: COR.cinza,
+                             valores: col("depreciacao", milhoes) }] });
       defs.push({ t: "EBIT", s: "R$ milhões, as duas convenções",
                   series: [{ nome: "Contábil", cor: COR.azul, valores: col("ebit_contabil", milhoes) },
                            { nome: "Recorrente", cor: COR.ouro, valores: col("ebit", milhoes) }] });
@@ -667,7 +673,8 @@
   // ---------- historico de um indicador ----------
   // Indicador em porcentagem: a diferenca vira "pp" e o valor leva "%".
   var EM_PCT = { "ROE": 1, "ROIC": 1, "Margem bruta": 1, "Margem EBIT": 1,
-                 "Margem EBIT contábil": 1, "Margem líquida": 1, "Dividend yield": 1 };
+                 "Margem EBIT contábil": 1, "Margem EBITDA": 1,
+                 "Margem líquida": 1, "Dividend yield": 1 };
 
   function botaoHist(chave) {
     return '<button class="hist" data-ind="' + esc(chave) + '" aria-label="Histórico de ' +
