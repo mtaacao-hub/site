@@ -53,6 +53,7 @@
     color:var(--ink)}
   .campo input:focus,.campo select:focus{outline:2px solid var(--gold);outline-offset:1px}
   .campo.ticker input{width:110px;text-transform:uppercase}
+  .campo.ticker.td input{width:300px;text-transform:none}
   .campo.num input{width:108px;text-align:right}
   .campo.data input{width:142px}
   button.acao{background:var(--ink);color:#fff;border:0;border-radius:8px;
@@ -102,6 +103,35 @@
     border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
   .rodape b{color:var(--ink)}
   .vazio{padding:34px;text-align:center;color:var(--ink-3)}
+
+  /* ---------- comparador ---------- */
+  /* Cores: a carteira no marinho da marca (traco mais grosso); os indices nos
+     cinco primeiros tons da paleta categorica de referencia, nessa ordem fixa
+     -- a cor segue o indice, nao muda quando outro e desligado. */
+  .cmp{--s-carteira:#10233B;--s-cdi:#2a78d6;--s-ipca:#eb6834;--s-ibov:#1baf7a;
+    --s-sp500_brl:#eda100;--s-sp500:#e87ba4}
+  .cmp .controles{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;
+    margin-bottom:12px;font-size:.8rem}
+  .cmp .controles label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    color:var(--ink-2);font-weight:600}
+  .cmp .controles label.fixo{cursor:default;color:var(--ink)}
+  .cmp .controles input[type=number]{width:58px;padding:4px 6px;border-radius:6px;
+    border:1px solid var(--line-forte);font-family:var(--font);font-size:.8rem;text-align:right}
+  .cmp .controles select{padding:5px 8px;border-radius:6px;border:1px solid var(--line-forte);
+    font-family:var(--font);font-size:.8rem;background:var(--card);color:var(--ink)}
+  .cmp .amostra{display:inline-block;width:14px;height:3px;border-radius:2px}
+  .cmp .grafico{position:relative}
+  .cmp svg{display:block;width:100%;overflow:visible}
+  .cmp svg text{font-family:var(--font);font-size:11px;fill:var(--ink-3)}
+  .cmp .dica{position:absolute;pointer-events:none;background:var(--card);
+    border:1px solid var(--line-forte);border-radius:8px;padding:8px 10px;font-size:.74rem;
+    box-shadow:0 4px 14px rgba(16,35,59,.12);white-space:nowrap;display:none;z-index:2}
+  .cmp .dica b{display:block;margin-bottom:4px;color:var(--ink)}
+  .cmp .dica div{display:flex;gap:8px;align-items:center;justify-content:space-between}
+  .cmp .dica span.n{color:var(--ink-2)}
+  .cmp .dica span.v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+  .cmp table{min-width:560px}
+  .cmp .avisos{margin-top:10px;font-size:.74rem;line-height:1.6;color:var(--ink-2)}
 </style>
 </head>
 <body>
@@ -127,15 +157,19 @@
     <div class="campos">
       <div class="campo data"><label for="f-data">Data</label>
         <input type="date" id="f-data"></div>
-      <div class="campo ticker"><label for="f-ticker">Ticker</label>
+      <div class="campo"><label for="f-classe">Classe</label>
+        <select id="f-classe"><option value="A">Ação</option>
+        <option value="TD">Tesouro Direto</option></select></div>
+      <div class="campo ticker" id="c-ticker"><label for="f-ticker" id="l-ticker">Ticker</label>
         <input id="f-ticker" list="tickers" autocomplete="off" spellcheck="false"
-               placeholder="VALE3"><datalist id="tickers"></datalist></div>
+               placeholder="VALE3"><datalist id="tickers"></datalist>
+        <datalist id="titulos"></datalist></div>
       <div class="campo"><label for="f-op">Operação</label>
         <select id="f-op"><option value="C">Compra</option>
         <option value="V">Venda</option></select></div>
       <div class="campo num"><label for="f-qtd">Quantidade</label>
         <input id="f-qtd" type="number" min="1" step="1" placeholder="100"></div>
-      <div class="campo num"><label for="f-preco">Preço (R$)</label>
+      <div class="campo num"><label for="f-preco" id="l-preco">Preço (R$)</label>
         <input id="f-preco" type="number" min="0" step="0.01" placeholder="58,20"></div>
       <button class="acao" id="b-add">Adicionar</button>
       <button class="acao leve" id="b-exemplo">Carteira de exemplo</button>
@@ -155,6 +189,15 @@
 (function () {
   "use strict";
   var BASE = null, DADOS = {}, OPS = [];
+  // titulos do Tesouro por nome ("Tesouro IPCA+ 2035"), de tesouro.json.
+  // Pode ficar null se o arquivo nao carregar -- as acoes seguem funcionando
+  var TESOURO = null, TD_DATA = null;
+
+  // ---------- classe de ativo ----------
+  // A operacao guarda `classe` desde a entrada do Tesouro; arquivo exportado
+  // antes disso nao tem o campo, e ali tudo era acao.
+  var CLASSES = { A: "Ações", TD: "Tesouro Direto" };
+  function classeDe(o) { return o.classe || "A"; }
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- armazenamento ----------
@@ -192,6 +235,7 @@
     return '<span class="' + (v >= 0 ? "pos" : "neg") + '">' +
       (v >= 0 ? "+" : "") + brl(v, casas) + (suf || "") + "</span>";
   }
+  function dmy(iso) { return String(iso || "").split("-").reverse().join("/"); }
   function esc(s) {
     return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
@@ -202,7 +246,8 @@
   // Mesmas premissas do Raio-X, de proposito: a carteira nao pode dizer um
   // preco-teto diferente do que a ficha da acao diz.
   var YIELD_BAZIN = 6, DESCONTO = 12, PERPETUIDADE = 4;
-  function tetoMedio(r) {
+  // `m`: numa UNIT o teto por acao vezes acoes_por_unit (ver o acoes.html)
+  function tetoMedio(r, m) {
     var v = [], dpa = r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_declarado;
     if (dpa > 0) v.push(dpa / (YIELD_BAZIN / 100));
     if (r.lpa_ttm_calc > 0 && r.vpa_atual > 0)
@@ -219,7 +264,8 @@
       }
     }
     v = v.filter(function (x) { return isFinite(x) && x > 0; });
-    return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
+    var k = (m && m.acoes_por_unit) || 1;
+    return v.length ? k * v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
   }
 
   // ---------- consolidacao ----------
@@ -228,12 +274,59 @@
   // quantidade. Calcular a media "liquida das vendas" daria preco medio
   // negativo em quem ja vendeu mais do que o custo, que e justamente o caso
   // de quem carrega a posicao ha anos.
+  // ---------- desdobramento, grupamento e bonificacao ----------
+  // A operacao e gravada como a pessoa lancou: na quantidade e no preco DA
+  // EPOCA. A cotacao de hoje esta nas acoes de hoje. Sem converter, quem
+  // comprou 100 WEGE3 antes do desdobramento de 2021 apareceria com metade
+  // do patrimonio. Tudo e levado para as acoes de HOJE:
+  //   fator(d) = produto dos multiplicadores dos eventos com data >= d
+  //   quantidade x fator, preco / fator (o valor nao muda).
+  // O mesmo vale para a cotacao historica (cotahist cru) e para o provento
+  // (o Fundamentus da o valor em acoes da epoca -- medido em 80 eventos: o
+  // yield de 12 meses antes e depois do evento fica igual, mediana 0,04 na
+  // escala em que 0 = da epoca e -1 = ja ajustado).
+  //
+  // O evento vem por EMPRESA em `eventos_acionarios`, [[data, multiplicador]],
+  // e REPETIDO uma vez por classe de acao: deduplicar por (data, multiplicador)
+  // antes de multiplicar, senao o desdobramento de 20x vira 400x. Dois
+  // eventos DIFERENTES na mesma data se multiplicam (a B3 lanca alguns como
+  // grupamento + desdobramento: a Vivo em 2025 vem 0,025 e 80 = 2x).
+  // A data e a ultima COM direito (lastDatePrior): no proprio dia ainda vale
+  // a acao antiga. Evento com data de hoje em diante ainda nao aconteceu.
+  var HOJE = new Date().toISOString().slice(0, 10);
+  function eventosDe(e) {
+    var vistos = {}, porData = {};
+    (e.eventos_acionarios || []).forEach(function (x) {
+      if (!x || !x[0] || !(x[1] > 0) || x[0] >= HOJE) return;
+      var k = x[0] + "|" + x[1];
+      if (vistos[k]) return;
+      vistos[k] = true;
+      porData[x[0]] = (porData[x[0]] || 1) * x[1];
+    });
+    return Object.keys(porData).sort().map(function (d) { return [d, porData[d]]; });
+  }
+  function fatorAte(ticker, d) {
+    var ev = DADOS[ticker] && DADOS[ticker].eventos, f = 1;
+    if (!ev) return 1;
+    for (var i = 0; i < ev.length; i++) if (ev[i][0] >= d) f *= ev[i][1];
+    return f;
+  }
+  // a operacao nas acoes de hoje (Tesouro nao tem evento)
+  function opHoje(o) {
+    if (classeDe(o) !== "A" || !o.data) return o;
+    var f = fatorAte(o.ticker, o.data);
+    if (f === 1) return o;
+    var c = {}; for (var k in o) c[k] = o[k];
+    c.qtd = o.qtd * f; c.preco = o.preco / f;
+    return c;
+  }
+
   function consolidar(ops) {
     var pos = {};
-    ops.slice().sort(function (a, b) { return (a.data || "").localeCompare(b.data || ""); })
+    ops.map(opHoje).sort(function (a, b) { return (a.data || "").localeCompare(b.data || ""); })
       .forEach(function (o) {
-        var p = pos[o.ticker] || (pos[o.ticker] = { ticker: o.ticker, qtd: 0, custo: 0,
-                                                    realizado: 0 });
+        var p = pos[o.ticker] || (pos[o.ticker] = { ticker: o.ticker, classe: classeDe(o),
+                                                    qtd: 0, custo: 0, realizado: 0 });
         if (o.op === "C") {
           p.qtd += o.qtd;
           p.custo += o.qtd * o.preco;
@@ -262,8 +355,24 @@
     }
     var totalAtual = 0, totalCusto = 0, provAno = 0, semCotacao = [];
     abertas.forEach(function (p) {
-      var d = dadosDo(p.ticker);
       p.pm = p.custo / p.qtd;
+      p.casas = p.classe === "TD" ? 2 : 0;
+      if (p.classe === "TD") {
+        // marcado pelo PU de VENDA: o que o Tesouro paga no resgate hoje,
+        // o mesmo numero do extrato do Tesouro Direto
+        var t = TESOURO && TESOURO[p.ticker];
+        p.titulo = t || null;
+        p.preco = t ? t.pu_venda : null;
+        p.atual = p.preco ? p.preco * p.qtd : null;
+        p.lucro = p.atual === null ? null : p.atual - p.custo;
+        p.dpa = p.proventos = p.yoc = p.teto = p.margem = null;
+        p.setor = null;
+        if (p.atual === null) semCotacao.push(p.ticker);
+        totalAtual += p.atual || 0;
+        totalCusto += p.custo;
+        return;
+      }
+      var d = dadosDo(p.ticker);
       p.preco = d ? d.mercado.preco : null;
       p.atual = p.preco ? p.preco * p.qtd : null;
       p.lucro = p.atual === null ? null : p.atual - p.custo;
@@ -271,7 +380,7 @@
       p.proventos = p.dpa ? p.dpa * p.qtd : null;
       p.yoc = p.dpa && p.pm ? p.dpa / p.pm * 100 : null;
       p.setor = d ? (d.setor || "Sem setor") : "Sem setor";
-      p.teto = d ? tetoMedio(d.resumo) : null;
+      p.teto = d ? tetoMedio(d.resumo, d.mercado) : null;
       p.margem = (p.teto && p.preco) ? (p.teto / p.preco - 1) * 100 : null;
       if (p.atual === null) semCotacao.push(p.ticker);
       totalAtual += p.atual || 0;
@@ -280,6 +389,8 @@
     });
     abertas.sort(function (a, b) { return (b.atual || 0) - (a.atual || 0); });
     var lucro = totalAtual - totalCusto;
+    var custoAcoes = abertas.reduce(function (s, p) {
+      return s + (p.classe === "A" ? p.custo : 0); }, 0);
     var realizado = posicoes.reduce(function (s, p) { return s + (p.realizado || 0); }, 0);
 
     $("resumo").innerHTML =
@@ -292,14 +403,20 @@
       (realizado ? "<div><dt>Realizado</dt><dd>" + sinal(realizado) + "</dd>" +
         '<div class="obs">lucro de vendas já feitas</div></div>' : "") +
       "<div><dt>Proventos 12m</dt><dd>R$ " + brl(provAno) + "</dd>" +
-        '<div class="obs">' + (totalCusto ? brl(provAno / totalCusto * 100, 2) + "% do custo" : "—") +
+        '<div class="obs">' + (custoAcoes ? brl(provAno / custoAcoes * 100, 2) + "% do custo em ações" : "—") +
         "</div></div>";
 
     // ---- tabela de posicoes ----
     var linhas = abertas.map(function (p) {
       var peso = totalAtual ? (p.atual || 0) / totalAtual * 100 : 0;
-      return "<tr><td>" + esc(p.ticker) + "</td>" +
-        "<td>" + brl(p.qtd, 0) + "</td>" +
+      var nota = "";
+      if (p.titulo && !p.titulo.vivo)
+        nota = '<div class="mini">vencido em ' + dmy(p.titulo.vencimento) +
+               " — lance o resgate como venda</div>";
+      else if (p.titulo && p.titulo.cupom)
+        nota = '<div class="mini">paga cupom semestral, que não entra aqui</div>';
+      return "<tr><td>" + esc(p.ticker) + nota + "</td>" +
+        "<td>" + brl(p.qtd, p.casas) + "</td>" +
         "<td>" + num(p.pm) + "</td>" +
         "<td>" + num(p.preco) + "</td>" +
         "<td>" + num(p.atual) + "</td>" +
@@ -308,7 +425,7 @@
         "<td>" + brl(peso, 1) + "%</td></tr>";
     }).join("");
     var tabela = '<h2 class="sec">Posições</h2><div class="quadro"><table>' +
-      "<thead><tr><th>Ticker</th><th>Qtd</th><th>Preço médio</th><th>Cotação</th>" +
+      "<thead><tr><th>Ativo</th><th>Qtd</th><th>Preço médio</th><th>Cotação</th>" +
       "<th>Valor hoje</th><th>Resultado</th><th>%</th><th>Peso</th></tr></thead>" +
       "<tbody>" + linhas + "</tbody>" +
       "<tfoot><tr><td>Total</td><td></td><td></td><td></td><td>" + brl(totalAtual) +
@@ -348,10 +465,14 @@
 
     // ---- composicao ----
     function composicao(titulo, chave) {
-      var por = {};
+      // "setor" so existe para acao; ali o percentual e sobre o total em
+      // acoes, senao as barras de setor nao somariam 100% numa carteira mista
+      var por = {}, base = 0;
       abertas.forEach(function (p) {
-        var k = chave === "setor" ? p.setor : p.ticker;
+        if (chave === "setor" && p.classe !== "A") return;
+        var k = chave === "setor" ? p.setor : chave === "classe" ? CLASSES[p.classe] : p.ticker;
         por[k] = (por[k] || 0) + (p.atual || 0);
+        base += p.atual || 0;
       });
       var itens = Object.keys(por).map(function (k) { return [k, por[k]]; })
                     .sort(function (a, b) { return b[1] - a[1]; });
@@ -360,50 +481,549 @@
         itens.map(function (x) {
           return '<div class="linha-barra"><span>' + esc(x[0]) + "</span>" +
             '<span class="trilho"><i style="width:' + (x[1] / maior * 100) + '%"></i></span>' +
-            "<b>" + brl(totalAtual ? x[1] / totalAtual * 100 : 0, 1) + "%</b></div>";
+            "<b>" + brl(base ? x[1] / base * 100 : 0, 1) + "%</b></div>";
         }).join("") + "</div></div>";
     }
 
     // ---- lancamentos ----
     var lanc = '<h2 class="sec">Operações lançadas</h2><div class="quadro"><table>' +
-      "<thead><tr><th>Data</th><th>Ticker</th><th>Op.</th><th>Qtd</th>" +
+      "<thead><tr><th>Data</th><th>Ativo</th><th>Op.</th><th>Qtd</th>" +
       "<th>Preço</th><th>Total</th><th></th></tr></thead><tbody>" +
       OPS.map(function (o, i) {
         return "<tr><td>" + esc(o.data || "—") + "</td><td>" + esc(o.ticker) + "</td>" +
           "<td>" + (o.op === "C" ? "Compra" : "Venda") + "</td>" +
-          "<td>" + brl(o.qtd, 0) + "</td><td>" + brl(o.preco) + "</td>" +
+          "<td>" + brl(o.qtd, classeDe(o) === "TD" ? 2 : 0) + "</td><td>" + brl(o.preco) + "</td>" +
           "<td>" + brl(o.qtd * o.preco) + "</td>" +
           '<td><button class="x" data-i="' + i + '" aria-label="Remover">&times;</button></td></tr>';
       }).join("") + "</tbody></table></div>";
 
+    var temAcoes = abertas.some(function (p) { return p.classe === "A"; });
+    var temClasses = temAcoes && abertas.some(function (p) { return p.classe !== "A"; });
     $("conteudo").innerHTML = tabela +
       '<h2 class="sec">Composição</h2><div class="duas">' +
-      composicao("Por ativo", "ticker") + composicao("Por setor", "setor") + "</div>" +
+      (temClasses ? composicao("Por classe", "classe") : "") +
+      composicao("Por ativo", "ticker") +
+      (temAcoes ? composicao(temClasses ? "Ações por setor" : "Por setor", "setor") : "") +
+      "</div>" +
+      '<h2 class="sec">Rentabilidade contra os índices</h2>' +
+      '<div class="bloco cmp" id="comparador"><div class="vazio">Carregando histórico…</div></div>' +
       prov + val + lanc +
       (semCotacao.length ? '<p class="mini" style="margin-top:10px">Sem cotação na base: ' +
         esc(semCotacao.join(", ")) + "</p>" : "");
+    carregarComparador();
   }
+
+  // ======================================================================
+  // ---------- comparador: a carteira contra CDI, IPCA+X, Ibov e S&P ----------
+  // ======================================================================
+  // RETORNO PONDERADO NO TEMPO, mes a mes (Dietz modificado): o aporte e o
+  // resgate entram ponderados pelos dias que ficaram no mes, de modo que
+  // colocar dinheiro novo nao "rende". E o mesmo criterio de cota de fundo e
+  // o unico que se compara com um indice. Provento entra pela data-ex, como
+  // dinheiro recebido, sobre a quantidade que a pessoa tinha na vespera.
+  //
+  // O primeiro mes nao entra: com a compra no dia 28, o Dietz divide o
+  // resultado por 3/30 do aporte e amplia dez vezes. A serie comeca no
+  // fechamento do primeiro mes, e o indice comeca no mesmo ponto.
+  var CMP = { carregado: false, hist: null, bench: null, prov: null,
+              x: 6, periodo: "tudo", reinvestir: true,
+              on: { cdi: true, ipca: true, ibov: true, sp500_brl: true, sp500: false } };
+  var SERIES_CMP = [
+    { k: "cdi", nome: "CDI" }, { k: "ipca", nome: "IPCA+" }, { k: "ibov", nome: "Ibovespa" },
+    { k: "sp500_brl", nome: "S&P 500 (R$)" }, { k: "sp500", nome: "S&P 500 (US$)" }];
+
+  function json(url) {
+    return fetch(url).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+                     .catch(function () { return null; });
+  }
+  function carregarComparador() {
+    if (CMP.carregado) { desenharComparador(); return; }
+    if (CMP.pedido) return;
+    CMP.pedido = true;
+    // historico.json tem ~4,6 MB: so e pedido quando ha carteira pra comparar
+    Promise.all([json("historico.json"), json("benchmarks.json"), json("proventos.json")])
+      .then(function (r) {
+        CMP.hist = r[0]; CMP.bench = r[1] && r[1].series; CMP.prov = r[2];
+        CMP.carregado = true;
+        desenharComparador();
+      }).catch(function (e) {
+        // erro de conta aqui nao pode derrubar a carteira: mostra e segue
+        var el = $("comparador");
+        if (el) el.innerHTML = '<div class="vazio">Não consegui montar a comparação.</div>';
+        if (window.console) console.error(e);
+        window.__erroComparador = String(e && e.stack || e);
+      });
+  }
+
+  function mesesEntre(a, b) {
+    var out = [], y = +a.slice(0, 4), m = +a.slice(5, 7);
+    while (true) {
+      var k = y + "-" + (m < 10 ? "0" : "") + m;
+      if (k > b) break;
+      out.push(k);
+      if (++m > 12) { m = 1; y++; }
+    }
+    return out;
+  }
+  function diasNoMes(k) { return new Date(+k.slice(0, 4), +k.slice(5, 7), 0).getDate(); }
+
+  // preco de fechamento de cada mes, por ativo, com o ultimo valor conhecido
+  // levado adiante (titulo vencido, papel que parou de negociar)
+  function precosMensais(o, meses, mesAtual) {
+    var cru = {}, i;
+    if (o.classe === "TD") {
+      var t = TESOURO && TESOURO[o.ticker];
+      if (!t) return null;
+      t.mensal.forEach(function (x) { cru[x[0]] = x[1]; });
+      if (t.vivo) cru[mesAtual] = t.pu_venda;
+    } else {
+      var h = CMP.hist && CMP.hist[o.ticker];
+      if (!h) return null;
+      h.forEach(function (x) { cru[x[0].slice(0, 7)] = x[1] / fatorAte(o.ticker, x[0]); });
+      var d = DADOS[o.ticker];
+      if (d && d.mercado && d.mercado.preco) cru[mesAtual] = d.mercado.preco;
+    }
+    var out = {}, ultimo = null, chaves = Object.keys(cru).sort(), j = 0;
+    for (i = 0; i < meses.length; i++) {
+      while (j < chaves.length && chaves[j] <= meses[i]) ultimo = cru[chaves[j++]];
+      out[meses[i]] = ultimo;
+    }
+    return out;
+  }
+
+  // salto que SOBRA depois do ajuste pelos eventos da B3: evento que ela nao
+  // listou (a AZEV3 teve um grupamento que nao aparece) ou tombo de verdade.
+  // NAO corrigimos por inferencia -- um tombo real de 75% (Americanas,
+  // jan/2023) e indistinguivel de um desdobramento 1:4 so pelo preco.
+  function saltosSuspeitos(ticker, de, ate) {
+    var h = CMP.hist && CMP.hist[ticker], out = [];
+    if (!h) return out;
+    for (var i = 1; i < h.length; i++) {
+      if (h[i][0] < de || h[i][0] > ate) continue;
+      var r = (h[i][1] / fatorAte(ticker, h[i][0])) / (h[i - 1][1] / fatorAte(ticker, h[i - 1][0]));
+      if (r < 0.55 || r > 1.8) out.push(dmy(h[i][0]) + " (" + (r > 1 ? "+" : "") +
+                                       brl((r - 1) * 100, 0) + "%)");
+    }
+    return out;
+  }
+
+  function calcularCarteira() {
+    var hoje = new Date().toISOString().slice(0, 10), mesAtual = hoje.slice(0, 7);
+    var ops = OPS.filter(function (o) { return o.data; }).map(opHoje)
+                 .sort(function (a, b) { return a.data.localeCompare(b.data); });
+    if (!ops.length) return null;
+    var meses = mesesEntre(ops[0].data.slice(0, 7), mesAtual);
+    var precos = {}, fora = {};
+    ops.forEach(function (o) {
+      if (precos[o.ticker] !== undefined || fora[o.ticker]) return;
+      var p = precosMensais({ ticker: o.ticker, classe: classeDe(o) }, meses, mesAtual);
+      if (p) precos[o.ticker] = p; else fora[o.ticker] = true;
+    });
+    ops = ops.filter(function (o) { return !fora[o.ticker]; });
+    if (!ops.length) return { fora: Object.keys(fora) };
+
+    // eventos de cada mes: operacoes e datas-ex, em ordem de data. Na mesma
+    // data, a data-ex vem ANTES da compra: quem compra no dia ex nao recebe.
+    var eventos = {};
+    ops.forEach(function (o) {
+      var k = o.data.slice(0, 7);
+      (eventos[k] = eventos[k] || []).push({ d: o.data, ord: 1, op: o });
+    });
+    var tickersAcao = {};
+    ops.forEach(function (o) { if (classeDe(o) === "A") tickersAcao[o.ticker] = true; });
+    Object.keys(tickersAcao).forEach(function (t) {
+      ((CMP.prov && CMP.prov[t]) || []).forEach(function (x) {
+        if (x[0] < ops[0].data) return;
+        // SUBSCRICAO e o preco do direito de subscrever (CEBR3: R$ 56,98 por
+        // acao em 2014), nao dinheiro recebido -- somar inventaria retorno.
+        // Restituicao de capital ENTRA: e caixa devolvido ao acionista, e a
+        // cotacao cai do mesmo tanto na data-ex; tira-la contaria a queda
+        // como prejuizo.
+        if (/SUBSCRI/i.test(x[2] || "")) return;
+        var k = x[0].slice(0, 7);
+        (eventos[k] = eventos[k] || []).push({ d: x[0], ord: 0, t: t,
+                                               prov: x[1] / fatorAte(t, x[0]) });
+      });
+    });
+
+    var qtd = {}, serie = [], valorAnt = null, proventosTotal = 0;
+    function valor(k) {
+      var v = 0;
+      for (var t in qtd) {
+        if (qtd[t] < 1e-9) continue;
+        var p = precos[t][k];
+        if (p === null || p === undefined) return null;
+        v += qtd[t] * p;
+      }
+      return v;
+    }
+    meses.forEach(function (k, i) {
+      var D = diasNoMes(k), F = 0, Fw = 0, prov = 0;
+      (eventos[k] || []).sort(function (a, b) {
+        return a.d === b.d ? a.ord - b.ord : a.d.localeCompare(b.d); })
+      .forEach(function (e) {
+        if (e.prov !== undefined) {
+          var q = qtd[e.t] || 0;
+          prov += q * e.prov;
+          return;
+        }
+        var o = e.op, w = (D - +e.d.slice(8, 10)) / D, v;
+        if (o.op === "C") {
+          qtd[o.ticker] = (qtd[o.ticker] || 0) + o.qtd;
+          v = o.qtd * o.preco;
+        } else {
+          var vend = Math.min(o.qtd, qtd[o.ticker] || 0);
+          qtd[o.ticker] = (qtd[o.ticker] || 0) - vend;
+          v = -vend * o.preco;
+        }
+        F += v; Fw += w * v;
+      });
+      proventosTotal += prov;
+      var v1 = valor(k);
+      var r = null;
+      if (i > 0 && valorAnt !== null && v1 !== null) {
+        var den = valorAnt + Fw;
+        // patrimonio zerado (vendeu tudo) ou aporte que domina: sem retorno
+        // confiavel no mes, a serie fica parada em vez de inventar numero
+        // com reinvestimento, o provento soma ao resultado do mes e passa a
+        // render dali em diante pelo encadeamento -- e o mesmo que comprar
+        // mais da carteira com ele. Sem, fica so a variacao de preco.
+        var ganhoProv = CMP.reinvestir ? prov : 0;
+        if (valorAnt > 0 && den > 0) r = (v1 + ganhoProv - valorAnt - F) / den;
+        else r = 0;
+      }
+      serie.push({ k: k, r: r, v: v1 });
+      valorAnt = v1;
+    });
+
+    var avisos = [];
+    Object.keys(tickersAcao).forEach(function (t) {
+      var s = saltosSuspeitos(t, ops[0].data, hoje);
+      if (s.length) avisos.push(t + ": " + s.join(", "));
+    });
+    return { serie: serie, fora: Object.keys(fora), saltos: avisos,
+             proventos: proventosTotal, mesAtual: mesAtual };
+  }
+
+  function retornoIndice(k, mes) {
+    var s = CMP.bench && CMP.bench[k === "ipca" ? "ipca" : k];
+    if (!s) return null;
+    if (!s._mapa) { s._mapa = {}; s.mensal.forEach(function (x) { s._mapa[x[0]] = x[1] / 100; }); }
+    var r = s._mapa[mes];
+    if (r === undefined) return null;
+    return k === "ipca" ? (1 + r) * Math.pow(1 + CMP.x / 100, 1 / 12) - 1 : r;
+  }
+
+  // series acumuladas a partir do fim do mes-base. null = sem dado (o IPCA
+  // termina um mes antes; o grafico corta a linha ali)
+  function acumular(base, meses) {
+    var out = { carteira: [] };
+    SERIES_CMP.forEach(function (s) { out[s.k] = []; });
+    var acc = { carteira: 1 };
+    SERIES_CMP.forEach(function (s) { acc[s.k] = 1; });
+    meses.forEach(function (m, i) {
+      if (i === 0) {
+        for (var k in out) out[k].push(0);
+        return;
+      }
+      var rc = base[m];
+      acc.carteira = rc === null || rc === undefined || acc.carteira === null ? null
+                     : acc.carteira * (1 + rc);
+      out.carteira.push(acc.carteira === null ? null : (acc.carteira - 1) * 100);
+      SERIES_CMP.forEach(function (s) {
+        var r = retornoIndice(s.k, m);
+        acc[s.k] = r === null || acc[s.k] === null ? null : acc[s.k] * (1 + r);
+        out[s.k].push(acc[s.k] === null ? null : (acc[s.k] - 1) * 100);
+      });
+    });
+    return out;
+  }
+
+  function desenharComparador() {
+    var el = $("comparador");
+    if (!el) return;
+    if (!CMP.bench) {
+      el.innerHTML = '<div class="vazio">Não consegui carregar os índices de comparação.</div>';
+      return;
+    }
+    var c = calcularCarteira();
+    if (!c || !c.serie) {
+      el.innerHTML = '<div class="vazio">Sem histórico de preço para as posições lançadas' +
+        (c && c.fora.length ? " (" + esc(c.fora.join(", ")) + ")" : "") + ".</div>";
+      return;
+    }
+    // periodo: o mes-base e o fechamento do mes anterior ao primeiro mes
+    // de retorno exibido
+    // so o trecho CONTINUO final: um mes sem preco (ativo antes de 2010, quando
+    // comeca o historico) quebra a cadeia, e emendar por cima do buraco
+    // compararia periodos diferentes
+    var ini = 0;
+    c.serie.forEach(function (x, i) { if (i > 0 && x.r === null) ini = i; });
+    var meses = c.serie.slice(ini).map(function (x) { return x.k; });
+    var n = { "12": 12, "36": 36, "60": 60 }[CMP.periodo];
+    if (n && meses.length > n + 1) meses = meses.slice(meses.length - n - 1);
+    if (meses.length < 2) {
+      el.innerHTML = '<div class="vazio">A comparação começa no fechamento do primeiro mês ' +
+        "com posição — volte depois do fim de " + esc(mesExtenso(meses[0] || c.mesAtual)) + ".</div>";
+      return;
+    }
+    var rmap = {};
+    c.serie.forEach(function (x) { rmap[x.k] = x.r; });
+    var ac = acumular(rmap, meses);
+
+    var ativos = [{ k: "carteira", nome: "Sua carteira" }].concat(
+      SERIES_CMP.filter(function (s) { return CMP.on[s.k]; }));
+    function nomeDe(s) { return s.k === "ipca" ? "IPCA+" + brl(CMP.x, CMP.x % 1 ? 1 : 0) + "%" : s.nome; }
+
+    var controles = '<div class="controles">' +
+      '<select id="cmp-periodo" aria-label="Período">' +
+      [["tudo", "Desde o início"], ["12", "12 meses"], ["36", "36 meses"], ["60", "60 meses"]]
+        .map(function (o) { return '<option value="' + o[0] + '"' +
+          (CMP.periodo === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") +
+      "</select>" +
+      '<label class="fixo"><span class="amostra" style="background:var(--s-carteira);height:4px"></span>Sua carteira</label>' +
+      '<label><input type="checkbox" id="cmp-reinv"' + (CMP.reinvestir ? " checked" : "") +
+      ">Reinvestir proventos</label>" +
+      SERIES_CMP.map(function (s) {
+        return '<label><input type="checkbox" data-serie="' + s.k + '"' +
+          (CMP.on[s.k] ? " checked" : "") + '><span class="amostra" style="background:var(--s-' +
+          s.k + ')"></span>' + (s.k === "ipca" ? 'IPCA+<input type="number" id="cmp-x" min="0" max="8" step="0.5" value="' +
+          CMP.x + '" aria-label="Juro real acima do IPCA, % ao ano">%' : esc(s.nome)) + "</label>";
+      }).join("") + "</div>";
+
+    el.innerHTML = controles + '<div class="grafico"><svg id="cmp-svg" role="img" ' +
+      'aria-label="Rentabilidade acumulada da carteira e dos índices"></svg>' +
+      '<div class="dica" id="cmp-dica"></div></div>' + tabelaAnual(rmap, meses, ativos, nomeDe) +
+      avisosComparador(c, meses);
+
+    desenharGrafico(meses, ac, ativos, nomeDe);
+
+    $("cmp-periodo").addEventListener("change", function (ev) {
+      CMP.periodo = ev.target.value; desenharComparador(); });
+    el.querySelectorAll("input[data-serie]").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        CMP.on[cb.dataset.serie] = cb.checked; desenharComparador(); });
+    });
+    $("cmp-reinv").addEventListener("change", function (ev) {
+      CMP.reinvestir = ev.target.checked; desenharComparador(); });
+    $("cmp-x").addEventListener("change", function (ev) {
+      var v = parseFloat(ev.target.value);
+      CMP.x = isFinite(v) ? Math.max(0, Math.min(8, v)) : 6;
+      desenharComparador();
+    });
+  }
+
+  var MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  function mesExtenso(k) { return MESES_PT[+k.slice(5, 7) - 1] + "/" + k.slice(0, 4); }
+
+  function desenharGrafico(meses, ac, ativos, nomeDe) {
+    var svg = $("cmp-svg"), W = Math.max(300, svg.parentNode.clientWidth || 600);
+    var H = W < 500 ? 230 : 300, m = { t: 12, r: 12, b: 26, l: 46 };
+    var vals = [0];
+    ativos.forEach(function (s) { ac[s.k].forEach(function (v) { if (v !== null) vals.push(v); }); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    var passo = escalaBonita((hi - lo) / 4 || 1);
+    lo = Math.floor(lo / passo) * passo; hi = Math.ceil(hi / passo) * passo;
+    var x = function (i) { return m.l + (W - m.l - m.r) * (i / (meses.length - 1)); };
+    var y = function (v) { return m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo)); };
+    var g = "";
+    for (var v = lo; v <= hi + 1e-9; v += passo) {
+      g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) +
+        '" stroke="' + (Math.abs(v) < 1e-9 ? "#8795A6" : "#E8E3D9") + '" stroke-width="1"/>' +
+        '<text x="' + (m.l - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' +
+        brl(v, 0) + "%</text>";
+    }
+    // eixo x: anos (ou meses, em janela curta), sem encavalar
+    var maxRot = Math.floor((W - m.l - m.r) / 52), rot = [];
+    meses.forEach(function (k, i) {
+      if (meses.length <= 14 ? true : k.slice(5, 7) === "01") rot.push(i);
+    });
+    var pulo = Math.ceil(rot.length / maxRot) || 1;
+    rot.forEach(function (i, j) {
+      if (j % pulo) return;
+      g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' +
+        (meses.length <= 14 ? MESES_PT[+meses[i].slice(5, 7) - 1] : meses[i].slice(0, 4)) + "</text>";
+    });
+    // linhas: a carteira por ultimo, por cima
+    ativos.slice(1).concat([ativos[0]]).forEach(function (s) {
+      var d = "", aberto = false;
+      ac[s.k].forEach(function (v, i) {
+        if (v === null) { aberto = false; return; }
+        d += (aberto ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+        aberto = true;
+      });
+      g += '<path d="' + d + '" fill="none" stroke="var(--s-' + s.k + ')" stroke-width="' +
+        (s.k === "carteira" ? 3 : 2) + '" stroke-linejoin="round" stroke-linecap="round"/>';
+    });
+    g += '<line id="cmp-mira" y1="' + m.t + '" y2="' + (H - m.b) +
+      '" stroke="#8795A6" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>' +
+      '<g id="cmp-pontos"></g>' +
+      '<rect x="' + m.l + '" y="0" width="' + (W - m.l - m.r) + '" height="' + H +
+      '" fill="transparent" id="cmp-alvo"/>';
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("height", H);
+    svg.innerHTML = g;
+
+    var alvo = $("cmp-alvo"), dica = $("cmp-dica"), mira = $("cmp-mira"), pts = $("cmp-pontos");
+    function mover(ev) {
+      var b = svg.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - b.left;
+      var i = Math.round((px - m.l) / (W - m.l - m.r) * (meses.length - 1));
+      i = Math.max(0, Math.min(meses.length - 1, i));
+      mira.setAttribute("x1", x(i)); mira.setAttribute("x2", x(i));
+      mira.setAttribute("visibility", "visible");
+      var linhas = ativos.map(function (s) { return [s, ac[s.k][i]]; })
+        .sort(function (a, b) { return (b[1] === null ? -1e9 : b[1]) - (a[1] === null ? -1e9 : a[1]); });
+      pts.innerHTML = linhas.filter(function (l) { return l[1] !== null; }).map(function (l) {
+        return '<circle cx="' + x(i) + '" cy="' + y(l[1]) + '" r="4" fill="var(--s-' + l[0].k +
+          ')" stroke="#fff" stroke-width="2"/>'; }).join("");
+      dica.innerHTML = "<b>" + (i === 0 ? "Início · fim de " : "") + mesExtenso(meses[i]) + "</b>" +
+        linhas.map(function (l) {
+          return '<div><span class="n"><span class="amostra" style="background:var(--s-' + l[0].k +
+            ')"></span> ' + esc(nomeDe(l[0])) + '</span><span class="v">' +
+            (l[1] === null ? "—" : (l[1] >= 0 ? "+" : "") + brl(l[1], 1) + "%") + "</span></div>";
+        }).join("");
+      dica.style.display = "block";
+      var dx = x(i) / W * b.width, lw = dica.offsetWidth;
+      dica.style.left = (dx + 14 + lw > b.width ? Math.max(0, dx - 14 - lw) : dx + 14) + "px";
+      dica.style.top = "8px";
+    }
+    function sair() { dica.style.display = "none"; mira.setAttribute("visibility", "hidden"); pts.innerHTML = ""; }
+    alvo.addEventListener("mousemove", mover);
+    alvo.addEventListener("touchmove", mover, { passive: true });
+    alvo.addEventListener("touchstart", mover, { passive: true });
+    alvo.addEventListener("mouseleave", sair);
+  }
+  function escalaBonita(bruto) {
+    var e = Math.pow(10, Math.floor(Math.log10(bruto))), f = bruto / e;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
+  }
+
+  // a mesma informacao do grafico em numero: ano a ano, o periodo inteiro e
+  // a taxa ao ano. Ano parcial (o primeiro e o corrente) vai marcado.
+  function tabelaAnual(rmap, meses, ativos, nomeDe) {
+    var anos = {}, ordem = [];
+    meses.slice(1).forEach(function (m) {
+      var a = m.slice(0, 4);
+      if (!anos[a]) { anos[a] = []; ordem.push(a); }
+      anos[a].push(m);
+    });
+    // o IPCA do ultimo mes ainda nao saiu: a conta para no ultimo disponivel
+    // e a celula ganha um asterisco, em vez de apagar o ano inteiro
+    var cortado = false;
+    function acumulado(k, lista) {
+      var f = 1, ateIpca = k === "ipca" && CMP.bench.ipca && CMP.bench.ipca.ate;
+      for (var i = 0; i < lista.length; i++) {
+        var r = k === "carteira" ? rmap[lista[i]] : retornoIndice(k, lista[i]);
+        if (r === null || r === undefined) {
+          if (ateIpca && lista[i] > ateIpca && i > 0) { cortado = true; return { v: (f - 1) * 100, c: true }; }
+          return null;
+        }
+        f *= 1 + r;
+      }
+      return (f - 1) * 100;
+    }
+    function cel(v) {
+      if (v && v.c) return "<td>" + sinal(v.v, 1, "%") + '<span class="mini">*</span></td>';
+      return "<td>" + sinal(v, 1, "%") + "</td>";
+    }
+    var corpo = ordem.map(function (a) {
+      var parcial = anos[a].length < 12;
+      return "<tr><td>" + a + (parcial ? ' <span class="mini">(' + anos[a].length + " m)</span>" : "") +
+        "</td>" + ativos.map(function (s) { return cel(acumulado(s.k, anos[a])); }).join("") + "</tr>";
+    }).join("");
+    var todos = meses.slice(1), anosN = todos.length / 12;
+    var tot = ativos.map(function (s) { return acumulado(s.k, todos); });
+    return '<div class="quadro" style="margin-top:14px"><table><thead><tr><th>Ano</th>' +
+      ativos.map(function (s) { return "<th>" + esc(nomeDe(s)) + "</th>"; }).join("") +
+      "</tr></thead><tbody>" + corpo + "</tbody><tfoot>" +
+      "<tr><td>No período</td>" + tot.map(cel).join("") + "</tr>" +
+      (anosN >= 1 ? "<tr><td>Ao ano</td>" + tot.map(function (v) {
+        if (v && v.c) v = v.v;   // taxa ao ano: o mes que falta pesa pouco
+        return cel(v === null ? null : (Math.pow(1 + v / 100, 1 / anosN) - 1) * 100); }).join("") + "</tr>" : "") +
+      "</tfoot></table></div>" +
+      (cortado ? '<p class="mini" style="margin:6px 0 0">* IPCA até ' +
+        mesExtenso(CMP.bench.ipca.ate) + "; o do mês seguinte ainda não foi divulgado.</p>" : "");
+  }
+
+  function avisosComparador(c, meses) {
+    var a = [];
+    a.push("<b>Como é calculado:</b> retorno ponderado no tempo, mês a mês, a partir do " +
+      "fechamento de " + mesExtenso(meses[0]) + ". Aporte e resgate não contam como " +
+      "rendimento. " + (CMP.reinvestir
+        ? "Proventos (dividendo, JCP bruto e restituição de capital) entram pela data-ex e são " +
+          "reinvestidos na própria carteira"
+        : "<b>Sem os proventos</b>: só a variação de preço. O Ibovespa e o S&amp;P daqui " +
+          "reinvestem os deles, então nesse modo a comparação favorece os índices") +
+      (c.proventos ? " (R$ " + brl(c.proventos) + " recebidos no período)" : "") + ". Sem IR, " +
+      "corretagem nem custódia. Ações pelo fechamento do mês (semanal antes dos últimos 12 meses); " +
+      "Tesouro pelo preço de venda do último dia útil do mês.");
+    a.push("<b>Índices:</b> CDI e IPCA do Banco Central; Ibovespa da B3; S&amp;P 500 " +
+      "<b>com dividendos reinvestidos</b>, em dólar e convertido pela PTAX. IPCA+X compõe o IPCA " +
+      "mensal com X% ao ano; o IPCA de um mês sai por volta do dia 10 do seguinte, então essa " +
+      "linha termina um mês antes. O mês corrente é parcial em todas as séries.");
+    if (c.fora.length)
+      a.push("<b>Fora da comparação</b> por falta de histórico de preço: " + esc(c.fora.join(", ")) + ".");
+    if (c.saltos.length)
+      a.push('<b style="color:var(--vermelho)">Atenção:</b> variação brusca entre dois pregões em ' +
+        esc(c.saltos.join("; ")) + ". O histórico já é ajustado pelos desdobramentos e grupamentos que a B3 publica, e " +
+        "este salto não está entre eles: se foi um evento não listado, o resultado desse mês está errado.");
+    return '<div class="avisos">' + a.join("<br>") + "</div>";
+  }
+
+  var redimensionar = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(redimensionar);
+    redimensionar = setTimeout(function () { if (CMP.carregado) desenharComparador(); }, 150);
+  });
 
   function salvar() { Armazem.gravar(OPS); render(); }
 
   // ---------- entrada ----------
+  function tituloPorNome(txt) {
+    // o datalist entrega o nome exato, mas digitado a mao vem com caixa e
+    // espaco diferentes
+    var alvo = txt.replace(/\s+/g, " ").trim().toLowerCase();
+    return Object.keys(TESOURO || {}).filter(function (n) {
+      return n.toLowerCase() === alvo; })[0] || null;
+  }
   function adicionar() {
-    var t = ($("f-ticker").value || "").trim().toUpperCase();
+    var classe = $("f-classe").value;
+    var bruto = ($("f-ticker").value || "").trim();
+    var t = classe === "TD" ? tituloPorNome(bruto) : bruto.toUpperCase();
     var q = parseFloat($("f-qtd").value), p = parseFloat($("f-preco").value);
     var erro = null;
-    if (!/^[A-Z]{4}\d{1,2}$/.test(t)) erro = "Ticker inválido. Use o formato VALE3.";
+    if (classe === "TD") {
+      if (!TESOURO) erro = "A base do Tesouro não carregou.";
+      else if (!t) erro = "Título não encontrado. Escolha da lista, ex.: Tesouro IPCA+ 2035.";
+    } else if (!/^[A-Z]{4}\d{1,2}$/.test(t)) erro = "Ticker inválido. Use o formato VALE3.";
     else if (!DADOS[t]) erro = t + " não está na nossa base de cotações.";
-    else if (!(q > 0)) erro = "Quantidade tem que ser maior que zero.";
-    else if (!(p > 0)) erro = "Preço tem que ser maior que zero.";
+    if (!erro && !(q > 0)) erro = "Quantidade tem que ser maior que zero.";
+    if (!erro && !(p > 0)) erro = "Preço tem que ser maior que zero.";
     if (erro) { $("erro").textContent = erro; $("erro").hidden = false; return; }
     $("erro").hidden = true;
     OPS.push({ data: $("f-data").value || new Date().toISOString().slice(0, 10),
-               ticker: t, op: $("f-op").value, qtd: q, preco: p });
+               ticker: t, classe: classe, op: $("f-op").value, qtd: q, preco: p });
     $("f-qtd").value = ""; $("f-preco").value = ""; $("f-ticker").value = "";
     $("f-ticker").focus();
     salvar();
   }
 
+  // trocar a classe troca a lista do campo, o rotulo e o passo da quantidade:
+  // titulo do Tesouro se compra em fracao de 0,01
+  function ajustarClasse() {
+    var td = $("f-classe").value === "TD";
+    $("c-ticker").classList.toggle("td", td);
+    $("l-ticker").textContent = td ? "Título" : "Ticker";
+    $("f-ticker").setAttribute("list", td ? "titulos" : "tickers");
+    $("f-ticker").placeholder = td ? "Tesouro IPCA+ 2035" : "VALE3";
+    $("f-qtd").step = td ? "0.01" : "1";
+    $("f-qtd").min = td ? "0.01" : "1";
+    $("f-qtd").placeholder = td ? "1,50" : "100";
+    $("l-preco").textContent = td ? "Preço unitário (R$)" : "Preço (R$)";
+    $("f-preco").placeholder = td ? "2.513,39" : "58,20";
+    $("f-ticker").value = "";
+  }
+  $("f-classe").addEventListener("change", ajustarClasse);
   $("b-add").addEventListener("click", adicionar);
   ["f-ticker", "f-qtd", "f-preco"].forEach(function (id) {
     $(id).addEventListener("keydown", function (ev) {
@@ -424,6 +1044,9 @@
     exemplo.forEach(function (x) {
       if (DADOS[x[1]]) OPS.push({ data: x[0], ticker: x[1], op: "C", qtd: x[2], preco: x[3] });
     });
+    if (TESOURO && TESOURO["Tesouro IPCA+ 2035"])
+      OPS.push({ data: "2025-02-17", ticker: "Tesouro IPCA+ 2035", classe: "TD",
+                 op: "C", qtd: 4.5, preco: 2210.4 });
     salvar();
   });
   $("b-exportar").addEventListener("click", function () {
@@ -445,7 +1068,9 @@
         var d = JSON.parse(leitor.result);
         var ops = Array.isArray(d) ? d : d.operacoes;
         if (!Array.isArray(ops)) throw new Error("formato");
-        OPS = ops.filter(function (o) { return o && o.ticker && o.qtd > 0 && o.preco > 0; });
+        OPS = ops.filter(function (o) {
+          return o && o.ticker && o.qtd > 0 && o.preco > 0 &&
+                 (o.classe === undefined || CLASSES[o.classe]); });
         $("erro").hidden = true;
         salvar();
       } catch (e) {
@@ -458,14 +1083,39 @@
 
   // ---------- carga ----------
   $("f-data").value = new Date().toISOString().slice(0, 10);
-  fetch("dados-cvm.json").then(function (r) { return r.json(); }).then(function (b) {
+  // o Tesouro e opcional: se o arquivo falhar, a carteira de acoes abre igual
+  // e as posicoes em titulo aparecem como "sem cotacao"
+  var tesouro = fetch("tesouro.json").then(function (r) {
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  }).catch(function () { return null; });
+  Promise.all([fetch("dados-cvm.json").then(function (r) { return r.json(); }), tesouro])
+  .then(function (res) {
+    var b = res[0], td = res[1];
     BASE = b;
+    if (td && td.titulos) {
+      TESOURO = td.titulos;
+      TD_DATA = td.data;
+      // so os vivos na lista; um vencido ainda e reconhecido se vier de arquivo
+      $("titulos").innerHTML = Object.keys(TESOURO).filter(function (n) {
+        return TESOURO[n].vivo; }).map(function (n) {
+        return '<option value="' + esc(n) + '"></option>'; }).join("");
+    }
     Object.keys(b.empresas).forEach(function (cnpj) {
       var e = b.empresas[cnpj];
       Object.keys(e.mercado || {}).forEach(function (t) {
         DADOS[t] = { mercado: e.mercado[t], resumo: e.resumo || {}, nome: e.nome,
-                     setor: e.setor_b3 || e.setor };
+                     setor: e.setor_b3 || e.setor, eventos: eventosDe(e) };
       });
+    });
+    // ETF: so cotacao, sem fundamento -- resumo vazio faz o tetoMedio sair
+    // null, entao o ETF entra no patrimonio e na composicao mas nunca no
+    // "contra o preco-teto". Fica em `etfs` no JSON, fora de `empresas`.
+    Object.keys(b.etfs || {}).forEach(function (t) {
+      if (DADOS[t]) return;
+      var x = b.etfs[t];
+      DADOS[t] = { mercado: { preco: x.preco, data: x.data, volume: x.volume },
+                   resumo: {}, nome: x.nome + " (ETF)", setor: "ETF", etf: true };
     });
     $("tickers").innerHTML = Object.keys(DADOS).sort().map(function (t) {
       return '<option value="' + t + '">' + esc(DADOS[t].nome) + "</option>";
@@ -482,7 +1132,12 @@
       "<b>Teto médio</b> usa as mesmas premissas do Raio-X (Bazin a 6%, Graham, " +
       "Lynch e DCF a 12% com perpetuidade de 4%), porque a carteira não pode dizer " +
       "um preço diferente do que a ficha da ação diz.<br><br>" +
-      "Cotações do pregão de <b>" + esc(String(b.pregao || "").split("-").reverse().join("/")) +
+      "<b>Tesouro Direto</b> marcado pelo preço unitário de venda do Tesouro — o " +
+      "valor de resgate antecipado, o mesmo do extrato" +
+      (TD_DATA ? ", de <b>" + esc(dmy(TD_DATA)) + "</b>" : " (base do Tesouro indisponível agora)") +
+      ". Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR, e os " +
+      "cupons dos títulos com juros semestrais não são somados.<br><br>" +
+      "Cotações do pregão de <b>" + esc(dmy(b.pregao)) +
       "</b>. Conteúdo educacional, não é recomendação de investimento.";
     OPS = Armazem.ler();
     render();
