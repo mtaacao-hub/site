@@ -384,7 +384,8 @@
       '</div>' + (avisos.length ? '<div class="avisos">' + avisos.join("") + "</div>" : "") + "</div>" +
 
       '<div class="grafico"><div class="periodos" id="periodos">' +
-        [[5, "5d"], [21, "1m"], [63, "3m"], [126, "6m"], [252, "12m"], [1260, "60m"]].map(function (x) {
+        [[5, "5d"], [21, "1m"], [63, "3m"], [126, "6m"], [252, "12m"], [1260, "60m"],
+         [99999, "Máx"]].map(function (x) {
           return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '">' + x[1] + "</button>";
         }).join("") +
       '</div><canvas id="chart"></canvas>' +

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Consolidador de Carteira — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  a{color:var(--gold-ink)}
+
+  header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .marca{font-weight:800;color:var(--ink);font-size:.95rem}
+  .marca span{color:var(--ink-3);font-weight:600}
+
+  /* ---------- resumo ---------- */
+  .resumo{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));
+    gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin-bottom:20px}
+  .resumo div{background:var(--card);padding:14px 17px}
+  .resumo dt{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-3);font-weight:700}
+  .resumo dd{margin:4px 0 0;font-size:1.3rem;font-weight:800;
+    font-variant-numeric:tabular-nums}
+  .resumo .obs{font-size:.72rem;font-weight:600;color:var(--ink-2);margin-top:2px}
+
+  /* ---------- lancamento ---------- */
+  .lancar{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    padding:15px 17px;margin-bottom:20px}
+  .lancar h2{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--gold-ink);font-weight:700}
+  .campos{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end}
+  .campo{display:flex;flex-direction:column;gap:4px}
+  .campo label{font-size:.68rem;color:var(--ink-3);font-weight:600}
+  .campo input,.campo select{padding:8px 10px;border-radius:8px;font-family:var(--font);
+    font-size:.9rem;border:1px solid var(--line-forte);background:var(--card);
+    color:var(--ink)}
+  .campo input:focus,.campo select:focus{outline:2px solid var(--gold);outline-offset:1px}
+  .campo.ticker input{width:110px;text-transform:uppercase}
+  .campo.num input{width:108px;text-align:right}
+  .campo.data input{width:142px}
+  button.acao{background:var(--ink);color:#fff;border:0;border-radius:8px;
+    padding:9px 18px;font-family:var(--font);font-weight:700;font-size:.85rem;
+    cursor:pointer}
+  button.acao:hover{background:#1b3657}
+  button.leve{background:var(--card);color:var(--ink-2);border:1px solid var(--line-forte)}
+  button.leve:hover{border-color:var(--gold);color:var(--ink)}
+  .erro{color:var(--vermelho);font-size:.78rem;font-weight:600;margin-top:9px}
+
+  /* ---------- tabelas ---------- */
+  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-2);margin:26px 0 10px;font-weight:700}
+  .quadro{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:640px}
+  th{text-align:right;padding:11px 10px;font-size:.68rem;text-transform:uppercase;
+    letter-spacing:.06em;color:var(--ink-2);border-bottom:1px solid var(--line-forte);
+    white-space:nowrap}
+  th:first-child{text-align:left}
+  td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  td:first-child{text-align:left;font-weight:700;color:var(--ink)}
+  tbody tr:last-child td{border-bottom:0}
+  tfoot td{font-weight:800;border-top:1px solid var(--line-forte);border-bottom:0}
+  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
+  .mini{font-size:.7rem;color:var(--ink-3);font-weight:600}
+  button.x{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:1rem;
+    line-height:1;padding:0 4px}
+  button.x:hover{color:var(--vermelho)}
+
+  /* ---------- composicao ---------- */
+  .barras{display:flex;flex-direction:column;gap:9px}
+  .linha-barra{display:grid;grid-template-columns:150px 1fr 74px;gap:11px;
+    align-items:center;font-size:.82rem}
+  .trilho{background:var(--ground);border-radius:4px;height:16px;overflow:hidden}
+  .trilho i{display:block;height:100%;background:var(--ink);border-radius:4px}
+  .linha-barra b{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+
+  .duas{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    padding:15px 17px}
+  .bloco h3{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--gold-ink);font-weight:700}
+
+  .rodape{margin-top:26px;padding:16px 18px;border-radius:11px;background:var(--card);
+    border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
+  .rodape b{color:var(--ink)}
+  .vazio{padding:34px;text-align:center;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topo">
+    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
+      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+      </g>
+    </svg>
+    <span class="marca">Muita Ação <span>· carteira</span></span>
+  </header>
+
+  <dl class="resumo" id="resumo"></dl>
+
+  <div class="lancar">
+    <h2>Lançar operação</h2>
+    <div class="campos">
+      <div class="campo data"><label for="f-data">Data</label>
+        <input type="date" id="f-data"></div>
+      <div class="campo ticker"><label for="f-ticker">Ticker</label>
+        <input id="f-ticker" list="tickers" autocomplete="off" spellcheck="false"
+               placeholder="VALE3"><datalist id="tickers"></datalist></div>
+      <div class="campo"><label for="f-op">Operação</label>
+        <select id="f-op"><option value="C">Compra</option>
+        <option value="V">Venda</option></select></div>
+      <div class="campo num"><label for="f-qtd">Quantidade</label>
+        <input id="f-qtd" type="number" min="1" step="1" placeholder="100"></div>
+      <div class="campo num"><label for="f-preco">Preço (R$)</label>
+        <input id="f-preco" type="number" min="0" step="0.01" placeholder="58,20"></div>
+      <button class="acao" id="b-add">Adicionar</button>
+      <button class="acao leve" id="b-exemplo">Carteira de exemplo</button>
+      <button class="acao leve" id="b-exportar">Exportar</button>
+      <button class="acao leve" id="b-importar">Importar</button>
+      <input type="file" id="f-arquivo" accept="application/json" hidden>
+    </div>
+    <div class="erro" id="erro" hidden></div>
+  </div>
+
+  <div id="conteudo"><div class="vazio">Carregando a base…</div></div>
+
+  <div class="rodape" id="rodape"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = null, DADOS = {}, OPS = [];
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- armazenamento ----------
+  // ISOLADO DE PROPOSITO. Hoje a carteira vive so no navegador de quem
+  // acessa: nada sai do aparelho, nao precisa de servidor e nao existe dado
+  // financeiro de ninguem guardado em lugar nenhum. O destino do projeto e
+  // outro -- cada cliente com login e senha vendo a propria carteira -- e
+  // quando for a hora, o que muda e SO este objeto: `ler` e `gravar` viram
+  // uma chamada de rede autenticada e o resto da pagina nao sabe da
+  // diferenca. Por isso nenhuma outra parte do codigo toca em localStorage.
+  var Armazem = {
+    chave: "muitaacao.carteira.v1",
+    ler: function () {
+      try {
+        return JSON.parse(localStorage.getItem(this.chave) || "[]");
+      } catch (e) { return []; }      // navegador privado, site data bloqueado
+    },
+    gravar: function (ops) {
+      try { localStorage.setItem(this.chave, JSON.stringify(ops)); } catch (e) {}
+    }
+  };
+
+  // ---------- formatacao ----------
+  function brl(v, casas) {
+    if (v === null || v === undefined || !isFinite(v)) return null;
+    var c = casas === undefined ? 2 : casas;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
+  }
+  function num(v, casas, suf) {
+    var s = brl(v, casas);
+    return s === null ? '<span class="na">—</span>' : s + (suf || "");
+  }
+  function sinal(v, casas, suf) {
+    if (v === null || v === undefined || !isFinite(v)) return '<span class="na">—</span>';
+    return '<span class="' + (v >= 0 ? "pos" : "neg") + '">' +
+      (v >= 0 ? "+" : "") + brl(v, casas) + (suf || "") + "</span>";
+  }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+
+  // ---------- precos pelos metodos de valuation ----------
+  // Mesmas premissas do Raio-X, de proposito: a carteira nao pode dizer um
+  // preco-teto diferente do que a ficha da acao diz.
+  var YIELD_BAZIN = 6, DESCONTO = 12, PERPETUIDADE = 4;
+  function tetoMedio(r) {
+    var v = [], dpa = r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_declarado;
+    if (dpa > 0) v.push(dpa / (YIELD_BAZIN / 100));
+    if (r.lpa_ttm_calc > 0 && r.vpa_atual > 0)
+      v.push(Math.sqrt(22.5 * r.lpa_ttm_calc * r.vpa_atual));
+    var g = r.cagr_60m;
+    if (r.lpa_ttm_calc > 0 && g > 0) v.push(r.lpa_ttm_calc * g);
+    if (r.fcl_acao > 0 && g !== undefined && g !== null) {
+      var cresc = Math.max(0, Math.min(g, 25)) / 100, taxa = DESCONTO / 100,
+          perp = PERPETUIDADE / 100;
+      if (perp < taxa) {
+        var fluxo = r.fcl_acao, soma = 0, i;
+        for (i = 1; i <= 5; i++) { fluxo *= (1 + cresc); soma += fluxo / Math.pow(1 + taxa, i); }
+        v.push(soma + (fluxo * (1 + perp)) / (taxa - perp) / Math.pow(1 + taxa, 5));
+      }
+    }
+    v = v.filter(function (x) { return isFinite(x) && x > 0; });
+    return v.length ? v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
+  }
+
+  // ---------- consolidacao ----------
+  // PRECO MEDIO pela convencao brasileira: compra entra na media ponderada,
+  // venda NAO mexe na media -- ela realiza lucro ou prejuizo e reduz a
+  // quantidade. Calcular a media "liquida das vendas" daria preco medio
+  // negativo em quem ja vendeu mais do que o custo, que e justamente o caso
+  // de quem carrega a posicao ha anos.
+  function consolidar(ops) {
+    var pos = {};
+    ops.slice().sort(function (a, b) { return (a.data || "").localeCompare(b.data || ""); })
+      .forEach(function (o) {
+        var p = pos[o.ticker] || (pos[o.ticker] = { ticker: o.ticker, qtd: 0, custo: 0,
+                                                    realizado: 0 });
+        if (o.op === "C") {
+          p.qtd += o.qtd;
+          p.custo += o.qtd * o.preco;
+        } else {
+          var pm = p.qtd ? p.custo / p.qtd : 0;
+          var vendidas = Math.min(o.qtd, p.qtd);
+          p.realizado += vendidas * (o.preco - pm);
+          p.custo -= vendidas * pm;
+          p.qtd -= vendidas;
+        }
+      });
+    return Object.keys(pos).map(function (t) { return pos[t]; })
+             .filter(function (p) { return p.qtd > 0.0001 || p.realizado; });
+  }
+
+  function dadosDo(ticker) { return DADOS[ticker] || null; }
+
+  function render() {
+    var posicoes = consolidar(OPS);
+    var abertas = posicoes.filter(function (p) { return p.qtd > 0.0001; });
+    if (!abertas.length) {
+      $("conteudo").innerHTML = '<div class="vazio">Nenhuma posição ainda. ' +
+        'Lance uma operação acima, ou carregue a carteira de exemplo.</div>';
+      $("resumo").innerHTML = "";
+      return;
+    }
+    var totalAtual = 0, totalCusto = 0, provAno = 0, semCotacao = [];
+    abertas.forEach(function (p) {
+      var d = dadosDo(p.ticker);
+      p.pm = p.custo / p.qtd;
+      p.preco = d ? d.mercado.preco : null;
+      p.atual = p.preco ? p.preco * p.qtd : null;
+      p.lucro = p.atual === null ? null : p.atual - p.custo;
+      p.dpa = d ? (d.mercado.dpa !== undefined ? d.mercado.dpa : null) : null;
+      p.proventos = p.dpa ? p.dpa * p.qtd : null;
+      p.yoc = p.dpa && p.pm ? p.dpa / p.pm * 100 : null;
+      p.setor = d ? (d.setor || "Sem setor") : "Sem setor";
+      p.teto = d ? tetoMedio(d.resumo) : null;
+      p.margem = (p.teto && p.preco) ? (p.teto / p.preco - 1) * 100 : null;
+      if (p.atual === null) semCotacao.push(p.ticker);
+      totalAtual += p.atual || 0;
+      totalCusto += p.custo;
+      provAno += p.proventos || 0;
+    });
+    abertas.sort(function (a, b) { return (b.atual || 0) - (a.atual || 0); });
+    var lucro = totalAtual - totalCusto;
+    var realizado = posicoes.reduce(function (s, p) { return s + (p.realizado || 0); }, 0);
+
+    $("resumo").innerHTML =
+      "<div><dt>Valor hoje</dt><dd>R$ " + brl(totalAtual) + "</dd>" +
+        '<div class="obs">' + abertas.length + " posições</div></div>" +
+      "<div><dt>Custo</dt><dd>R$ " + brl(totalCusto) + "</dd></div>" +
+      "<div><dt>Não realizado</dt><dd>" + sinal(lucro) + "</dd>" +
+        '<div class="obs">' + (totalCusto ? sinal(lucro / totalCusto * 100, 1, "%") : "—") +
+        "</div></div>" +
+      (realizado ? "<div><dt>Realizado</dt><dd>" + sinal(realizado) + "</dd>" +
+        '<div class="obs">lucro de vendas já feitas</div></div>' : "") +
+      "<div><dt>Proventos 12m</dt><dd>R$ " + brl(provAno) + "</dd>" +
+        '<div class="obs">' + (totalCusto ? brl(provAno / totalCusto * 100, 2) + "% do custo" : "—") +
+        "</div></div>";
+
+    // ---- tabela de posicoes ----
+    var linhas = abertas.map(function (p) {
+      var peso = totalAtual ? (p.atual || 0) / totalAtual * 100 : 0;
+      return "<tr><td>" + esc(p.ticker) + "</td>" +
+        "<td>" + brl(p.qtd, 0) + "</td>" +
+        "<td>" + num(p.pm) + "</td>" +
+        "<td>" + num(p.preco) + "</td>" +
+        "<td>" + num(p.atual) + "</td>" +
+        "<td>" + sinal(p.lucro) + "</td>" +
+        "<td>" + (p.custo ? sinal((p.lucro || 0) / p.custo * 100, 1, "%") : "—") + "</td>" +
+        "<td>" + brl(peso, 1) + "%</td></tr>";
+    }).join("");
+    var tabela = '<h2 class="sec">Posições</h2><div class="quadro"><table>' +
+      "<thead><tr><th>Ticker</th><th>Qtd</th><th>Preço médio</th><th>Cotação</th>" +
+      "<th>Valor hoje</th><th>Resultado</th><th>%</th><th>Peso</th></tr></thead>" +
+      "<tbody>" + linhas + "</tbody>" +
+      "<tfoot><tr><td>Total</td><td></td><td></td><td></td><td>" + brl(totalAtual) +
+      "</td><td>" + sinal(lucro) + "</td><td>" +
+      (totalCusto ? sinal(lucro / totalCusto * 100, 1, "%") : "") +
+      "</td><td>100,0%</td></tr></tfoot></table></div>";
+
+    // ---- proventos ----
+    var comProv = abertas.filter(function (p) { return p.proventos; })
+                         .sort(function (a, b) { return b.proventos - a.proventos; });
+    var prov = '<h2 class="sec">Proventos</h2><div class="quadro"><table>' +
+      "<thead><tr><th>Ticker</th><th>Por ação 12m</th><th>Recebido 12m</th>" +
+      "<th>Yield on cost</th><th>Yield na cotação</th></tr></thead><tbody>" +
+      (comProv.length ? comProv.map(function (p) {
+        var d = dadosDo(p.ticker);
+        return "<tr><td>" + esc(p.ticker) + "</td><td>" + num(p.dpa, 4) + "</td>" +
+          "<td>" + num(p.proventos) + "</td>" +
+          "<td>" + num(p.yoc, 2, "%") + "</td>" +
+          "<td>" + num(d && d.mercado.dy, 2, "%") + "</td></tr>";
+      }).join("") : '<tr><td colspan="5" class="na">Nenhuma posição com provento nos últimos 12 meses.</td></tr>') +
+      "</tbody></table></div>";
+
+    // ---- carteira x valuation ----
+    var comTeto = abertas.filter(function (p) { return p.margem !== null; })
+                         .sort(function (a, b) { return a.margem - b.margem; });
+    var val = '<h2 class="sec">Suas ações contra o preço-teto</h2><div class="quadro"><table>' +
+      "<thead><tr><th>Ticker</th><th>Cotação</th><th>Teto médio</th>" +
+      "<th>Margem</th><th>Seu preço médio</th><th>Margem sobre o seu custo</th></tr></thead><tbody>" +
+      (comTeto.length ? comTeto.map(function (p) {
+        return "<tr><td>" + esc(p.ticker) + "</td><td>" + num(p.preco) + "</td>" +
+          "<td>" + num(p.teto) + "</td>" +
+          "<td>" + sinal(p.margem, 1, "%") + "</td>" +
+          "<td>" + num(p.pm) + "</td>" +
+          "<td>" + sinal((p.teto / p.pm - 1) * 100, 1, "%") + "</td></tr>";
+      }).join("") : '<tr><td colspan="6" class="na">Sem método aplicável às suas posições.</td></tr>') +
+      "</tbody></table></div>";
+
+    // ---- composicao ----
+    function composicao(titulo, chave) {
+      var por = {};
+      abertas.forEach(function (p) {
+        var k = chave === "setor" ? p.setor : p.ticker;
+        por[k] = (por[k] || 0) + (p.atual || 0);
+      });
+      var itens = Object.keys(por).map(function (k) { return [k, por[k]]; })
+                    .sort(function (a, b) { return b[1] - a[1]; });
+      var maior = itens.length ? itens[0][1] : 1;
+      return '<div class="bloco"><h3>' + titulo + '</h3><div class="barras">' +
+        itens.map(function (x) {
+          return '<div class="linha-barra"><span>' + esc(x[0]) + "</span>" +
+            '<span class="trilho"><i style="width:' + (x[1] / maior * 100) + '%"></i></span>' +
+            "<b>" + brl(totalAtual ? x[1] / totalAtual * 100 : 0, 1) + "%</b></div>";
+        }).join("") + "</div></div>";
+    }
+
+    // ---- lancamentos ----
+    var lanc = '<h2 class="sec">Operações lançadas</h2><div class="quadro"><table>' +
+      "<thead><tr><th>Data</th><th>Ticker</th><th>Op.</th><th>Qtd</th>" +
+      "<th>Preço</th><th>Total</th><th></th></tr></thead><tbody>" +
+      OPS.map(function (o, i) {
+        return "<tr><td>" + esc(o.data || "—") + "</td><td>" + esc(o.ticker) + "</td>" +
+          "<td>" + (o.op === "C" ? "Compra" : "Venda") + "</td>" +
+          "<td>" + brl(o.qtd, 0) + "</td><td>" + brl(o.preco) + "</td>" +
+          "<td>" + brl(o.qtd * o.preco) + "</td>" +
+          '<td><button class="x" data-i="' + i + '" aria-label="Remover">&times;</button></td></tr>';
+      }).join("") + "</tbody></table></div>";
+
+    $("conteudo").innerHTML = tabela +
+      '<h2 class="sec">Composição</h2><div class="duas">' +
+      composicao("Por ativo", "ticker") + composicao("Por setor", "setor") + "</div>" +
+      prov + val + lanc +
+      (semCotacao.length ? '<p class="mini" style="margin-top:10px">Sem cotação na base: ' +
+        esc(semCotacao.join(", ")) + "</p>" : "");
+  }
+
+  function salvar() { Armazem.gravar(OPS); render(); }
+
+  // ---------- entrada ----------
+  function adicionar() {
+    var t = ($("f-ticker").value || "").trim().toUpperCase();
+    var q = parseFloat($("f-qtd").value), p = parseFloat($("f-preco").value);
+    var erro = null;
+    if (!/^[A-Z]{4}\d{1,2}$/.test(t)) erro = "Ticker inválido. Use o formato VALE3.";
+    else if (!DADOS[t]) erro = t + " não está na nossa base de cotações.";
+    else if (!(q > 0)) erro = "Quantidade tem que ser maior que zero.";
+    else if (!(p > 0)) erro = "Preço tem que ser maior que zero.";
+    if (erro) { $("erro").textContent = erro; $("erro").hidden = false; return; }
+    $("erro").hidden = true;
+    OPS.push({ data: $("f-data").value || new Date().toISOString().slice(0, 10),
+               ticker: t, op: $("f-op").value, qtd: q, preco: p });
+    $("f-qtd").value = ""; $("f-preco").value = ""; $("f-ticker").value = "";
+    $("f-ticker").focus();
+    salvar();
+  }
+
+  $("b-add").addEventListener("click", adicionar);
+  ["f-ticker", "f-qtd", "f-preco"].forEach(function (id) {
+    $(id).addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") adicionar();
+    });
+  });
+  $("conteudo").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button.x");
+    if (!b) return;
+    OPS.splice(parseInt(b.dataset.i, 10), 1);
+    salvar();
+  });
+  $("b-exemplo").addEventListener("click", function () {
+    // posicoes plausiveis so pra mostrar a tela funcionando; o usuario apaga
+    var exemplo = [["2024-03-14", "VALE3", 300, 62.4], ["2024-07-02", "WEGE3", 200, 38.9],
+                   ["2025-01-20", "ITUB4", 400, 32.1], ["2025-05-08", "TAEE11", 150, 35.6],
+                   ["2025-09-11", "VALE3", 200, 54.3]];
+    exemplo.forEach(function (x) {
+      if (DADOS[x[1]]) OPS.push({ data: x[0], ticker: x[1], op: "C", qtd: x[2], preco: x[3] });
+    });
+    salvar();
+  });
+  $("b-exportar").addEventListener("click", function () {
+    // o arquivo e o backup, e tambem o caminho de levar a carteira pra outro
+    // aparelho enquanto nao existe login
+    var txt = JSON.stringify({ versao: 1, operacoes: OPS }, null, 1);
+    var a = document.createElement("a");
+    a.href = "data:application/json;charset=utf-8," + encodeURIComponent(txt);
+    a.download = "carteira.json";
+    a.click();
+  });
+  $("b-importar").addEventListener("click", function () { $("f-arquivo").click(); });
+  $("f-arquivo").addEventListener("change", function (ev) {
+    var f = ev.target.files[0];
+    if (!f) return;
+    var leitor = new FileReader();
+    leitor.onload = function () {
+      try {
+        var d = JSON.parse(leitor.result);
+        var ops = Array.isArray(d) ? d : d.operacoes;
+        if (!Array.isArray(ops)) throw new Error("formato");
+        OPS = ops.filter(function (o) { return o && o.ticker && o.qtd > 0 && o.preco > 0; });
+        $("erro").hidden = true;
+        salvar();
+      } catch (e) {
+        $("erro").textContent = "Não consegui ler esse arquivo.";
+        $("erro").hidden = false;
+      }
+    };
+    leitor.readAsText(f);
+  });
+
+  // ---------- carga ----------
+  $("f-data").value = new Date().toISOString().slice(0, 10);
+  fetch("dados-cvm.json").then(function (r) { return r.json(); }).then(function (b) {
+    BASE = b;
+    Object.keys(b.empresas).forEach(function (cnpj) {
+      var e = b.empresas[cnpj];
+      Object.keys(e.mercado || {}).forEach(function (t) {
+        DADOS[t] = { mercado: e.mercado[t], resumo: e.resumo || {}, nome: e.nome,
+                     setor: e.setor_b3 || e.setor };
+      });
+    });
+    $("tickers").innerHTML = Object.keys(DADOS).sort().map(function (t) {
+      return '<option value="' + t + '">' + esc(DADOS[t].nome) + "</option>";
+    }).join("");
+    $("rodape").innerHTML =
+      "<b>Protótipo.</b> A carteira fica salva <b>só neste navegador</b> — nada é " +
+      "enviado para lugar nenhum, e ninguém além de quem usa este aparelho a vê. " +
+      "Use <b>Exportar</b> para levá-la a outro computador ou guardar cópia. " +
+      "O destino do projeto é cada cliente ter login próprio; quando for a hora, " +
+      "muda só a camada de armazenamento.<br><br>" +
+      "<b>Preço médio</b> pela convenção brasileira: a compra entra na média " +
+      "ponderada e a venda não mexe nela — realiza resultado e reduz a quantidade. " +
+      "<b>Proventos</b> são os dos últimos 12 meses por data-ex, por classe de ação. " +
+      "<b>Teto médio</b> usa as mesmas premissas do Raio-X (Bazin a 6%, Graham, " +
+      "Lynch e DCF a 12% com perpetuidade de 4%), porque a carteira não pode dizer " +
+      "um preço diferente do que a ficha da ação diz.<br><br>" +
+      "Cotações do pregão de <b>" + esc(String(b.pregao || "").split("-").reverse().join("/")) +
+      "</b>. Conteúdo educacional, não é recomendação de investimento.";
+    OPS = Armazem.ler();
+    render();
+  }).catch(function () {
+    $("conteudo").innerHTML = '<div class="vazio">Não consegui carregar a base de cotações.</div>';
+  });
+})();
+</script>
+</body>
+</html>
