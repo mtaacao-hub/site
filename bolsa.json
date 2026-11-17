@@ -1,0 +1,571 @@
+{
+ "gerado_em": "2026-11-17T18:50:35",
+ "metodo": {
+  "pl": "soma do valor de mercado / soma do lucro do controlador",
+  "pl_mediana": "mediana dos P/L positivos, empresa a empresa",
+  "lucro_ano": "lucro do proprio exercicio contra o ultimo pregao dele (o lucro so e publicado meses depois)",
+  "mercado": "toda empresa com negocio nos dois ultimos meses do ano, inclusive as que depois sairam da bolsa",
+  "ibov": "carteira reconstruida pela regra atual da B3 (85% do indice de negociabilidade, presenca de 95%, sem penny stock), nao a oficial da epoca",
+  "escala": "fora quem tem P/VP fora de [0.01, 200] -- sinal de contagem de acoes errada"
+ },
+ "anos": {
+  "2010": {
+   "mercado": {
+    "pl": 11.8,
+    "pl_mediana": 12.34,
+    "pl_lucrativas": 10.99,
+    "n": 166,
+    "n_prejuizo": 19,
+    "valor_mercado": 1666884487747.0,
+    "lucro": 141236339216.0,
+    "n_fora_da_base_hoje": 41,
+    "excluidas_escala": 7,
+    "sem_balanco": 60,
+    "cobertura_volume": 88.7,
+    "excluidas_exemplos": [
+     "BCO SANTANDER (BRASIL) S.A.",
+     "CIA HABITASUL DE PARTICIPACOES",
+     "CIA SANEAMENTO DE MINAS GERAIS-COPASA MG",
+     "DEXXOS PARTICIPAÇÕES S.A.",
+     "EDP - ENERGIAS DO BRASIL S.A.",
+     "ISA ENERGIA BRASIL",
+     "SONDOTECNICA ENGENHARIA SOLOS S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 11.02,
+    "pl_mediana": 13.9,
+    "pl_lucrativas": 10.26,
+    "n": 28,
+    "n_prejuizo": 3,
+    "valor_mercado": 1292564446974.0,
+    "lucro": 117313792000.0,
+    "papeis_carteira": 53
+   }
+  },
+  "2011": {
+   "mercado": {
+    "pl": 10.36,
+    "pl_mediana": 11.44,
+    "pl_lucrativas": 9.37,
+    "n": 201,
+    "n_prejuizo": 40,
+    "valor_mercado": 1737708397533.0,
+    "lucro": 167773906210.0,
+    "n_fora_da_base_hoje": 50,
+    "excluidas_escala": 4,
+    "sem_balanco": 40,
+    "cobertura_volume": 89.0,
+    "excluidas_exemplos": [
+     "BLUE TECH SOLUTIONS EQI S.A.",
+     "CIA HABITASUL DE PARTICIPACOES",
+     "EDP - ENERGIAS DO BRASIL S.A.",
+     "SONDOTECNICA ENGENHARIA SOLOS S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 9.16,
+    "pl_mediana": 11.88,
+    "pl_lucrativas": 8.43,
+    "n": 40,
+    "n_prejuizo": 7,
+    "valor_mercado": 1305680494670.0,
+    "lucro": 142536704000.0,
+    "papeis_carteira": 55
+   }
+  },
+  "2012": {
+   "mercado": {
+    "pl": 15.84,
+    "pl_mediana": 15.52,
+    "pl_lucrativas": 13.68,
+    "n": 211,
+    "n_prejuizo": 51,
+    "valor_mercado": 1915902301748.0,
+    "lucro": 120957181696.0,
+    "n_fora_da_base_hoje": 54,
+    "excluidas_escala": 5,
+    "sem_balanco": 35,
+    "cobertura_volume": 89.4,
+    "excluidas_exemplos": [
+     "BLUE TECH SOLUTIONS EQI S.A.",
+     "CIA HABITASUL DE PARTICIPACOES",
+     "MANGELS INDUSTRIAL S.A.",
+     "SONDOTECNICA ENGENHARIA SOLOS S.A.",
+     "TEC TOY S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 14.91,
+    "pl_mediana": 20.45,
+    "pl_lucrativas": 13.16,
+    "n": 48,
+    "n_prejuizo": 11,
+    "valor_mercado": 1516141476324.0,
+    "lucro": 101666006000.0,
+    "papeis_carteira": 62
+   }
+  },
+  "2013": {
+   "mercado": {
+    "pl": 18.49,
+    "pl_mediana": 13.93,
+    "pl_lucrativas": 13.93,
+    "n": 225,
+    "n_prejuizo": 49,
+    "valor_mercado": 2079898681378.0,
+    "lucro": 112512312018.0,
+    "n_fora_da_base_hoje": 62,
+    "excluidas_escala": 3,
+    "sem_balanco": 33,
+    "cobertura_volume": 90.0,
+    "excluidas_exemplos": [
+     "CSU DIGITAL S.A.",
+     "SONDOTECNICA ENGENHARIA SOLOS S.A.",
+     "TEC TOY S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 17.04,
+    "pl_mediana": 19.06,
+    "pl_lucrativas": 13.06,
+    "n": 55,
+    "n_prejuizo": 9,
+    "valor_mercado": 1476652723567.0,
+    "lucro": 86656809000.0,
+    "papeis_carteira": 67
+   }
+  },
+  "2014": {
+   "mercado": {
+    "pl": 19.27,
+    "pl_mediana": 11.23,
+    "pl_lucrativas": 12.2,
+    "n": 235,
+    "n_prejuizo": 67,
+    "valor_mercado": 2018702466663.0,
+    "lucro": 104769428640.0,
+    "n_fora_da_base_hoje": 66,
+    "excluidas_escala": 2,
+    "sem_balanco": 27,
+    "cobertura_volume": 92.6,
+    "excluidas_exemplos": [
+     "BOMBRIL S.A. - EM RECUPERAÇÃO JUDICIAL",
+     "SONDOTECNICA ENGENHARIA SOLOS S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 19.27,
+    "pl_mediana": 18.52,
+    "pl_lucrativas": 13.31,
+    "n": 49,
+    "n_prejuizo": 6,
+    "valor_mercado": 1670264072624.0,
+    "lucro": 86697545000.0,
+    "papeis_carteira": 59
+   }
+  },
+  "2015": {
+   "mercado": {
+    "pl": 93.76,
+    "pl_mediana": 11.56,
+    "pl_lucrativas": 9.96,
+    "n": 236,
+    "n_prejuizo": 79,
+    "valor_mercado": 1768906457577.0,
+    "lucro": 18866008508.0,
+    "n_fora_da_base_hoje": 65,
+    "excluidas_escala": 7,
+    "sem_balanco": 26,
+    "cobertura_volume": 92.2,
+    "excluidas_exemplos": [
+     "AMPLA ENERGIA E SERVICOS S.A.",
+     "BCO ALFA DE INVESTIMENTO S.A.",
+     "ENEVA S.A",
+     "GRUPO CASAS BAHIA S.A. - EM RECUPERAÇÃO JUDICIAL",
+     "IRANI PAPEL E EMBALAGEM S.A.",
+     "ROSSI RESIDENCIAL S.A. - EM RECUPERAÇÃO JUDICIAL",
+     "TECNOSOLO ENGENHARIA S.A. - EMPRESA FALIDA"
+    ]
+   },
+   "ibov": {
+    "pl": 50.19,
+    "pl_mediana": 15.37,
+    "pl_lucrativas": 10.07,
+    "n": 45,
+    "n_prejuizo": 8,
+    "valor_mercado": 1425206921712.0,
+    "lucro": 28398951000.0,
+    "papeis_carteira": 53
+   }
+  },
+  "2016": {
+   "mercado": {
+    "pl": 20.58,
+    "pl_mediana": 11.95,
+    "pl_lucrativas": 12.11,
+    "n": 243,
+    "n_prejuizo": 92,
+    "valor_mercado": 2297160713314.0,
+    "lucro": 111638148221.0,
+    "n_fora_da_base_hoje": 68,
+    "excluidas_escala": 2,
+    "sem_balanco": 30,
+    "cobertura_volume": 94.8,
+    "excluidas_exemplos": [
+     "CIA ENERGETICA DE PERNAMBUCO - CELPE",
+     "EVEN CONSTRUTORA E INCORPORADORA S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 18.63,
+    "pl_mediana": 15.73,
+    "pl_lucrativas": 12.79,
+    "n": 45,
+    "n_prejuizo": 8,
+    "valor_mercado": 1865240579981.0,
+    "lucro": 100101844000.0,
+    "papeis_carteira": 53
+   }
+  },
+  "2017": {
+   "mercado": {
+    "pl": 20.61,
+    "pl_mediana": 13.66,
+    "pl_lucrativas": 15.01,
+    "n": 260,
+    "n_prejuizo": 74,
+    "valor_mercado": 3035247820851.0,
+    "lucro": 147253884927.0,
+    "n_fora_da_base_hoje": 73,
+    "excluidas_escala": 3,
+    "sem_balanco": 31,
+    "cobertura_volume": 96.6,
+    "excluidas_exemplos": [
+     "CIA HABITASUL DE PARTICIPACOES",
+     "CIA SIDERURGICA NACIONAL",
+     "SANTOS BRASIL PARTICIPACOES S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 18.42,
+    "pl_mediana": 19.84,
+    "pl_lucrativas": 15.32,
+    "n": 53,
+    "n_prejuizo": 7,
+    "valor_mercado": 2443010935310.0,
+    "lucro": 132609987000.0,
+    "papeis_carteira": 58
+   }
+  },
+  "2018": {
+   "mercado": {
+    "pl": 13.21,
+    "pl_mediana": 11.72,
+    "pl_lucrativas": 11.86,
+    "n": 261,
+    "n_prejuizo": 61,
+    "valor_mercado": 3497020160371.0,
+    "lucro": 264643954726.0,
+    "n_fora_da_base_hoje": 69,
+    "excluidas_escala": 5,
+    "sem_balanco": 27,
+    "cobertura_volume": 98.7,
+    "excluidas_exemplos": [
+     "CIA HABITASUL DE PARTICIPACOES",
+     "ENAUTA PARTICIPAÇÕES S.A.",
+     "POSITIVO TECNOLOGIA S.A.",
+     "SANTOS BRASIL PARTICIPACOES S.A.",
+     "SYN PROP & TECH S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 13.7,
+    "pl_mediana": 15.5,
+    "pl_lucrativas": 12.93,
+    "n": 56,
+    "n_prejuizo": 5,
+    "valor_mercado": 2856191523657.0,
+    "lucro": 208466079000.0,
+    "papeis_carteira": 60
+   }
+  },
+  "2019": {
+   "mercado": {
+    "pl": 20.98,
+    "pl_mediana": 18.8,
+    "pl_lucrativas": 15.49,
+    "n": 262,
+    "n_prejuizo": 66,
+    "valor_mercado": 4240898219244.0,
+    "lucro": 202166782702.0,
+    "n_fora_da_base_hoje": 68,
+    "excluidas_escala": 3,
+    "sem_balanco": 26,
+    "cobertura_volume": 99.1,
+    "excluidas_exemplos": [
+     "CIA HABITASUL DE PARTICIPACOES",
+     "ENERGISA S.A.",
+     "ITAU UNIBANCO HOLDING S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 20.68,
+    "pl_mediana": 26.5,
+    "pl_lucrativas": 15.19,
+    "n": 62,
+    "n_prejuizo": 11,
+    "valor_mercado": 3442017336733.0,
+    "lucro": 166433625000.0,
+    "papeis_carteira": 67
+   }
+  },
+  "2020": {
+   "mercado": {
+    "pl": 31.18,
+    "pl_mediana": 15.2,
+    "pl_lucrativas": 19.49,
+    "n": 299,
+    "n_prejuizo": 82,
+    "valor_mercado": 5528988084322.0,
+    "lucro": 177321173271.0,
+    "n_fora_da_base_hoje": 66,
+    "excluidas_escala": 2,
+    "sem_balanco": 13,
+    "cobertura_volume": 99.8,
+    "excluidas_exemplos": [
+     "CIA ESTADUAL DE DISTRIB ENER ELET-CEEE-D",
+     "HERCULES S.A. FABRICA DE TALHERES"
+    ]
+   },
+   "ibov": {
+    "pl": 32.05,
+    "pl_mediana": 17.54,
+    "pl_lucrativas": 20.04,
+    "n": 72,
+    "n_prejuizo": 14,
+    "valor_mercado": 4418078935794.0,
+    "lucro": 137866147000.0,
+    "papeis_carteira": 75
+   }
+  },
+  "2021": {
+   "mercado": {
+    "pl": 7.93,
+    "pl_mediana": 10.73,
+    "pl_lucrativas": 7.13,
+    "n": 336,
+    "n_prejuizo": 68,
+    "valor_mercado": 4651915014135.0,
+    "lucro": 586619997423.0,
+    "n_fora_da_base_hoje": 64,
+    "excluidas_escala": 2,
+    "sem_balanco": 14,
+    "cobertura_volume": 99.9,
+    "excluidas_exemplos": [
+     "DTCOM - DIRECT TO COMPANY S.A.",
+     "HERCULES S.A. FABRICA DE TALHERES"
+    ]
+   },
+   "ibov": {
+    "pl": 7.19,
+    "pl_mediana": 10.75,
+    "pl_lucrativas": 6.58,
+    "n": 75,
+    "n_prejuizo": 11,
+    "valor_mercado": 3620623870614.0,
+    "lucro": 503442371000.0,
+    "papeis_carteira": 81
+   }
+  },
+  "2022": {
+   "mercado": {
+    "pl": 7.46,
+    "pl_mediana": 9.19,
+    "pl_lucrativas": 6.32,
+    "n": 329,
+    "n_prejuizo": 78,
+    "valor_mercado": 4260623661058.0,
+    "lucro": 570928042133.0,
+    "n_fora_da_base_hoje": 53,
+    "excluidas_escala": 1,
+    "sem_balanco": 11,
+    "cobertura_volume": 99.8,
+    "excluidas_exemplos": [
+     "HERCULES S.A. FABRICA DE TALHERES"
+    ]
+   },
+   "ibov": {
+    "pl": 6.62,
+    "pl_mediana": 12.3,
+    "pl_lucrativas": 6.01,
+    "n": 76,
+    "n_prejuizo": 15,
+    "valor_mercado": 3530083169840.0,
+    "lucro": 533406002000.0,
+    "papeis_carteira": 80
+   }
+  },
+  "2023": {
+   "mercado": {
+    "pl": 10.96,
+    "pl_mediana": 10.72,
+    "pl_lucrativas": 9.23,
+    "n": 319,
+    "n_prejuizo": 83,
+    "valor_mercado": 4889724723488.0,
+    "lucro": 446011357976.0,
+    "n_fora_da_base_hoje": 45,
+    "excluidas_escala": 1,
+    "sem_balanco": 15,
+    "cobertura_volume": 99.9,
+    "excluidas_exemplos": [
+     "HERCULES S.A. FABRICA DE TALHERES"
+    ]
+   },
+   "ibov": {
+    "pl": 10.15,
+    "pl_mediana": 13.22,
+    "pl_lucrativas": 9.07,
+    "n": 76,
+    "n_prejuizo": 16,
+    "valor_mercado": 3987989934256.0,
+    "lucro": 392800272000.0,
+    "papeis_carteira": 81
+   }
+  },
+  "2024": {
+   "mercado": {
+    "pl": 11.12,
+    "pl_mediana": 8.03,
+    "pl_lucrativas": 8.71,
+    "n": 309,
+    "n_prejuizo": 80,
+    "valor_mercado": 4120798314714.0,
+    "lucro": 370596258631.0,
+    "n_fora_da_base_hoje": 35,
+    "excluidas_escala": 3,
+    "sem_balanco": 10,
+    "cobertura_volume": 100.0,
+    "excluidas_exemplos": [
+     "FASA S.A. - EM RECUPERAÇÃO JUDICIAL",
+     "HERCULES S.A. FABRICA DE TALHERES",
+     "PADTEC HOLDING S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 11.18,
+    "pl_mediana": 8.31,
+    "pl_lucrativas": 9.29,
+    "n": 72,
+    "n_prejuizo": 11,
+    "valor_mercado": 3542190627180.0,
+    "lucro": 316964940946.0,
+    "papeis_carteira": 76
+   }
+  },
+  "2025": {
+   "mercado": {
+    "pl": 14.25,
+    "pl_mediana": 9.96,
+    "pl_lucrativas": 11.12,
+    "n": 292,
+    "n_prejuizo": 74,
+    "valor_mercado": 5250001127531.0,
+    "lucro": 368370039405.0,
+    "n_fora_da_base_hoje": 17,
+    "excluidas_escala": 4,
+    "sem_balanco": 23,
+    "cobertura_volume": 100.0,
+    "excluidas_exemplos": [
+     "B100 S.A.",
+     "GOL LINHAS AEREAS INTELIGENTES S.A.",
+     "HERCULES S.A. FABRICA DE TALHERES",
+     "PADTEC HOLDING S.A."
+    ]
+   },
+   "ibov": {
+    "pl": 10.99,
+    "pl_mediana": 12.03,
+    "pl_lucrativas": 10.34,
+    "n": 64,
+    "n_prejuizo": 6,
+    "valor_mercado": 4011194672835.0,
+    "lucro": 365120235299.0,
+    "papeis_carteira": 67
+   }
+  }
+ },
+ "atual": {
+  "data": "2026-11-16",
+  "mercado": {
+   "pl": 10.22,
+   "pl_mediana": 8.07,
+   "pl_lucrativas": 8.98,
+   "n": 272,
+   "n_prejuizo": 66,
+   "valor_mercado": 4710726883661.0,
+   "lucro": 461072851220.0
+  },
+  "ibov": {
+   "pl": 9.48,
+   "pl_mediana": 9.25,
+   "pl_lucrativas": 9.07,
+   "n": 73,
+   "n_prejuizo": 9,
+   "valor_mercado": 4214623297930.0,
+   "lucro": 444417608986.0,
+   "pl_ponderado_indice": 9.81
+  },
+  "ibov_cobertura": {
+   "papeis_oficiais": 76,
+   "na_base": 76,
+   "fora_da_base": [],
+   "peso_na_base_pct": 99.3
+  }
+ },
+ "validacao_ibov": {
+  "2025": {
+   "oficial": 76,
+   "reconstruida": 67,
+   "em_comum": 67,
+   "acerto_pct": 88.2,
+   "so_na_oficial": [
+    "AXIA3",
+    "CMIN3",
+    "EGIE3",
+    "EMBJ3",
+    "ISAE4",
+    "MBRF3",
+    "MOTV3",
+    "NATU3",
+    "TEND3"
+   ],
+   "so_na_reconstruida": []
+  },
+  "2026": {
+   "oficial": 76,
+   "reconstruida": 68,
+   "em_comum": 65,
+   "acerto_pct": 85.5,
+   "so_na_oficial": [
+    "AURE3",
+    "AZZA3",
+    "BRAP4",
+    "CMIN3",
+    "CPFE3",
+    "FLRY3",
+    "HYPE3",
+    "IGTI11",
+    "TAEE11",
+    "VAMO3",
+    "YDUQ3"
+   ],
+   "so_na_reconstruida": [
+    "AXIA7",
+    "ITUB3",
+    "MOVI3"
+   ]
+  }
+ }
+}

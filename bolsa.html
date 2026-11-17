@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>P/L da Bolsa — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Tokens copiados do acoes.html (tema claro da marca), como manda o
+     CLAUDE.md para tela nova. */
+  :root{
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  header.topo{display:flex;align-items:center;gap:11px;padding:14px 0;margin-bottom:22px;
+    border-bottom:1px solid var(--line)}
+  .marca{font-weight:800;font-size:.95rem}
+  h1{font-size:1.7rem;font-weight:800;margin:0 0 4px;letter-spacing:-.01em}
+  .sub{color:var(--ink-2);margin:0 0 22px;max-width:760px;line-height:1.55}
+  .cartoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px}
+  .cartao{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .cartao .rot{font-size:.72rem;color:var(--gold-ink);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  .cartao .v{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
+  .cartao .n{font-size:.75rem;color:var(--ink-3);margin-top:2px}
+  .grafico{border:1px solid var(--line);border-radius:14px;padding:16px 18px 12px;background:var(--card);margin-bottom:22px}
+  .controles{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+  .controles button{font-family:var(--font);font-size:.8rem;padding:6px 12px;border-radius:20px;
+    border:1px solid var(--line-forte);background:var(--card);color:var(--ink-2);cursor:pointer}
+  .controles button.ativo{background:var(--ink);border-color:var(--ink);color:#fff}
+  .legenda{margin-left:auto;display:flex;gap:14px;font-size:.78rem;color:var(--ink-2)}
+  .legenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+  canvas{width:100%;height:340px;display:block}
+  .tabela{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:22px}
+  table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.82rem}
+  th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--ink-3);font-weight:600;font-size:.72rem;text-transform:uppercase;letter-spacing:.03em}
+  th:first-child,td:first-child{text-align:left}
+  tr:last-child td{border-bottom:0}
+  td.alto{color:var(--vermelho);font-weight:600}
+  .notas{color:var(--ink-2);font-size:.8rem;line-height:1.6;max-width:820px}
+  .notas b{color:var(--ink)}
+  .erro{color:var(--vermelho)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topo"><span class="marca">Muita Ação</span></header>
+  <h1>P/L da bolsa</h1>
+  <p class="sub">Preço sobre lucro do Ibovespa e de todas as empresas listadas, ano a ano desde 2010.
+    O <b>mercado</b> inclui as empresas que depois saíram da bolsa. Sem elas, o histórico mostraria
+    só as sobreviventes.</p>
+
+  <div class="cartoes" id="cartoes"></div>
+
+  <div class="grafico">
+    <div class="controles">
+      <button data-m="pl_lucrativas" class="ativo">Só lucrativas</button>
+      <button data-m="pl">Com prejuízos</button>
+      <button data-m="pl_mediana">Mediana</button>
+      <span class="legenda">
+        <span><i style="background:var(--ink)"></i>Ibovespa</span>
+        <span><i style="background:var(--gold)"></i>Mercado</span>
+      </span>
+    </div>
+    <canvas id="chart"></canvas>
+  </div>
+
+  <div class="tabela"><table id="tabela"></table></div>
+  <div class="notas" id="notas"></div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var DADOS = null, MEDIDA = "pl_lucrativas";
+  var TETO_EIXO = 40;   // 2015 passa de 90: sem teto, o resto vira uma linha reta
+  function $(id) { return document.getElementById(id); }
+  function num(v, c) {
+    return (v === null || v === undefined) ? "—"
+      : v.toLocaleString("pt-BR", { minimumFractionDigits: c === undefined ? 1 : c,
+                                    maximumFractionDigits: c === undefined ? 1 : c });
+  }
+  function cor(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
+
+  function desenhar() {
+    var canvas = $("chart"), dpr = window.devicePixelRatio || 1;
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = w * dpr; canvas.height = h * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var anos = Object.keys(DADOS.anos).sort();
+    var rotulos = anos.concat(["Hoje"]);
+    function serie(grupo) {
+      return anos.map(function (a) { var g = DADOS.anos[a][grupo]; return g ? g[MEDIDA] : null; })
+                 .concat([DADOS.atual[grupo] ? DADOS.atual[grupo][MEDIDA] : null]);
+    }
+    var series = [{ v: serie("mercado"), cor: cor("--gold") }, { v: serie("ibov"), cor: cor("--ink") }];
+    var maxv = 0;
+    series.forEach(function (s) { s.v.forEach(function (x) { if (x > maxv) maxv = x; }); });
+    var topo = Math.min(TETO_EIXO, Math.ceil(maxv / 5) * 5);
+    var L = 34, R = 12, T = 14, B = 26, W = w - L - R, H = h - T - B;
+    function X(i) { return L + (rotulos.length === 1 ? W / 2 : i * W / (rotulos.length - 1)); }
+    function Y(v) { return T + H - Math.min(v, topo) / topo * H; }   // eixo parte do zero
+    ctx.font = "11px Poppins, Arial"; ctx.fillStyle = cor("--ink-3"); ctx.strokeStyle = cor("--line");
+    ctx.lineWidth = 1;
+    for (var g = 0; g <= topo; g += 10) {
+      ctx.beginPath(); ctx.moveTo(L, Y(g)); ctx.lineTo(w - R, Y(g)); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(g, L - 6, Y(g) + 4);
+    }
+    ctx.textAlign = "center";
+    var passo = W / rotulos.length < 34 ? 2 : 1;
+    rotulos.forEach(function (r, i) {
+      if (i % passo === 0 || r === "Hoje") ctx.fillText(r === "Hoje" ? r : "’" + r.slice(2), X(i), h - 8);
+    });
+    // a "Hoje" e outra conta (lucro de 12 meses, preco de hoje): tracejado ate ela
+    series.forEach(function (s) {
+      ctx.strokeStyle = s.cor; ctx.lineWidth = 2.2;
+      var n = s.v.length;
+      ctx.beginPath(); var aberto = false;
+      for (var i = 0; i < n - 1; i++) {
+        if (s.v[i] === null) { aberto = false; continue; }
+        if (!aberto) { ctx.moveTo(X(i), Y(s.v[i])); aberto = true; } else ctx.lineTo(X(i), Y(s.v[i]));
+      }
+      ctx.stroke();
+      if (s.v[n - 1] !== null && s.v[n - 2] !== null) {
+        ctx.setLineDash([4, 4]); ctx.beginPath();
+        ctx.moveTo(X(n - 2), Y(s.v[n - 2])); ctx.lineTo(X(n - 1), Y(s.v[n - 1])); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      s.v.forEach(function (v, i) {
+        if (v === null) return;
+        ctx.fillStyle = s.cor; ctx.beginPath(); ctx.arc(X(i), Y(v), 3, 0, Math.PI * 2); ctx.fill();
+        if (v > topo) {   // fora da escala: marca o valor em vez de esconder
+          ctx.fillStyle = s.cor; ctx.font = "600 11px Poppins, Arial";
+          ctx.fillText("↑ " + num(v, 0), X(i), Y(v) + (s.cor === cor("--ink") ? 16 : -7));
+          ctx.font = "11px Poppins, Arial";
+        }
+      });
+    });
+  }
+
+  function montar() {
+    var a = DADOS.atual, ib = a.ibov || {}, me = a.mercado || {};
+    var cob = a.ibov_cobertura || {};
+    $("cartoes").innerHTML = [
+      ["Mercado hoje", num(me.pl_lucrativas), (me.n - me.n_prejuizo) + " empresas lucrativas"],
+      ["Ibovespa hoje", num(ib.pl_lucrativas), (ib.n - ib.n_prejuizo) + " empresas lucrativas"],
+      ["Ibovespa, peso do índice", num(ib.pl_ponderado_indice),
+       "quantidade teórica × preço ÷ quantidade × LPA"],
+      ["Mediana do mercado", num(me.pl_mediana), "a empresa típica"]
+    ].map(function (c) {
+      return '<div class="cartao"><div class="rot">' + c[0] + '</div><div class="v">' + c[1] +
+             '</div><div class="n">' + c[2] + "</div></div>";
+    }).join("");
+
+    var anos = Object.keys(DADOS.anos).sort().reverse();
+    var linhas = anos.map(function (y) {
+      var m = DADOS.anos[y].mercado || {}, i = DADOS.anos[y].ibov || {};
+      function c(v) { return '<td class="' + (v > TETO_EIXO ? "alto" : "") + '">' + num(v) + "</td>"; }
+      return "<tr><td>" + y + "</td>" + c(i.pl_lucrativas) + c(i.pl) + "<td>" + (i.n || "—") + "</td>" +
+             c(m.pl_lucrativas) + c(m.pl) + c(m.pl_mediana) + "<td>" + (m.n || "—") + "</td><td>" +
+             (m.n_fora_da_base_hoje || 0) + "</td><td>" + num(m.valor_mercado / 1e12, 2) +
+             "</td><td>" + num(m.cobertura_volume) + "%</td></tr>";
+    });
+    $("tabela").innerHTML = "<thead><tr><th>Ano</th><th>Ibov P/L</th><th>Ibov c/ prejuízo</th><th>Ibov n</th>" +
+      "<th>Mercado P/L</th><th>Mercado c/ prejuízo</th><th>Mercado mediana</th><th>Mercado n</th><th>Já saíram</th>" +
+      "<th>Valor (R$ tri)</th><th>Cobertura</th></tr></thead><tbody>" + linhas.join("") + "</tbody>";
+
+    var val = DADOS.validacao_ibov || {}, ult = Object.keys(val).sort()[0];
+    $("notas").innerHTML =
+      "<p><b>P/L</b> é a soma do valor de mercado dividida pela soma do lucro do controlador, contando " +
+      "<b>só as empresas lucrativas</b>. É a convenção de quem publica o P/L da bolsa, e o formato bate " +
+      "com o histórico do Oceans14. <b>Com prejuízos</b> soma também quem perdeu dinheiro: é o P/L " +
+      "de quem comprasse um pedaço de todas as empresas, mas um ano de prejuízo grande zera o " +
+      "denominador. Em 2015, os prejuízos de Petrobras e Vale levam essa leitura a 94. A " +
+      "<b>mediana</b> mostra a empresa típica e não é puxada pelas gigantes.</p>" +
+      "<p><b>Cada ano usa o lucro do próprio exercício</b> contra o preço do último pregão dele. " +
+      "Em 31 de dezembro esse lucro ainda não era público, então este não é o P/L que alguém via na tela " +
+      "naquele dia. O ponto <b>Hoje</b> é outra conta: lucro dos últimos 12 meses e preço atual.</p>" +
+      "<p><b>A carteira do Ibovespa de cada ano é reconstruída</b> pela regra atual da B3: os papéis que " +
+      "somam 85% do índice de negociabilidade, com presença em 95% dos pregões e sem penny stock. A B3 " +
+      "não publica a carteira histórica em fonte aberta." +
+      (ult ? " Contra a carteira oficial de hoje, a reconstrução de " + ult + " acerta " +
+             num(val[ult].acerto_pct) + "% dos papéis." : "") +
+      " Antes de 2014 a regra oficial era outra, então esses anos mostram “o que o Ibovespa de hoje teria sido”.</p>" +
+      "<p><b>Cobertura</b> é a parte do volume negociado no ano que casou com uma empresa da base. " +
+      "Antes de 2020 a contagem de ações é menos confiável. Empresas com valor de mercado " +
+      "incompatível com o balanço (P/VP fora de 0,01–200 ou valor acima de 50× o ativo) ficam fora da " +
+      "conta, porque uma única delas distorce a soma do ano.</p>" +
+      "<p>Dados de " + (a.data || "—") + ". Fontes: DFP/ITR da CVM e COTAHIST da B3.</p>";
+    desenhar();
+  }
+
+  document.querySelectorAll(".controles button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".controles button").forEach(function (x) { x.classList.remove("ativo"); });
+      b.classList.add("ativo"); MEDIDA = b.getAttribute("data-m"); desenhar();
+    });
+  });
+  window.addEventListener("resize", function () { if (DADOS) desenhar(); });
+
+  fetch("bolsa.json").then(function (r) { return r.json(); }).then(function (d) {
+    DADOS = d; montar();
+  }).catch(function () {
+    $("cartoes").innerHTML = '<p class="erro">Não foi possível carregar bolsa.json.</p>';
+  });
+})();
+</script>
+</body>
+</html>
