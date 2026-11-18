@@ -268,6 +268,9 @@
     // P/L historico: LPA x P/L mediano da propria empresa em 10 exercicios
     var ph = r.pl_historico && r.pl_historico.mediana;
     if (r.lpa_ttm_calc > 0 && ph > 0) v.push(r.lpa_ttm_calc * ph);
+    // P/VP historico: VPA x P/VP mediano da propria empresa em 10 exercicios
+    var pvh = r.pvp_historico && r.pvp_historico.mediana;
+    if (r.vpa_atual > 0 && pvh > 0) v.push(r.vpa_atual * pvh);
     v = v.filter(function (x) { return isFinite(x) && x > 0; });
     var k = (m && m.acoes_por_unit) || 1;
     return v.length ? k * v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
@@ -1139,8 +1142,8 @@
       "ponderada e a venda não mexe nela — realiza resultado e reduz a quantidade. " +
       "<b>Proventos</b> são os dos últimos 12 meses por data-ex, por classe de ação. " +
       "<b>Teto médio</b> usa as mesmas premissas do Raio-X (Bazin a 6%, Graham, " +
-      "Lynch com crescimento de até 25%, DCF a 12% com perpetuidade de 4% e P/L histórico — LPA × P/L " +
-      "mediano de 10 anos), porque a carteira não pode dizer " +
+      "Lynch com crescimento de até 25%, DCF a 12% com perpetuidade de 4% e P/L e P/VP históricos — LPA e " +
+      "VPA × múltiplo mediano de 10 anos), porque a carteira não pode dizer " +
       "um preço diferente do que a ficha da ação diz.<br><br>" +
       "<b>Tesouro Direto</b> marcado pelo preço unitário de venda do Tesouro — o " +
       "valor de resgate antecipado, o mesmo do extrato" +

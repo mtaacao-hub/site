@@ -74,6 +74,10 @@
   .metodo{border:1px solid var(--line);border-radius:12px;padding:14px 15px;background:var(--card)}
   /* o unico lugar onde o dourado e preenchimento: o numero que resume os outros */
   .metodo.media{border-color:var(--gold);background:#FFFCF2}
+  /* com sete metodos a Media sobrava sozinha numa segunda linha: vira uma
+     faixa de largura inteira, embaixo, que e o papel dela (o resumo) */
+  .valuation .metodo.media{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
+  .valuation .metodo.media .nome{flex-basis:100%}
   .metodo .nome{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold-ink);
     font-weight:700}
   .metodo .preco{font-size:1.35rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
@@ -122,6 +126,7 @@
     letter-spacing:.02em;transition:.15s;margin-bottom:-1px}
   .abas button:hover{color:var(--ink)}
   .abas button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--gold)}
+  .aba-sub{color:var(--ink-2);font-size:.82rem;margin:0 0 12px}
 
   /* ---------- graficos anuais ---------- */
   .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
@@ -279,6 +284,10 @@
     // extrair_series.pl_historico). Mesma regra no carteira.html.
     var ph = r.pl_historico && r.pl_historico.mediana;
     if (r.lpa_ttm_calc > 0 && ph > 0) saida["P/L histórico"] = r.lpa_ttm_calc * ph;
+    // P/VP HISTORICO: o mesmo, sobre o patrimonio -- VPA de hoje x mediana do
+    // P/VP dos ultimos 10 exercicios. Mesma regra no carteira.html.
+    var pvh = r.pvp_historico && r.pvp_historico.mediana;
+    if (r.vpa_atual > 0 && pvh > 0) saida["P/VP histórico"] = r.vpa_atual * pvh;
     var vals = Object.keys(saida).map(function (k) { return saida[k]; })
                      .filter(function (v) { return isFinite(v) && v > 0; });
     if (vals.length) saida["Média"] = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
@@ -373,7 +382,7 @@
     }
     if (r.ebit_nao_recorrente) avisos.push('<span class="tag alerta">resultado com item não recorrente relevante</span>');
 
-    var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "P/L histórico", "Média"].map(function (nome) {
+    var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "P/L histórico", "P/VP histórico", "Média"].map(function (nome) {
       var v = p[nome], destaque = nome === "Média" ? " media" : "";
       if (v === undefined) {
         return '<div class="metodo' + destaque + '"><div class="nome">' + nome + '</div>' +
@@ -420,13 +429,14 @@
         '<span>Volume: <b>R$ ' + brl((m.volume || 0) / 1e6, 1) + " mi/dia</b></span>" +
       "</div></div>" +
 
-      '<h2 class="sec">Quanto a ação valeria por cada método</h2>' +
-      '<div class="valuation">' + cartoes + "</div>" +
-
       '<div class="abas" id="abas">' +
         '<button data-aba="ind" aria-selected="true">Indicadores</button>' +
+        '<button data-aba="pre" aria-selected="false">Preço por método</button>' +
         '<button data-aba="gra" aria-selected="false">Gráficos</button>' +
       '</div>' +
+      '<div id="aba-pre" hidden>' +
+        '<p class="aba-sub">Quanto a ação valeria por cada método, com os números de hoje.</p>' +
+        '<div class="valuation">' + cartoes + "</div></div>" +
       '<div id="aba-gra" hidden></div>' +
       '<div id="aba-ind"><div class="paineis">' +
         '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
@@ -482,6 +492,7 @@
         x.setAttribute("aria-selected", String(x === b));
       });
       $("aba-ind").hidden = b.dataset.aba !== "ind";
+      $("aba-pre").hidden = b.dataset.aba !== "pre";
       $("aba-gra").hidden = b.dataset.aba !== "gra";
       if (b.dataset.aba === "gra") redesenharGraficos();
     });
@@ -802,14 +813,16 @@
     "Lynch": "LPA vezes o crescimento do lucro em 5 anos (até 25%).",
     "DCF": "Fluxo de caixa livre, 5 anos a 12% e perpetuidade de 4%.",
     "P/L histórico": "LPA vezes o P/L mediano da própria empresa nos últimos 10 anos.",
+    "P/VP histórico": "VPA vezes o P/VP mediano da própria empresa nos últimos 10 anos.",
     "Média": "Média dos métodos que se aplicam a esta empresa."
   };
   // a nota do P/L historico diz QUAL mediana e de quantos anos
   function nota(nome, r) {
-    var ph = r.pl_historico;
-    if (nome === "P/L histórico" && ph)
-      return "LPA × P/L mediano de " + brl(ph.mediana, 1) + " (" + ph.anos + " anos entre " +
-             ph.de + " e " + ph.ate + ").";
+    var h = nome === "P/L histórico" ? r.pl_historico : nome === "P/VP histórico" ? r.pvp_historico : null;
+    if (h)
+      return (nome === "P/L histórico" ? "LPA × P/L" : "VPA × P/VP") + " mediano de " +
+             brl(h.mediana, nome === "P/L histórico" ? 1 : 2) + " (" + h.anos + " anos entre " +
+             h.de + " e " + h.ate + ").";
     return NOTA[nome];
   }
 
