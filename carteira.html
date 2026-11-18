@@ -246,7 +246,8 @@
   // Mesmas premissas do Raio-X, de proposito: a carteira nao pode dizer um
   // preco-teto diferente do que a ficha da acao diz.
   var YIELD_BAZIN = 6, DESCONTO = 12, PERPETUIDADE = 4;
-  // `m`: numa UNIT o teto por acao vezes acoes_por_unit (ver o acoes.html)
+  // `m`: o teto e por acao ON-equivalente; o papel vale acoes_por_unit delas
+  // (unit: soma das acoes; IGTI4: 3, porque a PN tem 3x o direito da ON)
   function tetoMedio(r, m) {
     var v = [], dpa = r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_declarado;
     if (dpa > 0) v.push(dpa / (YIELD_BAZIN / 100));
@@ -293,10 +294,14 @@
   // grupamento + desdobramento: a Vivo em 2025 vem 0,025 e 80 = 2x).
   // A data e a ultima COM direito (lastDatePrior): no proprio dia ainda vale
   // a acao antiga. Evento com data de hoje em diante ainda nao aconteceu.
+  // Quando uma classe foge da regra da empresa (Santander 2014: a ON e a PN
+  // agruparam 55:1 e a unit SANB11 nao se mexeu), o pipeline manda a lista
+  // propria do ticker em `eventos_por_ticker`, que tem precedencia.
   var HOJE = new Date().toISOString().slice(0, 10);
-  function eventosDe(e) {
+  function eventosDe(e, ticker) {
     var vistos = {}, porData = {};
-    (e.eventos_acionarios || []).forEach(function (x) {
+    var lista = (e.eventos_por_ticker || {})[ticker] || e.eventos_acionarios || [];
+    lista.forEach(function (x) {
       if (!x || !x[0] || !(x[1] > 0) || x[0] >= HOJE) return;
       var k = x[0] + "|" + x[1];
       if (vistos[k]) return;
@@ -1105,7 +1110,7 @@
       var e = b.empresas[cnpj];
       Object.keys(e.mercado || {}).forEach(function (t) {
         DADOS[t] = { mercado: e.mercado[t], resumo: e.resumo || {}, nome: e.nome,
-                     setor: e.setor_b3 || e.setor, eventos: eventosDe(e) };
+                     setor: e.setor_b3 || e.setor, eventos: eventosDe(e, t) };
       });
     });
     // ETF: so cotacao, sem fundamento -- resumo vazio faz o tetoMedio sair

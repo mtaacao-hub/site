@@ -354,7 +354,15 @@
     if (r.divulgacao_prevista) avisos.push('<span class="tag">divulga em ' + dataBR(r.divulgacao_prevista) + '</span>');
     if (r.roic_incerto) avisos.push('<span class="tag alerta">ROIC pouco confiável nesta empresa</span>');
     if (m.em_recuperacao) avisos.push('<span class="tag alerta">empresa em recuperação ' + m.em_recuperacao + '</span>');
-    if (m.acoes_por_unit) avisos.push('<span class="tag">unit: ' + m.acoes_por_unit + ' ações por unit; LPA e VPA abaixo são por ação</span>');
+    // acoes_por_unit = quantas acoes (ON-equivalentes) o papel vale: numa unit
+    // e a composicao; numa classe com peso economico (Iguatemi: a PN recebe
+    // 3x o provento da ON) e o peso. Nos dois casos o resumo e por acao.
+    if (m.acoes_por_unit) {
+      var ehUnit = /11$/.test(ticker);
+      avisos.push('<span class="tag">' + (ehUnit
+        ? 'unit: vale ' + String(m.acoes_por_unit).replace('.', ',') + ' ações; LPA e VPA abaixo são por ação'
+        : 'cada ação desta classe vale ' + String(m.acoes_por_unit).replace('.', ',') + ' ON em direito econômico; LPA e VPA abaixo são por ON') + '</span>');
+    }
     if (r.ebit_nao_recorrente) avisos.push('<span class="tag alerta">resultado com item não recorrente relevante</span>');
 
     var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "Média"].map(function (nome) {
