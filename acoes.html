@@ -253,7 +253,10 @@
   // dedicada e o lugar de mexer nelas. O que muda entre empresas sao os
   // fundamentos, nao as premissas.
   var YIELD_BAZIN = 6, DESCONTO = 12, PERPETUIDADE = 4;
-  function precos(r) {
+  // `m` e o bloco de mercado do papel: numa UNIT o preco e de um pacote de
+  // acoes e os fundamentos sao por acao, entao o teto e multiplicado por
+  // acoes_por_unit. Mesma regra no carteira.html.
+  function precos(r, m) {
     var saida = {}, dpa = r.dpa_60m !== undefined ? r.dpa_60m : r.dpa_declarado;
     if (dpa > 0) saida.Bazin = dpa / (YIELD_BAZIN / 100);
     if (r.lpa_ttm_calc > 0 && r.vpa_atual > 0)
@@ -271,6 +274,8 @@
     var vals = Object.keys(saida).map(function (k) { return saida[k]; })
                      .filter(function (v) { return isFinite(v) && v > 0; });
     if (vals.length) saida["Média"] = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    var k = (m && m.acoes_por_unit) || 1;
+    if (k !== 1) Object.keys(saida).forEach(function (n) { saida[n] *= k; });
     return saida;
   }
 
@@ -337,7 +342,7 @@
     var item = LISTA.filter(function (x) { return x.ticker === ticker; })[0];
     if (!item) return;
     ATUAL = item;
-    var r = item.resumo, m = item.mercado, p = precos(r);
+    var r = item.resumo, m = item.mercado, p = precos(r, m);
     var serie = fatiar(ticker, PERIODO);
     var varPct = serie.length > 1 ? (serie[serie.length - 1][1] / serie[0][1] - 1) * 100 : null;
     var cor = COR_LINHA;
@@ -348,6 +353,8 @@
     if (r.divulgou_ate) avisos.push('<span class="tag alerta">já divulgou ' + dataBR(r.divulgou_ate) + ', CVM ainda não publicou</span>');
     if (r.divulgacao_prevista) avisos.push('<span class="tag">divulga em ' + dataBR(r.divulgacao_prevista) + '</span>');
     if (r.roic_incerto) avisos.push('<span class="tag alerta">ROIC pouco confiável nesta empresa</span>');
+    if (m.em_recuperacao) avisos.push('<span class="tag alerta">empresa em recuperação ' + m.em_recuperacao + '</span>');
+    if (m.acoes_por_unit) avisos.push('<span class="tag">unit: ' + m.acoes_por_unit + ' ações por unit; LPA e VPA abaixo são por ação</span>');
     if (r.ebit_nao_recorrente) avisos.push('<span class="tag alerta">resultado com item não recorrente relevante</span>');
 
     var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "Média"].map(function (nome) {
@@ -818,7 +825,7 @@
     Object.keys(BASE.empresas).forEach(function (cnpj) {
       var e = BASE.empresas[cnpj], r = e.resumo || {};
       Object.keys(e.mercado || {}).forEach(function (t) {
-        var m = e.mercado[t], p = precos(r);
+        var m = e.mercado[t], p = precos(r, m);
         var media = p["Média"];
         LISTA.push({
           ticker: t, cnpj: cnpj, nome: e.nome,
