@@ -254,7 +254,8 @@
     if (r.lpa_ttm_calc > 0 && r.vpa_atual > 0)
       v.push(Math.sqrt(22.5 * r.lpa_ttm_calc * r.vpa_atual));
     var g = r.cagr_60m;
-    if (r.lpa_ttm_calc > 0 && g > 0) v.push(r.lpa_ttm_calc * g);
+    // Lynch com crescimento limitado a 25%, como o DCF (igual ao acoes.html)
+    if (r.lpa_ttm_calc > 0 && g > 0) v.push(r.lpa_ttm_calc * Math.min(g, 25));
     if (r.fcl_acao > 0 && g !== undefined && g !== null) {
       var cresc = Math.max(0, Math.min(g, 25)) / 100, taxa = DESCONTO / 100,
           perp = PERPETUIDADE / 100;
@@ -264,6 +265,9 @@
         v.push(soma + (fluxo * (1 + perp)) / (taxa - perp) / Math.pow(1 + taxa, 5));
       }
     }
+    // P/L historico: LPA x P/L mediano da propria empresa em 10 exercicios
+    var ph = r.pl_historico && r.pl_historico.mediana;
+    if (r.lpa_ttm_calc > 0 && ph > 0) v.push(r.lpa_ttm_calc * ph);
     v = v.filter(function (x) { return isFinite(x) && x > 0; });
     var k = (m && m.acoes_por_unit) || 1;
     return v.length ? k * v.reduce(function (a, b) { return a + b; }, 0) / v.length : null;
@@ -1135,7 +1139,8 @@
       "ponderada e a venda não mexe nela — realiza resultado e reduz a quantidade. " +
       "<b>Proventos</b> são os dos últimos 12 meses por data-ex, por classe de ação. " +
       "<b>Teto médio</b> usa as mesmas premissas do Raio-X (Bazin a 6%, Graham, " +
-      "Lynch e DCF a 12% com perpetuidade de 4%), porque a carteira não pode dizer " +
+      "Lynch com crescimento de até 25%, DCF a 12% com perpetuidade de 4% e P/L histórico — LPA × P/L " +
+      "mediano de 10 anos), porque a carteira não pode dizer " +
       "um preço diferente do que a ficha da ação diz.<br><br>" +
       "<b>Tesouro Direto</b> marcado pelo preço unitário de venda do Tesouro — o " +
       "valor de resgate antecipado, o mesmo do extrato" +

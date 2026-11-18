@@ -262,7 +262,10 @@
     if (r.lpa_ttm_calc > 0 && r.vpa_atual > 0)
       saida.Graham = Math.sqrt(22.5 * r.lpa_ttm_calc * r.vpa_atual);
     var g = r.cagr_60m;
-    if (r.lpa_ttm_calc > 0 && g > 0) saida.Lynch = r.lpa_ttm_calc * g;
+    // crescimento LIMITADO a 25%, como no DCF: com a janela de 5 anos de
+    // verdade, lucro baixo em 2020 (pandemia) dava PETR4 com g de 77,7% e
+    // Lynch de 846. Mesma regra no carteira.html.
+    if (r.lpa_ttm_calc > 0 && g > 0) saida.Lynch = r.lpa_ttm_calc * Math.min(g, 25);
     if (r.fcl_acao > 0 && g !== undefined && g !== null) {
       var cresc = Math.max(0, Math.min(g, 25)) / 100, taxa = DESCONTO / 100, perp = PERPETUIDADE / 100;
       if (perp < taxa) {
@@ -271,6 +274,11 @@
         saida.DCF = soma + (fluxo * (1 + perp)) / (taxa - perp) / Math.pow(1 + taxa, 5);
       }
     }
+    // P/L HISTORICO: o preco se a acao voltasse ao P/L de costume dela -- LPA
+    // de hoje x mediana do P/L dos ultimos 10 exercicios (pipeline:
+    // extrair_series.pl_historico). Mesma regra no carteira.html.
+    var ph = r.pl_historico && r.pl_historico.mediana;
+    if (r.lpa_ttm_calc > 0 && ph > 0) saida["P/L histórico"] = r.lpa_ttm_calc * ph;
     var vals = Object.keys(saida).map(function (k) { return saida[k]; })
                      .filter(function (v) { return isFinite(v) && v > 0; });
     if (vals.length) saida["Média"] = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
@@ -365,7 +373,7 @@
     }
     if (r.ebit_nao_recorrente) avisos.push('<span class="tag alerta">resultado com item não recorrente relevante</span>');
 
-    var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "Média"].map(function (nome) {
+    var cartoes = ["Bazin", "Graham", "Lynch", "DCF", "P/L histórico", "Média"].map(function (nome) {
       var v = p[nome], destaque = nome === "Média" ? " media" : "";
       if (v === undefined) {
         return '<div class="metodo' + destaque + '"><div class="nome">' + nome + '</div>' +
@@ -376,7 +384,7 @@
         '<div class="preco">R$ ' + brl(v) + '</div>' +
         (marg === null ? "" : '<div class="margem ' + (marg >= 0 ? "pos" : "neg") + '">' +
           (marg >= 0 ? "+" : "") + brl(marg, 1) + '% vs cotação</div>') +
-        '<div class="nota">' + NOTA[nome] + '</div></div>';
+        '<div class="nota">' + nota(nome, r) + '</div></div>';
     }).join("");
 
     // Cada linha ganha o botao de historico quando existe serie pro indicador.
@@ -791,10 +799,19 @@
   var NOTA = {
     "Bazin": "Dividendo médio de 5 anos dividido por 6% ao ano.",
     "Graham": "Raiz de 22,5 × LPA × VPA.",
-    "Lynch": "LPA vezes o crescimento do lucro.",
+    "Lynch": "LPA vezes o crescimento do lucro em 5 anos (até 25%).",
     "DCF": "Fluxo de caixa livre, 5 anos a 12% e perpetuidade de 4%.",
+    "P/L histórico": "LPA vezes o P/L mediano da própria empresa nos últimos 10 anos.",
     "Média": "Média dos métodos que se aplicam a esta empresa."
   };
+  // a nota do P/L historico diz QUAL mediana e de quantos anos
+  function nota(nome, r) {
+    var ph = r.pl_historico;
+    if (nome === "P/L histórico" && ph)
+      return "LPA × P/L mediano de " + brl(ph.mediana, 1) + " (" + ph.anos + " anos entre " +
+             ph.de + " e " + ph.ate + ").";
+    return NOTA[nome];
+  }
 
   // ---------- lista ----------
   function render() {
