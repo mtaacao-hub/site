@@ -34,6 +34,7 @@
   .cartao .rot{font-size:.72rem;color:var(--gold-ink);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
   .cartao .v{font-size:1.7rem;font-weight:800;font-variant-numeric:tabular-nums;margin-top:4px}
   .cartao .n{font-size:.75rem;color:var(--ink-3);margin-top:2px}
+  .cartao .v.menor{font-size:1.25rem;padding-top:6px}
   .grafico{border:1px solid var(--line);border-radius:14px;padding:16px 18px 12px;background:var(--card);margin-bottom:22px}
   .controles{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
   .controles button{font-family:var(--font);font-size:.8rem;padding:6px 12px;border-radius:20px;
@@ -42,6 +43,17 @@
   .legenda{margin-left:auto;display:flex;gap:14px;font-size:.78rem;color:var(--ink-2)}
   .legenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
   canvas{width:100%;height:340px;display:block}
+  .area{position:relative}
+  .dica{position:absolute;top:6px;pointer-events:none;background:var(--card);border:1px solid var(--line-forte);
+    border-radius:10px;padding:7px 10px;font-size:.76rem;line-height:1.5;box-shadow:0 2px 8px rgba(16,35,59,.08);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .dica b{display:block;color:var(--ink);font-weight:600}
+  .dica i{display:inline-block;width:9px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+  .titulo-tabela{font-size:.78rem;color:var(--gold-ink);font-weight:600;text-transform:uppercase;
+    letter-spacing:.04em;margin:0 0 8px}
+  th.grupo{text-align:center;border-bottom:1px solid var(--line);color:var(--ink-2)}
+  td.sep,th.sep{border-left:1px solid var(--line)}
+  tr.atual td{background:#FBF7EC;font-weight:600}
   .tabela{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:22px}
   table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.82rem}
   th,td{padding:8px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
@@ -58,7 +70,7 @@
 <div class="wrap">
   <header class="topo"><span class="marca">Muita Ação</span></header>
   <h1>P/L da bolsa</h1>
-  <p class="sub">Preço sobre lucro do Ibovespa e de todas as empresas listadas, ano a ano desde 2010.
+  <p class="sub">Preço sobre lucro do Ibovespa e de todas as empresas listadas, semana a semana desde 2010.
     O <b>mercado</b> inclui as empresas que depois saíram da bolsa. Sem elas, o histórico mostraria
     só as sobreviventes.</p>
 
@@ -74,8 +86,12 @@
         <span><i style="background:var(--gold)"></i>Mercado</span>
       </span>
     </div>
-    <canvas id="chart"></canvas>
+    <div class="area">
+      <canvas id="chart"></canvas>
+      <div class="dica" id="dica" hidden></div>
+    </div>
   </div>
+  <p class="titulo-tabela" id="titulo-tabela"></p>
 
   <div class="tabela"><table id="tabela"></table></div>
   <div class="notas" id="notas"></div>
@@ -93,6 +109,22 @@
   }
   function cor(nome) { return getComputedStyle(document.documentElement).getPropertyValue(nome).trim(); }
 
+  // coluna de cada medida em DADOS.semanas[grupo] = [[data, pl, pl_lucrativas, pl_mediana, n]]
+  var COL = { pl: 1, pl_lucrativas: 2, pl_mediana: 3 };
+  var GEOM = null;   // o que o desenho usou, para a dica do mouse
+
+  function tempo(iso) { return Date.parse(iso + "T12:00:00"); }
+
+  // MEDIA HISTORICA: media de todas as semanas desde 2010, na medida do
+  // botao. Semana sem valor (prejuizo somado zera o denominador) fica fora.
+  function mediaHist(grupo) {
+    var c = COL[MEDIDA], soma = 0, n = 0;
+    (DADOS.semanas[grupo] || []).forEach(function (r) {
+      if (r[c] !== null && r[c] !== undefined) { soma += r[c]; n++; }
+    });
+    return n ? soma / n : null;
+  }
+
   function desenhar() {
     var canvas = $("chart"), dpr = window.devicePixelRatio || 1;
     var w = canvas.clientWidth, h = canvas.clientHeight;
@@ -100,18 +132,22 @@
     var ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
-    var anos = Object.keys(DADOS.anos).sort();
-    var rotulos = anos.concat(["Hoje"]);
-    function serie(grupo) {
-      return anos.map(function (a) { var g = DADOS.anos[a][grupo]; return g ? g[MEDIDA] : null; })
-                 .concat([DADOS.atual[grupo] ? DADOS.atual[grupo][MEDIDA] : null]);
-    }
-    var series = [{ v: serie("mercado"), cor: cor("--gold") }, { v: serie("ibov"), cor: cor("--ink") }];
-    var maxv = 0;
-    series.forEach(function (s) { s.v.forEach(function (x) { if (x > maxv) maxv = x; }); });
+    var c = COL[MEDIDA];
+    var series = [
+      { nome: "Mercado", g: "mercado", cor: cor("--gold") },
+      { nome: "Ibovespa", g: "ibov", cor: cor("--ink") }
+    ].map(function (s) {
+      s.p = (DADOS.semanas[s.g] || []).map(function (r) { return [tempo(r[0]), r[c], r[0]]; });
+      return s;
+    });
+    var t0 = Infinity, t1 = -Infinity, maxv = 0;
+    series.forEach(function (s) { s.p.forEach(function (p) {
+      if (p[0] < t0) t0 = p[0]; if (p[0] > t1) t1 = p[0];
+      if (p[1] !== null && p[1] > maxv) maxv = p[1];
+    }); });
     var topo = Math.min(TETO_EIXO, Math.ceil(maxv / 5) * 5);
-    var L = 34, R = 12, T = 14, B = 26, W = w - L - R, H = h - T - B;
-    function X(i) { return L + (rotulos.length === 1 ? W / 2 : i * W / (rotulos.length - 1)); }
+    var L = 34, R = 14, T = 14, B = 26, W = w - L - R, H = h - T - B;
+    function X(t) { return L + (t - t0) / (t1 - t0) * W; }
     function Y(v) { return T + H - Math.min(v, topo) / topo * H; }   // eixo parte do zero
     ctx.font = "11px Poppins, Arial"; ctx.fillStyle = cor("--ink-3"); ctx.strokeStyle = cor("--line");
     ctx.lineWidth = 1;
@@ -119,64 +155,148 @@
       ctx.beginPath(); ctx.moveTo(L, Y(g)); ctx.lineTo(w - R, Y(g)); ctx.stroke();
       ctx.textAlign = "right"; ctx.fillText(g, L - 6, Y(g) + 4);
     }
+    // um rotulo por ano, no 1o de janeiro; de dois em dois se apertar
     ctx.textAlign = "center";
-    var passo = W / rotulos.length < 34 ? 2 : 1;
-    rotulos.forEach(function (r, i) {
-      if (i % passo === 0 || r === "Hoje") ctx.fillText(r === "Hoje" ? r : "’" + r.slice(2), X(i), h - 8);
-    });
-    // a "Hoje" e outra conta (lucro de 12 meses, preco de hoje): tracejado ate ela
+    var a0 = new Date(t0).getFullYear(), a1 = new Date(t1).getFullYear();
+    var passo = W / (a1 - a0 + 1) < 34 ? 2 : 1;
+    for (var a = a0; a <= a1; a++) {
+      var x = X(Date.parse(a + "-01-01T12:00:00"));
+      if (x < L) continue;
+      ctx.strokeStyle = cor("--line"); ctx.beginPath(); ctx.moveTo(x, T + H); ctx.lineTo(x, T + H + 4); ctx.stroke();
+      if ((a - a0) % passo === 0) ctx.fillText("’" + String(a).slice(2), x + 14, h - 8);
+    }
     series.forEach(function (s) {
-      ctx.strokeStyle = s.cor; ctx.lineWidth = 2.2;
-      var n = s.v.length;
+      ctx.strokeStyle = s.cor; ctx.lineWidth = 1.8; ctx.lineJoin = "round";
       ctx.beginPath(); var aberto = false;
-      for (var i = 0; i < n - 1; i++) {
-        if (s.v[i] === null) { aberto = false; continue; }
-        if (!aberto) { ctx.moveTo(X(i), Y(s.v[i])); aberto = true; } else ctx.lineTo(X(i), Y(s.v[i]));
-      }
-      ctx.stroke();
-      if (s.v[n - 1] !== null && s.v[n - 2] !== null) {
-        ctx.setLineDash([4, 4]); ctx.beginPath();
-        ctx.moveTo(X(n - 2), Y(s.v[n - 2])); ctx.lineTo(X(n - 1), Y(s.v[n - 1])); ctx.stroke();
-        ctx.setLineDash([]);
-      }
-      s.v.forEach(function (v, i) {
-        if (v === null) return;
-        ctx.fillStyle = s.cor; ctx.beginPath(); ctx.arc(X(i), Y(v), 3, 0, Math.PI * 2); ctx.fill();
-        if (v > topo) {   // fora da escala: marca o valor em vez de esconder
-          ctx.fillStyle = s.cor; ctx.font = "600 11px Poppins, Arial";
-          ctx.fillText("↑ " + num(v, 0), X(i), Y(v) + (s.cor === cor("--ink") ? 16 : -7));
-          ctx.font = "11px Poppins, Arial";
-        }
+      s.p.forEach(function (p) {
+        // prejuizo somado zera o denominador: sem ponto, a linha interrompe
+        if (p[1] === null) { aberto = false; return; }
+        if (!aberto) { ctx.moveTo(X(p[0]), Y(p[1])); aberto = true; } else ctx.lineTo(X(p[0]), Y(p[1]));
       });
+      ctx.stroke();
     });
+    // media historica: tracejada, na cor da serie, com o valor na ponta
+    var medias = series.map(function (s) { return { s: s, m: mediaHist(s.g) }; })
+                       .filter(function (x) { return x.m !== null; });
+    medias.forEach(function (x) {
+      ctx.strokeStyle = x.s.cor; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.8;
+      ctx.setLineDash([5, 4]); ctx.beginPath();
+      ctx.moveTo(L, Y(x.m)); ctx.lineTo(w - R, Y(x.m)); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha = 1;
+    });
+    // rotulo acima da linha; se as duas medias estao perto, um rotulo so
+    ctx.font = "600 11px Poppins, Arial"; ctx.textAlign = "left";
+    // com fundo: a serie cruza a linha da media, e o texto sumia embaixo dela
+    function rotulo(txt, y, corTxt) {
+      var lw = ctx.measureText(txt).width;
+      ctx.fillStyle = cor("--card"); ctx.globalAlpha = 0.92;
+      ctx.fillRect(L + 3, y - 11, lw + 8, 15); ctx.globalAlpha = 1;
+      ctx.fillStyle = corTxt; ctx.fillText(txt, L + 7, y);
+    }
+    var perto = medias.length === 2 && Math.abs(Y(medias[0].m) - Y(medias[1].m)) < 16;
+    if (perto) {
+      rotulo("média histórica: Ibovespa " + num(medias[1].m) + " · Mercado " + num(medias[0].m),
+             Math.min(Y(medias[0].m), Y(medias[1].m)) - 6, cor("--ink-2"));
+    } else {
+      medias.forEach(function (x) {
+        rotulo("média " + x.s.nome.toLowerCase() + " " + num(x.m), Y(x.m) - 6, x.s.cor);
+      });
+    }
+    ctx.font = "11px Poppins, Arial";
+    // o ponto de HOJE (preco de hoje, lucro de 12 meses do ultimo balanco)
+    series.forEach(function (s) {
+      var v = DADOS.atual[s.g] ? DADOS.atual[s.g][MEDIDA] : null;
+      if (v === null || v === undefined) return;
+      ctx.fillStyle = s.cor; ctx.beginPath(); ctx.arc(X(t1), Y(v), 3.5, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.fillStyle = cor("--ink-2"); ctx.textAlign = "right"; ctx.fillText("hoje", X(t1), T - 2);
+    GEOM = { series: series, X: X, Y: Y, L: L, R: R, T: T, H: H, w: w };
+  }
+
+  // dica: a semana mais perto do mouse, com o valor das duas series
+  function dica(ev) {
+    if (!GEOM) return;
+    var box = $("chart").getBoundingClientRect(), mx = ev.clientX - box.left;
+    if (mx < GEOM.L || mx > GEOM.w - GEOM.R) { $("dica").hidden = true; return; }
+    var ref = GEOM.series[0].p, melhor = null, dist = Infinity;
+    ref.forEach(function (p, i) { var d = Math.abs(GEOM.X(p[0]) - mx); if (d < dist) { dist = d; melhor = i; } });
+    if (melhor === null) return;
+    var data = ref[melhor][2], linhas = GEOM.series.map(function (s) {
+      var p = s.p.filter(function (q) { return q[2] === data; })[0];
+      return '<span><i style="background:' + s.cor + '"></i>' + s.nome + " " + num(p ? p[1] : null) + "</span>";
+    });
+    var el = $("dica");
+    el.innerHTML = "<b>" + data.split("-").reverse().join("/") + "</b>" + linhas.join("<br>");
+    el.hidden = false;
+    var x = GEOM.X(ref[melhor][0]);
+    el.style.left = Math.min(Math.max(x + 10, 0), box.width - el.offsetWidth - 4) + "px";
+  }
+
+  var NOME_MEDIDA = { pl_lucrativas: "só lucrativas", pl: "com prejuízos", pl_mediana: "mediana" };
+
+  // por ano: fechamento, minimo, maximo e media das semanas, na medida do
+  // botao; a primeira linha e o ATUAL (preco de hoje, faixa do ano ate hoje)
+  function tabela() {
+    function c(v, extra) {
+      return '<td class="' + (extra || "") + (v > TETO_EIXO ? " alto" : "") + '">' + num(v) + "</td>";
+    }
+    function blocos(g, ponto, sep) {
+      var s = (g && g.semanal && g.semanal[MEDIDA]) || {};
+      return c(ponto, sep) + c(s.min) + c(s.max) + c(s.media);
+    }
+    var a = DADOS.atual, linhas = [];
+    linhas.push('<tr class="atual"><td>Atual</td>' +
+      blocos(a.ibov, a.ibov ? a.ibov[MEDIDA] : null, "sep") +
+      blocos(a.mercado, a.mercado ? a.mercado[MEDIDA] : null, "sep") +
+      '<td class="sep">' + ((a.mercado && a.mercado.n) || "—") + "</td><td>" +
+      num(a.mercado && a.mercado.valor_mercado / 1e12, 2) + "</td><td>—</td></tr>");
+    Object.keys(DADOS.anos).sort().reverse().forEach(function (y) {
+      var m = DADOS.anos[y].mercado || {}, i = DADOS.anos[y].ibov || {};
+      linhas.push("<tr><td>" + y + "</td>" + blocos(i, i[MEDIDA], "sep") + blocos(m, m[MEDIDA], "sep") +
+        '<td class="sep">' + (m.n || "—") + "</td><td>" + num(m.valor_mercado / 1e12, 2) +
+        "</td><td>" + num(m.cobertura_volume) + "%</td></tr>");
+    });
+    var cab = "<th>Fech.</th><th>Mín.</th><th>Máx.</th><th>Média</th>";
+    $("tabela").innerHTML = "<thead><tr><th></th>" +
+      '<th class="grupo sep" colspan="4">Ibovespa</th><th class="grupo sep" colspan="4">Mercado</th>' +
+      '<th class="grupo sep" colspan="3">Mercado</th></tr><tr><th>Ano</th>' +
+      cab.replace("<th>", '<th class="sep">') + cab.replace("<th>", '<th class="sep">') +
+      '<th class="sep">Empresas</th><th>Valor (R$ tri)</th><th>Cobertura</th></tr></thead><tbody>' +
+      linhas.join("") + "</tbody>";
+    var corrente = a.ano_corrente ? " (" + a.ano_corrente + " até hoje)" : "";
+    $("titulo-tabela").textContent = "P/L " + NOME_MEDIDA[MEDIDA] +
+      " — fechamento, mínima, máxima e média das semanas do ano" + corrente;
+  }
+
+  // os cartoes seguem a medida do botao, como o grafico e a tabela
+  function cartoes() {
+    var a = DADOS.atual, ib = a.ibov || {}, me = a.mercado || {};
+    var mi = mediaHist("ibov"), mm = mediaHist("mercado");
+    function contra(hoje, media) {
+      if (hoje === null || hoje === undefined || media === null) return "";
+      var d = (hoje / media - 1) * 100;
+      return (d < 0 ? num(-d, 0) + "% abaixo" : num(d, 0) + "% acima") + " da média";
+    }
+    var sub = MEDIDA === "pl" ? "todas as empresas" : MEDIDA === "pl_mediana" ? "a empresa típica" : null;
+    $("cartoes").innerHTML = [
+      ["Mercado hoje", num(me[MEDIDA]),
+       (sub || (me.n - me.n_prejuizo) + " empresas lucrativas") + " · " + contra(me[MEDIDA], mm)],
+      ["Ibovespa hoje", num(ib[MEDIDA]),
+       (sub || (ib.n - ib.n_prejuizo) + " empresas lucrativas") + " · " + contra(ib[MEDIDA], mi)],
+      ["Média histórica desde 2010", "Ibov " + num(mi) + " · Merc. " + num(mm),
+       "média das " + ((DADOS.semanas.ibov || []).length) + " semanas, " + NOME_MEDIDA[MEDIDA]],
+      ["Ibovespa, peso do índice", num(ib.pl_ponderado_indice),
+       "quantidade teórica × preço ÷ quantidade × LPA"]
+    ].map(function (c, i) {
+      return '<div class="cartao"><div class="rot">' + c[0] + '</div><div class="v' +
+             (i === 2 ? " menor" : "") + '">' + c[1] + '</div><div class="n">' + c[2] + "</div></div>";
+    }).join("");
   }
 
   function montar() {
-    var a = DADOS.atual, ib = a.ibov || {}, me = a.mercado || {};
-    var cob = a.ibov_cobertura || {};
-    $("cartoes").innerHTML = [
-      ["Mercado hoje", num(me.pl_lucrativas), (me.n - me.n_prejuizo) + " empresas lucrativas"],
-      ["Ibovespa hoje", num(ib.pl_lucrativas), (ib.n - ib.n_prejuizo) + " empresas lucrativas"],
-      ["Ibovespa, peso do índice", num(ib.pl_ponderado_indice),
-       "quantidade teórica × preço ÷ quantidade × LPA"],
-      ["Mediana do mercado", num(me.pl_mediana), "a empresa típica"]
-    ].map(function (c) {
-      return '<div class="cartao"><div class="rot">' + c[0] + '</div><div class="v">' + c[1] +
-             '</div><div class="n">' + c[2] + "</div></div>";
-    }).join("");
-
-    var anos = Object.keys(DADOS.anos).sort().reverse();
-    var linhas = anos.map(function (y) {
-      var m = DADOS.anos[y].mercado || {}, i = DADOS.anos[y].ibov || {};
-      function c(v) { return '<td class="' + (v > TETO_EIXO ? "alto" : "") + '">' + num(v) + "</td>"; }
-      return "<tr><td>" + y + "</td>" + c(i.pl_lucrativas) + c(i.pl) + "<td>" + (i.n || "—") + "</td>" +
-             c(m.pl_lucrativas) + c(m.pl) + c(m.pl_mediana) + "<td>" + (m.n || "—") + "</td><td>" +
-             (m.n_fora_da_base_hoje || 0) + "</td><td>" + num(m.valor_mercado / 1e12, 2) +
-             "</td><td>" + num(m.cobertura_volume) + "%</td></tr>";
-    });
-    $("tabela").innerHTML = "<thead><tr><th>Ano</th><th>Ibov P/L</th><th>Ibov c/ prejuízo</th><th>Ibov n</th>" +
-      "<th>Mercado P/L</th><th>Mercado c/ prejuízo</th><th>Mercado mediana</th><th>Mercado n</th><th>Já saíram</th>" +
-      "<th>Valor (R$ tri)</th><th>Cobertura</th></tr></thead><tbody>" + linhas.join("") + "</tbody>";
+    var a = DADOS.atual;
+    cartoes();
+    tabela();
 
     var val = DADOS.validacao_ibov || {}, ult = Object.keys(val).sort()[0];
     $("notas").innerHTML =
@@ -186,9 +306,16 @@
       "de quem comprasse um pedaço de todas as empresas, mas um ano de prejuízo grande zera o " +
       "denominador. Em 2015, os prejuízos de Petrobras e Vale levam essa leitura a 94. A " +
       "<b>mediana</b> mostra a empresa típica e não é puxada pelas gigantes.</p>" +
-      "<p><b>Cada ano usa o lucro do próprio exercício</b> contra o preço do último pregão dele. " +
-      "Em 31 de dezembro esse lucro ainda não era público, então este não é o P/L que alguém via na tela " +
-      "naquele dia. O ponto <b>Hoje</b> é outra conta: lucro dos últimos 12 meses e preço atual.</p>" +
+      "<p><b>Cada semana usa o preço do último pregão dela</b> e o lucro de 12 meses até ali, " +
+      "aproximado pela mistura dos dois exercícios: no meio do ano, metade do lucro do ano anterior e metade " +
+      "do lucro do ano. Na última semana do ano isso é o lucro do próprio exercício, então o " +
+      "<b>fechamento</b> da tabela é o P/L do ano. Esse lucro ainda não era público na data, então não é o " +
+      "P/L que alguém via na tela naquele dia. Mínima, máxima e média são das semanas do ano. A contagem de " +
+      "ações de cada semana é a do balanço levada pelos desdobramentos e grupamentos até ela. O ponto " +
+      "<b>hoje</b> é o preço atual com o lucro dos últimos 12 meses publicado.</p>" +
+      "<p><b>Média histórica</b> é a média simples de todas as semanas desde 2010, na leitura " +
+      "escolhida. Na leitura com prejuízos, as semanas em que o lucro somado da bolsa foi negativo ficam " +
+      "fora, e as de 2015 e 2016, com lucro perto de zero, puxam a média para cima.</p>" +
       "<p><b>A carteira do Ibovespa de cada ano é reconstruída</b> pela regra atual da B3: os papéis que " +
       "somam 85% do índice de negociabilidade, com presença em 95% dos pregões e sem penny stock. A B3 " +
       "não publica a carteira histórica em fonte aberta." +
@@ -206,10 +333,12 @@
   document.querySelectorAll(".controles button").forEach(function (b) {
     b.addEventListener("click", function () {
       document.querySelectorAll(".controles button").forEach(function (x) { x.classList.remove("ativo"); });
-      b.classList.add("ativo"); MEDIDA = b.getAttribute("data-m"); desenhar();
+      b.classList.add("ativo"); MEDIDA = b.getAttribute("data-m"); desenhar(); tabela(); cartoes();
     });
   });
   window.addEventListener("resize", function () { if (DADOS) desenhar(); });
+  $("chart").addEventListener("mousemove", dica);
+  $("chart").addEventListener("mouseleave", function () { $("dica").hidden = true; });
 
   fetch("bolsa.json").then(function (r) { return r.json(); }).then(function (d) {
     DADOS = d; montar();
