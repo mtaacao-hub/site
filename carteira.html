@@ -54,6 +54,20 @@
   .campo input:focus,.campo select:focus{outline:2px solid var(--gold);outline-offset:1px}
   .campo.ticker input{width:110px;text-transform:uppercase}
   .campo.ticker.td input{width:300px;text-transform:none}
+  .campo.ticker.fi input{width:340px;text-transform:none}
+  .campo.ticker{position:relative}
+  .sugestoes{position:absolute;top:100%;left:0;z-index:5;margin-top:3px;width:min(520px,92vw);
+    background:var(--card);border:1px solid var(--line-forte);border-radius:9px;
+    box-shadow:0 6px 18px rgba(16,35,59,.12);max-height:330px;overflow-y:auto}
+  .sugestoes button{display:block;width:100%;text-align:left;background:none;border:0;
+    border-bottom:1px solid var(--line);padding:8px 11px;font-family:var(--font);
+    font-size:.8rem;color:var(--ink);cursor:pointer}
+  .sugestoes button:last-child{border-bottom:0}
+  .sugestoes button:hover,.sugestoes button.ativo{background:var(--ground)}
+  .sugestoes .mini{display:block;margin-top:2px}
+  .etiqueta{display:inline-block;font-size:.62rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--gold-ink);border:1px solid var(--line-forte);
+    border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px}
   .campo.num input{width:108px;text-align:right}
   .campo.data input{width:142px}
   button.acao{background:var(--ink);color:#fff;border:0;border-radius:8px;
@@ -159,15 +173,17 @@
         <input type="date" id="f-data"></div>
       <div class="campo"><label for="f-classe">Classe</label>
         <select id="f-classe"><option value="A">Ação</option>
-        <option value="TD">Tesouro Direto</option></select></div>
+        <option value="TD">Tesouro Direto</option>
+        <option value="FI">Fundo</option></select></div>
       <div class="campo ticker" id="c-ticker"><label for="f-ticker" id="l-ticker">Ticker</label>
         <input id="f-ticker" list="tickers" autocomplete="off" spellcheck="false"
                placeholder="VALE3"><datalist id="tickers"></datalist>
-        <datalist id="titulos"></datalist></div>
+        <datalist id="titulos"></datalist>
+        <div class="sugestoes" id="sugestoes" hidden></div></div>
       <div class="campo"><label for="f-op">Operação</label>
         <select id="f-op"><option value="C">Compra</option>
         <option value="V">Venda</option></select></div>
-      <div class="campo num"><label for="f-qtd">Quantidade</label>
+      <div class="campo num"><label for="f-qtd" id="l-qtd">Quantidade</label>
         <input id="f-qtd" type="number" min="1" step="1" placeholder="100"></div>
       <div class="campo num"><label for="f-preco" id="l-preco">Preço (R$)</label>
         <input id="f-preco" type="number" min="0" step="0.01" placeholder="58,20"></div>
@@ -196,7 +212,71 @@
   // ---------- classe de ativo ----------
   // A operacao guarda `classe` desde a entrada do Tesouro; arquivo exportado
   // antes disso nao tem o campo, e ali tudo era acao.
-  var CLASSES = { A: "Ações", TD: "Tesouro Direto" };
+  var CLASSES = { A: "Ações", TD: "Tesouro Direto", FI: "Fundos" };
+
+  // ---------- fundos (CVM) ----------
+  // fundos/indice.json: um registro por classe/subclasse, para a busca por
+  // nome e CNPJ; fundos/atual.json: a ultima cota de cada um; fundos/m/NNN.json:
+  // a cota do fim de cada mes, em lotes pelos 3 primeiros digitos do CNPJ (so
+  // o lote de quem esta na carteira e baixado). A CHAVE e o CNPJ da classe so
+  // com digitos, mais "-ID_SUBCLASSE" quando ha subclasse -- e o que a
+  // operacao grava em `ticker`. Tudo carrega sob demanda: quem nao tem fundo
+  // nem abre a busca nao baixa nada.
+  var FUNDOS = { pedido: null, indice: null, lista: null, atual: null, data: null, lotes: {} };
+  var TIPO_FUNDO = { master: "master", feeder: "feeder", prev: "previdência" };
+  function carregarFundos() {
+    if (FUNDOS.pedido) return FUNDOS.pedido;
+    function j(u) { return fetch(u).then(function (r) { if (!r.ok) throw 0; return r.json(); }); }
+    FUNDOS.pedido = Promise.all([j("fundos/indice.json"), j("fundos/atual.json")])
+      .then(function (r) {
+        var c = r[0].campos, idx = {};
+        FUNDOS.lista = r[0].fundos.map(function (x) {
+          var o = {};
+          c.forEach(function (nome, i) { o[nome] = x[i]; });
+          o.busca = semAcento(o.nome).toLowerCase();
+          idx[o.chave] = o;
+          return o;
+        });
+        FUNDOS.indice = idx;
+        // atual.json: numero solto = cota da `data` do arquivo; par = [data, cota]
+        // de quem esta atrasado. Aqui vira sempre o par.
+        var at = {}, cs = r[1].cotas, dt = r[1].data;
+        for (var k in cs) at[k] = typeof cs[k] === "number" ? [dt, cs[k]] : cs[k];
+        FUNDOS.atual = at;
+        FUNDOS.data = dt;
+        return true;
+      }).catch(function () { FUNDOS.erro = true; return false; });
+    return FUNDOS.pedido;
+  }
+  function carregarLotes(chaves) {
+    var faltam = {};
+    chaves.forEach(function (k) { var l = k.slice(0, 3); if (!FUNDOS.lotes[l]) faltam[l] = true; });
+    return Promise.all(Object.keys(faltam).map(function (l) {
+      return fetch("fundos/m/" + l + ".json").then(function (r) { return r.ok ? r.json() : {}; })
+        .catch(function () { return {}; })
+        .then(function (d) { FUNDOS.lotes[l] = d; });
+    }));
+  }
+  function semAcento(t) {
+    return String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+  function fmtCnpj(k) {
+    var c = String(k).split("-")[0];
+    return c.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  }
+  function fundoDe(k) { return FUNDOS.indice && FUNDOS.indice[k] || null; }
+  // nome curto para tabela e barra: sem o juridiques do fim
+  function nomeCurto(n) {
+    return String(n || "").replace(/\s*[-–]?\s*(RESPONSABILIDADE|RESP\.?)\s+LIMITADA.*$/i, "")
+      .replace(/\s+(FUNDO DE INVESTIMENTO|FIF|FI|FIC)\b.*$/i, function (m) {
+        return m.length > 40 ? "" : m; }).slice(0, 60);
+  }
+  // como a posicao aparece em tabela: o nome do fundo, nao a chave
+  function rotulo(ticker, classe) {
+    if (classe !== "FI") return ticker;
+    var f = fundoDe(ticker);
+    return f ? nomeCurto(f.nome) : fmtCnpj(ticker);
+  }
   function classeDe(o) { return o.classe || "A"; }
   var $ = function (id) { return document.getElementById(id); };
 
@@ -325,12 +405,45 @@
   }
   // a operacao nas acoes de hoje (Tesouro nao tem evento)
   function opHoje(o) {
+    if (classeDe(o) === "FI") return opFundoHoje(o);
     if (classeDe(o) !== "A" || !o.data) return o;
     var f = fatorAte(o.ticker, o.data);
     if (f === 1) return o;
     var c = {}; for (var k in o) c[k] = o[k];
     c.qtd = o.qtd * f; c.preco = o.preco / f;
     return c;
+  }
+  // FUNDO: o evento de cota vem por MES (o informe so da o fim de cada mes),
+  // [AAAA-MM, f] com cota_depois = cota_antes x f. A operacao anterior ao mes
+  // do evento e convertida: cotas / f, valor da cota x f. Dentro do proprio
+  // mes do evento a data nao decide; decide o valor lancado: se ele esta mais
+  // perto da cota de antes, a operacao foi de antes.
+  function opFundoHoje(o) {
+    var fd = fundoDe(o.ticker), ev = fd && fd.eventos;
+    if (!ev || !o.data) return o;
+    var F = 1, mes = o.data.slice(0, 7);
+    ev.forEach(function (e) {
+      if (mes < e[0]) F *= e[1];
+      else if (mes === e[0]) {
+        var lote = FUNDOS.lotes[o.ticker.slice(0, 3)], s = lote && lote[o.ticker];
+        var antes = cotaNoMes(s, e[0], -1), depois = cotaNoMes(s, e[0], 0);
+        // a serie ja esta na base de hoje: a cota de antes, na base da
+        // epoca, e antes / F_acumulado; basta comparar a distancia em log
+        if (antes && depois && o.preco > 0 &&
+            Math.abs(Math.log(o.preco * e[1] / antes)) < Math.abs(Math.log(o.preco / depois))) F *= e[1];
+      }
+    });
+    if (F === 1) return o;
+    var c = {}; for (var k in o) c[k] = o[k];
+    c.qtd = o.qtd / F; c.preco = o.preco * F;
+    return c;
+  }
+  function cotaNoMes(s, mes, desloc) {
+    if (!s) return null;
+    var y = +mes.slice(0, 4), m = +mes.slice(5, 7) + desloc;
+    if (m < 1) { m += 12; y--; }
+    var i = (y - +s[0].slice(0, 4)) * 12 + (m - +s[0].slice(5, 7));
+    return i >= 0 && i < s[1].length ? s[1][i] : null;
   }
 
   function consolidar(ops) {
@@ -368,7 +481,23 @@
     var totalAtual = 0, totalCusto = 0, provAno = 0, semCotacao = [];
     abertas.forEach(function (p) {
       p.pm = p.custo / p.qtd;
-      p.casas = p.classe === "TD" ? 2 : 0;
+      p.casas = p.classe === "A" ? 0 : 2;
+      if (p.classe === "FI") {
+        // cota mais recente do informe diario da CVM (sai com 1 a 2 dias
+        // uteis de atraso); a cota ja vem liquida de taxa, nao de IR
+        var f = fundoDe(p.ticker), ca = FUNDOS.atual && FUNDOS.atual[p.ticker];
+        p.fundo = f;
+        p.cotaData = ca ? ca[0] : null;
+        p.preco = ca ? ca[1] : null;
+        p.atual = p.preco ? p.preco * p.qtd : null;
+        p.lucro = p.atual === null ? null : p.atual - p.custo;
+        p.dpa = p.proventos = p.yoc = p.teto = p.margem = null;
+        p.setor = null;
+        if (p.atual === null) semCotacao.push(rotulo(p.ticker, "FI"));
+        totalAtual += p.atual || 0;
+        totalCusto += p.custo;
+        return;
+      }
       if (p.classe === "TD") {
         // marcado pelo PU de VENDA: o que o Tesouro paga no resgate hoje,
         // o mesmo numero do extrato do Tesouro Direto
@@ -427,7 +556,13 @@
                " — lance o resgate como venda</div>";
       else if (p.titulo && p.titulo.cupom)
         nota = '<div class="mini">paga cupom semestral, que não entra aqui</div>';
-      return "<tr><td>" + esc(p.ticker) + nota + "</td>" +
+      else if (p.classe === "FI")
+        nota = '<div class="mini">' + fmtCnpj(p.ticker) +
+               (p.cotaData ? " · cota de " + dmy(p.cotaData) : " · sem cota recente") + "</div>" +
+               (p.fundo && p.fundo.saltos ? '<div class="mini">a cota variou mais de 50% num mês (' +
+                 p.fundo.saltos.slice(-3).map(function (m) { return m.slice(5) + "/" + m.slice(0, 4); }).join(", ") +
+                 ") — confira no extrato</div>" : "");
+      return "<tr><td>" + esc(rotulo(p.ticker, p.classe)) + nota + "</td>" +
         "<td>" + brl(p.qtd, p.casas) + "</td>" +
         "<td>" + num(p.pm) + "</td>" +
         "<td>" + num(p.preco) + "</td>" +
@@ -482,7 +617,8 @@
       var por = {}, base = 0;
       abertas.forEach(function (p) {
         if (chave === "setor" && p.classe !== "A") return;
-        var k = chave === "setor" ? p.setor : chave === "classe" ? CLASSES[p.classe] : p.ticker;
+        var k = chave === "setor" ? p.setor : chave === "classe" ? CLASSES[p.classe] :
+                rotulo(p.ticker, p.classe);
         por[k] = (por[k] || 0) + (p.atual || 0);
         base += p.atual || 0;
       });
@@ -502,9 +638,10 @@
       "<thead><tr><th>Data</th><th>Ativo</th><th>Op.</th><th>Qtd</th>" +
       "<th>Preço</th><th>Total</th><th></th></tr></thead><tbody>" +
       OPS.map(function (o, i) {
-        return "<tr><td>" + esc(o.data || "—") + "</td><td>" + esc(o.ticker) + "</td>" +
+        return "<tr><td>" + esc(o.data || "—") + "</td><td>" + esc(rotulo(o.ticker, classeDe(o))) + "</td>" +
           "<td>" + (o.op === "C" ? "Compra" : "Venda") + "</td>" +
-          "<td>" + brl(o.qtd, classeDe(o) === "TD" ? 2 : 0) + "</td><td>" + brl(o.preco) + "</td>" +
+          "<td>" + brl(o.qtd, classeDe(o) === "A" ? 0 : 2) + "</td><td>" +
+          brl(o.preco, classeDe(o) === "FI" ? 6 : 2) + "</td>" +
           "<td>" + brl(o.qtd * o.preco) + "</td>" +
           '<td><button class="x" data-i="' + i + '" aria-label="Remover">&times;</button></td></tr>';
       }).join("") + "</tbody></table></div>";
@@ -549,11 +686,12 @@
                      .catch(function () { return null; });
   }
   function carregarComparador() {
-    if (CMP.carregado) { desenharComparador(); return; }
+    if (CMP.carregado) { lotesDaCarteira().then(desenharComparador); return; }
     if (CMP.pedido) return;
     CMP.pedido = true;
     // historico.json tem ~4,6 MB: so e pedido quando ha carteira pra comparar
-    Promise.all([json("historico.json"), json("benchmarks.json"), json("proventos.json")])
+    Promise.all([json("historico.json"), json("benchmarks.json"), json("proventos.json"),
+                 lotesDaCarteira()])
       .then(function (r) {
         CMP.hist = r[0]; CMP.bench = r[1] && r[1].series; CMP.prov = r[2];
         CMP.carregado = true;
@@ -565,6 +703,12 @@
         if (window.console) console.error(e);
         window.__erroComparador = String(e && e.stack || e);
       });
+  }
+
+  function lotesDaCarteira() {
+    var ks = OPS.filter(function (o) { return classeDe(o) === "FI"; })
+                .map(function (o) { return o.ticker; });
+    return ks.length ? carregarLotes(ks) : Promise.resolve();
   }
 
   function mesesEntre(a, b) {
@@ -583,7 +727,18 @@
   // levado adiante (titulo vencido, papel que parou de negociar)
   function precosMensais(o, meses, mesAtual) {
     var cru = {}, i;
-    if (o.classe === "TD") {
+    if (o.classe === "FI") {
+      var lote = FUNDOS.lotes[o.ticker.slice(0, 3)], s = lote && lote[o.ticker];
+      if (!s) return null;
+      // a serie e [mes inicial, [cotas...]]: o mes i e o inicial + i
+      var y = +s[0].slice(0, 4), m = +s[0].slice(5, 7);
+      s[1].forEach(function (v) {
+        if (v) cru[y + "-" + (m < 10 ? "0" : "") + m] = v;
+        if (++m > 12) { m = 1; y++; }
+      });
+      var ca = FUNDOS.atual && FUNDOS.atual[o.ticker];
+      if (ca) cru[ca[0].slice(0, 7)] = ca[1];
+    } else if (o.classe === "TD") {
       var t = TESOURO && TESOURO[o.ticker];
       if (!t) return null;
       t.mensal.forEach(function (x) { cru[x[0]] = x[1]; });
@@ -629,10 +784,11 @@
     ops.forEach(function (o) {
       if (precos[o.ticker] !== undefined || fora[o.ticker]) return;
       var p = precosMensais({ ticker: o.ticker, classe: classeDe(o) }, meses, mesAtual);
-      if (p) precos[o.ticker] = p; else fora[o.ticker] = true;
+      if (p) precos[o.ticker] = p; else fora[o.ticker] = classeDe(o);
     });
     ops = ops.filter(function (o) { return !fora[o.ticker]; });
-    if (!ops.length) return { fora: Object.keys(fora) };
+    var nomesFora = Object.keys(fora).map(function (t) { return rotulo(t, fora[t]); });
+    if (!ops.length) return { fora: nomesFora };
 
     // eventos de cada mes: operacoes e datas-ex, em ordem de data. Na mesma
     // data, a data-ex vem ANTES da compra: quem compra no dia ex nao recebe.
@@ -653,7 +809,12 @@
         // como prejuizo.
         if (/SUBSCRI/i.test(x[2] || "")) return;
         var k = x[0].slice(0, 7);
-        (eventos[k] = eventos[k] || []).push({ d: x[0], ord: 0, t: t,
+        // FII (RENDIMENTO/AMORTIZACAO) vem pela DATA-COM: quem compra no dia
+        // ainda recebe, entao entra DEPOIS das operacoes do dia (ord 2). A
+        // amortizacao e capital devolvido e a cota cai do mesmo tanto -- entra
+        // como caixa recebido, igual a restituicao de capital da acao.
+        var com = /RENDIMENTO|AMORTIZA/i.test(x[2] || "");
+        (eventos[k] = eventos[k] || []).push({ d: x[0], ord: com ? 2 : 0, t: t,
                                                prov: x[1] / fatorAte(t, x[0]) });
       });
     });
@@ -713,7 +874,7 @@
       var s = saltosSuspeitos(t, ops[0].data, hoje);
       if (s.length) avisos.push(t + ": " + s.join(", "));
     });
-    return { serie: serie, fora: Object.keys(fora), saltos: avisos,
+    return { serie: serie, fora: nomesFora, saltos: avisos,
              proventos: proventosTotal, mesAtual: mesAtual };
   }
 
@@ -968,7 +1129,8 @@
           "reinvestem os deles, então nesse modo a comparação favorece os índices") +
       (c.proventos ? " (R$ " + brl(c.proventos) + " recebidos no período)" : "") + ". Sem IR, " +
       "corretagem nem custódia. Ações pelo fechamento do mês (semanal antes dos últimos 12 meses); " +
-      "Tesouro pelo preço de venda do último dia útil do mês.");
+      "Tesouro pelo preço de venda do último dia útil do mês; fundos pela cota do último " +
+      "informe do mês, já líquida das taxas do fundo.");
     a.push("<b>Índices:</b> CDI e IPCA do Banco Central; Ibovespa da B3; S&amp;P 500 " +
       "<b>com dividendos reinvestidos</b>, em dólar e convertido pela PTAX. IPCA+X compõe o IPCA " +
       "mensal com X% ao ano; o IPCA de um mês sai por volta do dia 10 do seguinte, então essa " +
@@ -1001,12 +1163,17 @@
   function adicionar() {
     var classe = $("f-classe").value;
     var bruto = ($("f-ticker").value || "").trim();
-    var t = classe === "TD" ? tituloPorNome(bruto) : bruto.toUpperCase();
+    var t = classe === "TD" ? tituloPorNome(bruto) :
+            classe === "FI" ? fundoEscolhido(bruto) : bruto.toUpperCase();
     var q = parseFloat($("f-qtd").value), p = parseFloat($("f-preco").value);
     var erro = null;
     if (classe === "TD") {
       if (!TESOURO) erro = "A base do Tesouro não carregou.";
       else if (!t) erro = "Título não encontrado. Escolha da lista, ex.: Tesouro IPCA+ 2035.";
+    } else if (classe === "FI") {
+      if (!FUNDOS.indice) erro = FUNDOS.erro ? "A base de fundos não carregou." :
+                                               "A base de fundos ainda está carregando.";
+      else if (!t) erro = "Fundo não encontrado. Busque pelo nome ou CNPJ e escolha da lista.";
     } else if (!/^[A-Z]{4}\d{1,2}$/.test(t)) erro = "Ticker inválido. Use o formato VALE3.";
     else if (!DADOS[t]) erro = t + " não está na nossa base de cotações.";
     if (!erro && !(q > 0)) erro = "Quantidade tem que ser maior que zero.";
@@ -1016,25 +1183,133 @@
     OPS.push({ data: $("f-data").value || new Date().toISOString().slice(0, 10),
                ticker: t, classe: classe, op: $("f-op").value, qtd: q, preco: p });
     $("f-qtd").value = ""; $("f-preco").value = ""; $("f-ticker").value = "";
+    delete $("f-ticker").dataset.chave;
     $("f-ticker").focus();
     salvar();
   }
 
   // trocar a classe troca a lista do campo, o rotulo e o passo da quantidade:
   // titulo do Tesouro se compra em fracao de 0,01
+  // fundo: cotas com ate 8 casas (o extrato do banco traz as duas coisas,
+  // quantidade de cotas e valor da cota na data da aplicacao)
   function ajustarClasse() {
-    var td = $("f-classe").value === "TD";
+    var c = $("f-classe").value, td = c === "TD", fi = c === "FI";
     $("c-ticker").classList.toggle("td", td);
-    $("l-ticker").textContent = td ? "Título" : "Ticker";
-    $("f-ticker").setAttribute("list", td ? "titulos" : "tickers");
-    $("f-ticker").placeholder = td ? "Tesouro IPCA+ 2035" : "VALE3";
-    $("f-qtd").step = td ? "0.01" : "1";
-    $("f-qtd").min = td ? "0.01" : "1";
-    $("f-qtd").placeholder = td ? "1,50" : "100";
-    $("l-preco").textContent = td ? "Preço unitário (R$)" : "Preço (R$)";
-    $("f-preco").placeholder = td ? "2.513,39" : "58,20";
+    $("c-ticker").classList.toggle("fi", fi);
+    $("l-ticker").textContent = td ? "Título" : fi ? "Fundo (nome ou CNPJ)" : "Ticker";
+    if (fi) $("f-ticker").removeAttribute("list");
+    else $("f-ticker").setAttribute("list", td ? "titulos" : "tickers");
+    $("f-ticker").placeholder = td ? "Tesouro IPCA+ 2035" : fi ? "SPX Nimitz, 12.798.221/0001-36" : "VALE3";
+    $("f-qtd").step = td ? "0.01" : fi ? "any" : "1";
+    $("f-qtd").min = td ? "0.01" : fi ? "0" : "1";
+    $("f-qtd").placeholder = td ? "1,50" : fi ? "cotas" : "100";
+    $("l-qtd").textContent = fi ? "Cotas" : "Quantidade";
+    $("l-preco").textContent = td ? "Preço unitário (R$)" : fi ? "Valor da cota (R$)" : "Preço (R$)";
+    $("f-preco").step = fi ? "any" : "0.01";
+    $("f-preco").placeholder = td ? "2.513,39" : fi ? "1,2345678" : "58,20";
     $("f-ticker").value = "";
+    delete $("f-ticker").dataset.chave;
+    $("sugestoes").hidden = true;
+    if (fi) carregarFundos();
   }
+
+  // ---------- busca de fundo ----------
+  // por nome (todas as palavras, sem acento) ou por CNPJ (com ou sem
+  // pontuacao, a partir de 4 digitos). O indice ja vem ordenado por
+  // patrimonio, entao o primeiro resultado e o maior.
+  function buscarFundos(txt) {
+    if (!FUNDOS.lista) return [];
+    var dig = txt.replace(/\D/g, ""), out = [];
+    var soDig = dig.length >= 4 && /^[\d.\/\-\s]+$/.test(txt);
+    var palavras = semAcento(txt).toLowerCase().split(/\s+/).filter(Boolean);
+    if (!palavras.length) return out;
+    for (var i = 0; i < FUNDOS.lista.length && out.length < 15; i++) {
+      var f = FUNDOS.lista[i];
+      if (soDig ? f.chave.indexOf(dig) === 0 :
+          palavras.every(function (w) { return f.busca.indexOf(w) >= 0; })) out.push(f);
+    }
+    return out;
+  }
+  function descricaoFundo(f) {
+    var partes = [fmtCnpj(f.chave)];
+    if (f.classe) partes.push(f.classe);
+    if (f.gestor) partes.push(f.gestor);
+    if (f.pl) partes.push("PL R$ " + brl(f.pl / 1e6, 0) + " mi");
+    if (f.cotistas) partes.push(brl(f.cotistas, 0) + (f.cotistas === 1 ? " cotista" : " cotistas"));
+    return partes.join(" · ");
+  }
+  function avisoTipo(f) {
+    if (f.tipo === "master") return "fundo master: quem investe entra por um feeder dele";
+    if (f.tipo === "feeder" && f.master) {
+      var m = fundoDe(f.master);
+      return "aplica no " + (m ? nomeCurto(m.nome) : fmtCnpj(f.master));
+    }
+    if (f.tipo === "prev") return "previdência: a taxa de carregamento do plano não está na cota";
+    return "";
+  }
+  var SUG = [], SUG_I = -1;
+  function mostrarSugestoes() {
+    var el = $("sugestoes"), txt = $("f-ticker").value;
+    delete $("f-ticker").dataset.chave;
+    if ($("f-classe").value !== "FI" || txt.trim().length < 2) { el.hidden = true; return; }
+    if (!FUNDOS.lista) {
+      el.innerHTML = '<div class="vazio" style="padding:12px">' +
+        (FUNDOS.erro ? "A base de fundos não carregou." : "Carregando a base de fundos…") + "</div>";
+      el.hidden = false;
+      carregarFundos().then(function () { if ($("f-ticker").value === txt) mostrarSugestoes(); });
+      return;
+    }
+    SUG = buscarFundos(txt); SUG_I = -1;
+    el.innerHTML = SUG.length ? SUG.map(function (f, i) {
+      var av = avisoTipo(f);
+      return '<button type="button" data-i="' + i + '">' + esc(f.nome) +
+        (TIPO_FUNDO[f.tipo] ? '<span class="etiqueta">' + TIPO_FUNDO[f.tipo] + "</span>" : "") +
+        '<span class="mini">' + esc(descricaoFundo(f)) + "</span>" +
+        (av ? '<span class="mini">' + esc(av) + "</span>" : "") + "</button>";
+    }).join("") : '<div class="vazio" style="padding:12px">Nenhum fundo com esse nome ou CNPJ.</div>';
+    el.hidden = false;
+  }
+  function escolherFundo(f) {
+    $("f-ticker").value = f.nome;
+    $("f-ticker").dataset.chave = f.chave;
+    $("sugestoes").hidden = true;
+    // sugere a cota do dia, se a data lancada e a da ultima cota
+    var ca = FUNDOS.atual && FUNDOS.atual[f.chave];
+    if (ca && $("f-data").value === ca[0] && !$("f-preco").value) $("f-preco").value = ca[1];
+    $("f-qtd").focus();
+  }
+  function fundoEscolhido(bruto) {
+    var k = $("f-ticker").dataset.chave;
+    if (k && fundoDe(k)) return k;
+    var dig = bruto.replace(/\D/g, "");
+    if (dig.length === 14 && fundoDe(dig)) return dig;
+    var r = buscarFundos(bruto);
+    return r.length === 1 ? r[0].chave : null;
+  }
+  $("f-ticker").addEventListener("input", mostrarSugestoes);
+  $("f-ticker").addEventListener("keydown", function (ev) {
+    if ($("sugestoes").hidden || !SUG.length) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      SUG_I = (SUG_I + (ev.key === "ArrowDown" ? 1 : SUG.length - 1)) % SUG.length;
+      [].forEach.call($("sugestoes").querySelectorAll("button"), function (b, i) {
+        b.classList.toggle("ativo", i === SUG_I);
+        if (i === SUG_I) b.scrollIntoView({ block: "nearest" });
+      });
+    } else if (ev.key === "Enter" && SUG_I >= 0) {
+      ev.preventDefault(); ev.stopImmediatePropagation();
+      escolherFundo(SUG[SUG_I]);
+    } else if (ev.key === "Escape") $("sugestoes").hidden = true;
+  });
+  $("sugestoes").addEventListener("mousedown", function (ev) {
+    var b = ev.target.closest("button");
+    if (!b) return;
+    ev.preventDefault();
+    escolherFundo(SUG[+b.dataset.i]);
+  });
+  $("f-ticker").addEventListener("blur", function () {
+    setTimeout(function () { $("sugestoes").hidden = true; }, 150);
+  });
   $("f-classe").addEventListener("change", ajustarClasse);
   $("b-add").addEventListener("click", adicionar);
   ["f-ticker", "f-qtd", "f-preco"].forEach(function (id) {
@@ -1129,6 +1404,19 @@
       DADOS[t] = { mercado: { preco: x.preco, data: x.data, volume: x.volume },
                    resumo: {}, nome: x.nome + " (ETF)", setor: "ETF", etf: true };
     });
+    // FII: tambem so cotacao (a analise fica na fiis.html), setor "FII"
+    Object.keys(b.fiis || {}).forEach(function (t) {
+      if (DADOS[t]) return;
+      var x = b.fiis[t];
+      // dpa/dy (rendimento de 12 meses por cota), quando o pipeline mandar:
+      // alimentam "Proventos 12m" e o yield on cost como numa acao
+      DADOS[t] = { mercado: { preco: x.preco, data: x.data, volume: x.volume,
+                              dpa: x.dpa, dy: x.dy },
+                   resumo: {}, nome: x.nome + " (FII)", setor: "FII", fii: true,
+                   // desdobramento de FII: operacao, cotacao e rendimento estao
+                   // na cota da epoca (HGLG11 1:10 em 2018), como na acao
+                   eventos: eventosDe(x, t) };
+    });
     $("tickers").innerHTML = Object.keys(DADOS).sort().map(function (t) {
       return '<option value="' + t + '">' + esc(DADOS[t].nome) + "</option>";
     }).join("");
@@ -1150,10 +1438,19 @@
       (TD_DATA ? ", de <b>" + esc(dmy(TD_DATA)) + "</b>" : " (base do Tesouro indisponível agora)") +
       ". Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR, e os " +
       "cupons dos títulos com juros semestrais não são somados.<br><br>" +
+      "<b>Fundos</b> pela cota do informe diário da CVM, que sai com um a dois " +
+      "dias úteis de atraso. A cota já desconta as taxas de administração e de " +
+      "performance, mas não o IR nem o come-cotas. Na previdência, a taxa de " +
+      "carregamento do plano também fica fora. Lance a quantidade de cotas e o " +
+      "valor da cota que estão no extrato.<br><br>" +
       "Cotações do pregão de <b>" + esc(dmy(b.pregao)) +
       "</b>. Conteúdo educacional, não é recomendação de investimento.";
     OPS = Armazem.ler();
-    render();
+    // com fundo na carteira, a base de fundos vem antes do primeiro desenho;
+    // se ela falhar, a posicao aparece "sem cotacao" e o resto segue
+    if (OPS.some(function (o) { return classeDe(o) === "FI"; }))
+      carregarFundos().then(lotesDaCarteira).then(render);
+    else render();
   }).catch(function () {
     $("conteudo").innerHTML = '<div class="vazio">Não consegui carregar a base de cotações.</div>';
   });
