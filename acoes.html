@@ -130,10 +130,12 @@
 
   /* ---------- graficos anuais ---------- */
   .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
-  .periodo{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-  .periodo button{font-family:var(--font);font-size:.8rem;padding:6px 12px;border-radius:20px;
-    border:1px solid var(--line-forte);background:var(--card);color:var(--ink-2);cursor:pointer}
-  .periodo button.ativo{background:var(--ink);border-color:var(--ink);color:#fff}
+  .topo-bloco{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .mini-periodo{display:flex;gap:2px;background:#F3EFE6;border-radius:8px;padding:2px}
+  .mini-periodo button{font-family:var(--font);font-size:.7rem;padding:3px 8px;border:0;border-radius:6px;
+    background:none;color:var(--ink-2);cursor:pointer}
+  .mini-periodo button.ativo{background:var(--card);color:var(--ink);font-weight:600;
+    box-shadow:0 1px 2px rgba(16,35,59,.12)}
   .nota-periodo{font-size:.76rem;color:var(--ink-3);margin-left:6px}
   .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px 10px}
   .bloco h3{margin:0 0 2px;font-size:.84rem;font-weight:700;color:var(--ink)}
@@ -463,7 +465,9 @@
           ["Margem EBIT recorrente", num(r.margem_ebit, 1, "%"), "Margem EBIT"],
           ["Margem EBITDA", num(r.margem_ebitda, 1, "%"), "Margem EBITDA"],
           ["Margem líquida", num(r.margem_liquida, 1, "%")],
-          ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%")]
+          // 60 meses de verdade (12m contra 12m de 5 anos antes), com a janela
+          ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%") + (r.cagr_60m_janela
+            ? ' <span class="na">' + esc(r.cagr_60m_janela.replace("-", "–")) + "</span>" : "")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Por ação</h3><dl>' + dl([
           ["LPA 12 meses", num(r.lpa_ttm_calc, 2), "LPA"], ["VPA", num(r.vpa_atual, 2)],
@@ -501,7 +505,10 @@
       $("aba-ind").hidden = b.dataset.aba !== "ind";
       $("aba-pre").hidden = b.dataset.aba !== "pre";
       $("aba-gra").hidden = b.dataset.aba !== "gra";
-      if (b.dataset.aba === "gra") redesenharGraficos();
+      if (b.dataset.aba === "gra") {
+        redesenharGraficos();
+        if (!TRIM && !TRIM_FALHOU) carregarTrim().then(function () { montarGraficos(ITEM_GRA); });
+      }
     });
 
     desenhar($("chart"), serie, cor);
@@ -612,59 +619,34 @@
               vermelho: "#B5392B", cinza: "#8795A6" };
 
   // ---------- graficos: anual, trimestre isolado ou 12 meses ----------
-  // O trimestral (pedido do Ricardo: "q nem o Fundamentus") vem de outro
-  // arquivo, trimestral.json, que so e buscado quando alguem abre a visao
-  // trimestral: o anual continua abrindo sem esperar por ele.
-  var PERIODO_GRA = "ano", TRIM = null, TRIM_PEDIDO = null, ITEM_GRA = null;
-  var QTD_TRIM = 20;   // 5 anos: com mais, as barras ficam finas demais
+  // Cada grafico que tem dado trimestral ganha o PROPRIO seletor (Ano | Tri |
+  // 12m), para comparar no mesmo lugar (pedido do Ricardo). O trimestral vem
+  // de outro arquivo, trimestral.json, buscado so quando a aba Graficos abre.
+  var TRIM = null, TRIM_PEDIDO = null, TRIM_FALHOU = false, ITEM_GRA = null;
+  var QTD_TRIM = 20;              // 5 anos: com mais, as barras ficam finas demais
+  var MODO_GRA = {};              // chave do grafico -> "ano" | "tri" | "ttm" (vale entre empresas)
+  var NOME_MODO = { ano: "Ano", tri: "Tri", ttm: "12m" };
 
-  function montarGraficos(item) {
-    ITEM_GRA = item;
-    $("aba-gra").innerHTML =
-      '<div class="periodo" id="periodo-gra">' +
-        '<button data-p="ano"' + (PERIODO_GRA === "ano" ? ' class="ativo"' : "") + '>Anual</button>' +
-        '<button data-p="tri"' + (PERIODO_GRA === "tri" ? ' class="ativo"' : "") + '>Trimestre</button>' +
-        '<button data-p="ttm"' + (PERIODO_GRA === "ttm" ? ' class="ativo"' : "") + '>12 meses</button>' +
-        '<span class="nota-periodo" id="nota-periodo"></span>' +
-      '</div><div id="gra-corpo"></div>';
-    $("periodo-gra").addEventListener("click", function (ev) {
-      var b = ev.target.closest("button");
-      if (!b) return;
-      PERIODO_GRA = b.dataset.p;
-      montarGraficos(ITEM_GRA);
-    });
-    if (PERIODO_GRA === "ano") {
-      $("nota-periodo").textContent = "Exercícios fechados. O ano corrente está em Trimestre e 12 meses.";
-      montarAnual(item);
-      return;
-    }
-    $("nota-periodo").textContent = PERIODO_GRA === "tri"
-      ? "Cada trimestre isolado, últimos " + QTD_TRIM / 4 + " anos."
-      : "Últimos 12 meses em cada trimestre, últimos " + QTD_TRIM / 4 + " anos.";
-    if (TRIM) { montarTrimestral(item); return; }
-    $("gra-corpo").innerHTML = '<div class="vazio">Carregando o histórico trimestral…</div>';
-    TRIM_PEDIDO = TRIM_PEDIDO || fetch("trimestral.json").then(function (r) { return r.json(); });
-    TRIM_PEDIDO.then(function (d) { TRIM = d; if (ITEM_GRA === item) montarGraficos(item); })
-      .catch(function () {
-        $("gra-corpo").innerHTML = '<div class="vazio">Não foi possível carregar o histórico trimestral.</div>';
-      });
+  function carregarTrim() {
+    if (TRIM || TRIM_FALHOU) return Promise.resolve();
+    TRIM_PEDIDO = TRIM_PEDIDO || fetch("trimestral.json").then(function (r) { return r.json(); })
+      .then(function (d) { TRIM = d; })
+      .catch(function () { TRIM_FALHOU = true; });
+    return TRIM_PEDIDO;
   }
 
   // "2025T3" -> indice continuo, para saber se 4 trimestres sao seguidos
   function idxTri(r) { return Number(r.slice(0, 4)) * 4 + Number(r.slice(5)) - 1; }
 
-  function montarTrimestral(item) {
-    var t = TRIM[item.cnpj];
-    if (!t || !t.q || t.q.length < 4) {
-      $("gra-corpo").innerHTML = '<div class="vazio">Sem histórico trimestral para esta empresa.</div>';
-      GRAFICOS = [];
-      return;
-    }
-    var fin = !!(item.resumo && item.resumo.financeira), ttm = PERIODO_GRA === "ttm";
-    // 12 meses de cada trimestre: soma dos 4 ultimos, so se forem SEGUIDOS
-    function serie(campo) {
+  // o trimestral da empresa no modo pedido: rotulos e uma funcao campo -> valores
+  function visaoTrim(cnpj, modo) {
+    var t = TRIM && TRIM[cnpj];
+    if (!t || !t.q || t.q.length < 4) return null;
+    var n = t.q.length, ini = Math.max(0, n - QTD_TRIM);
+    function bruto(campo) {
       var v = t[campo] || [];
-      if (!ttm) return v.slice();
+      if (modo !== "ttm") return v.slice();
+      // 12 meses de cada trimestre: soma dos 4 ultimos, so se forem SEGUIDOS
       return v.map(function (_, i) {
         if (i < 3 || idxTri(t.q[i]) - idxTri(t.q[i - 3]) !== 3) return null;
         var soma = 0;
@@ -672,61 +654,47 @@
         return soma;
       });
     }
-    var n = t.q.length, ini = Math.max(0, n - QTD_TRIM);
-    function corta(a) { return a.slice(ini).map(function (x) { return x === null || x === undefined ? null : x / 1000; }); }
-    var rec = serie("receita"), luc = serie("lucro"), eb = serie("ebit"), rf = serie("res_fin");
-    function margem(cima) {
-      return cima.map(function (x, i) {
-        return (x !== null && x !== undefined && rec[i]) ? x / rec[i] * 100 : null;
-      }).slice(ini);
-    }
-    // rotulo: "3T25" quando cabe; senao so o ano no 1o trimestre
-    var rotulos = t.q.slice(ini).map(function (r) { return r.slice(5) + "T" + r.slice(2, 4); });
-    var defs = [];
-    defs.push({ t: fin ? "Receita de intermediação financeira" : "Receita líquida", s: "R$ milhões",
-                series: [{ nome: "Receita", cor: COR.azul, valores: corta(rec) }] });
-    defs.push({ t: "Lucro líquido", s: "R$ milhões, do controlador",
-                series: [{ nome: "Lucro", cor: COR.azul, valores: corta(luc) }] });
-    if (!fin) {
-      defs.push({ t: "EBIT", s: "R$ milhões, contábil",
-                  series: [{ nome: "EBIT", cor: COR.azul, valores: corta(eb) }] });
-      defs.push({ t: "Resultado financeiro", s: "R$ milhões — receitas menos despesas financeiras",
-                  series: [{ nome: "Resultado financeiro", cor: COR.cinza, valores: corta(rf) }] });
-      defs.push({ t: "Margens", s: "% da receita",
-                  series: [{ nome: "EBIT", tipo: "linha", cor: COR.ouro, valores: margem(eb) },
-                           { nome: "Líquida", tipo: "linha", cor: COR.verde, valores: margem(luc) }] });
-    }
-    defs = defs.filter(function (d) {
-      return d.series.some(function (x) {
-        return x.valores.some(function (v) { return v !== null && isFinite(v); });
-      });
-    });
-    $("gra-corpo").innerHTML = '<div class="graficos">' + defs.map(function (d, i) {
-      var leg = d.series.map(function (x) {
-        return '<span><i style="background:' + x.cor + '"></i>' + esc(x.nome) + "</span>";
-      }).join("");
-      return '<div class="bloco"><h3>' + esc(d.t) + "</h3>" +
-        '<div class="sub">' + esc(d.s) + "</div>" +
-        '<canvas id="g' + i + '"></canvas>' +
-        '<div class="legenda">' + leg + "</div></div>";
-    }).join("") + "</div>";
-    GRAFICOS = defs.map(function (d, i) {
-      return { id: "g" + i, anos: rotulos, series: d.series, trimestral: true };
-    });
-    redesenharGraficos();
+    return {
+      rotulos: t.q.slice(ini).map(function (r) { return r.slice(5) + "T" + r.slice(2, 4); }),
+      milhoes: function (campo) {
+        return bruto(campo).slice(ini).map(function (x) { return x === null || x === undefined ? null : x / 1000; });
+      },
+      margem: function (campo) {
+        var c = bruto(campo), r = bruto("receita");
+        return c.map(function (x, i) { return (x !== null && x !== undefined && r[i]) ? x / r[i] * 100 : null; }).slice(ini);
+      }
+    };
   }
 
-  function montarAnual(item) {
+  // o mesmo trimestral somado por ANO fechado (4 trimestres), para o grafico
+  // que so existe no trimestral -- o resultado financeiro
+  function anualDoTrim(cnpj, campo, anos) {
+    var t = TRIM && TRIM[cnpj];
+    if (!t) return anos.map(function () { return null; });
+    var por = {};
+    t.q.forEach(function (r, i) {
+      var v = (t[campo] || [])[i];
+      if (v === null || v === undefined) return;
+      var a = r.slice(0, 4);
+      por[a] = por[a] || { n: 0, s: 0 };
+      por[a].n++; por[a].s += v;
+    });
+    return anos.map(function (a) { return por[a] && por[a].n === 4 ? por[a].s / 1000 : null; });
+  }
+
+  function montarGraficos(item) {
+    ITEM_GRA = item;
     var cnpj = item.cnpj, emp = BASE.empresas[cnpj];
     var anosObj = (emp && emp.anos) || {};
     var anos = Object.keys(anosObj).sort();
     if (anos.length < 2) {
-      $("gra-corpo").innerHTML = '<div class="vazio">Sem histórico anual para esta empresa.</div>';
+      $("aba-gra").innerHTML = '<div class="vazio">Sem histórico anual para esta empresa.</div>';
       GRAFICOS = [];
       return;
     }
     var fin = !!(item.resumo && item.resumo.financeira);
     var temReceita = anos.some(function (a) { return anosObj[a].receita; });
+    var temTrim = !!(TRIM && TRIM[cnpj] && TRIM[cnpj].q && TRIM[cnpj].q.length >= 4);
     // alguns campos faltam em parte da base (holding sem lucro do
     // controlador, por exemplo); aceita o primeiro que existir
     function col(campo, f) {
@@ -749,41 +717,53 @@
     // Consciente de setor: num banco "receita" e intermediacao financeira,
     // margem EBIT nao existe e capex/ROIC nao dizem nada -- o proprio
     // Fundamentus troca os graficos por outros nesses casos.
+    // `tri`: como montar o grafico no trimestral (sem `tri`, so anual).
     var defs = [];
     if (temReceita) {
-      defs.push({ t: fin ? "Receita de intermediação financeira" : "Receita líquida",
+      defs.push({ c: "receita", t: fin ? "Receita de intermediação financeira" : "Receita líquida",
                   s: "R$ milhões", series: [{ nome: "Receita", cor: COR.azul,
-                     valores: col("receita", milhoes) }] });
+                     valores: col("receita", milhoes) }],
+                  tri: function (v) { return [{ nome: "Receita", cor: COR.azul, valores: v.milhoes("receita") }]; } });
     }
-    defs.push({ t: "Lucro líquido e proventos", s: "R$ milhões, do controlador",
+    defs.push({ c: "lucro", t: "Lucro líquido e proventos", s: "R$ milhões, do controlador",
                 series: [{ nome: "Lucro", cor: COR.azul, valores: col(["lucro_ctrl", "lucro"], milhoes) },
                          { nome: "Proventos", cor: COR.verde,
-                           valores: col("dividendos", milhoes) }] });
+                           valores: col("dividendos", milhoes) }],
+                tri: function (v) { return [{ nome: "Lucro", cor: COR.azul, valores: v.milhoes("lucro") }]; } });
     if (!fin && temReceita) {
-      defs.push({ t: "EBITDA", s: "R$ milhões — EBIT contábil mais depreciação",
+      defs.push({ c: "ebitda", t: "EBITDA", s: "R$ milhões — EBIT contábil mais depreciação",
                   series: [{ nome: "EBITDA", cor: COR.azul, valores: col("ebitda", milhoes) },
                            { nome: "Depreciação", cor: COR.cinza,
                              valores: col("depreciacao", milhoes) }] });
-      defs.push({ t: "EBIT", s: "R$ milhões, as duas convenções",
+      defs.push({ c: "ebit", t: "EBIT", s: "R$ milhões, as duas convenções",
                   series: [{ nome: "Contábil", cor: COR.azul, valores: col("ebit_contabil", milhoes) },
-                           { nome: "Recorrente", cor: COR.ouro, valores: col("ebit", milhoes) }] });
-      defs.push({ t: "Margens", s: "% da receita",
+                           { nome: "Recorrente", cor: COR.ouro, valores: col("ebit", milhoes) }],
+                  tri: function (v) { return [{ nome: "Contábil", cor: COR.azul, valores: v.milhoes("ebit") }]; } });
+      if (temTrim) {
+        defs.push({ c: "res_fin", t: "Resultado financeiro", s: "R$ milhões — receitas menos despesas financeiras",
+                    series: [{ nome: "Resultado financeiro", cor: COR.cinza,
+                               valores: anualDoTrim(cnpj, "res_fin", anos) }],
+                    tri: function (v) { return [{ nome: "Resultado financeiro", cor: COR.cinza, valores: v.milhoes("res_fin") }]; } });
+      }
+      defs.push({ c: "margens", t: "Margens", s: "% da receita",
                   series: [{ nome: "Bruta", tipo: "linha", cor: COR.cinza,
                              valores: razao("resultado_bruto", "receita") },
                            { nome: "EBIT", tipo: "linha", cor: COR.ouro,
                              valores: razao("ebit_contabil", "receita") },
                            { nome: "Líquida", tipo: "linha", cor: COR.verde,
-                             valores: razao("lucro_ctrl", "receita") }] });
+                             valores: razao("lucro_ctrl", "receita") }],
+                  tri: function (v) { return [{ nome: "EBIT", tipo: "linha", cor: COR.ouro, valores: v.margem("ebit") },
+                                              { nome: "Líquida", tipo: "linha", cor: COR.verde, valores: v.margem("lucro") }]; } });
     }
-    defs.push({ t: "Patrimônio líquido e ativo", s: "R$ milhões",
+    defs.push({ c: "patrimonio", t: "Patrimônio líquido e ativo", s: "R$ milhões",
                 series: [{ nome: "Ativo", cor: COR.cinza, valores: col("ativo_total", milhoes) },
                          { nome: "Patrimônio", cor: COR.azul, valores: col("pl", milhoes) }] });
     if (!fin) {
-      defs.push({ t: "Dívida", s: "R$ milhões",
+      defs.push({ c: "divida", t: "Dívida", s: "R$ milhões",
                   series: [{ nome: "Bruta", cor: COR.cinza, valores: col("divida_bruta", milhoes) },
                            { nome: "Líquida", tipo: "linha", cor: COR.vermelho,
                              valores: col("divida_liquida", milhoes) }] });
-      defs.push({ t: "Caixa gerado e investido", s: "R$ milhões",
+      defs.push({ c: "caixa", t: "Caixa gerado e investido", s: "R$ milhões",
                   series: [{ nome: "Operacional", cor: COR.verde, valores: col("fco", milhoes) },
                            { nome: "CAPEX", cor: COR.vermelho, valores: col("capex", milhoes) }] });
     }
@@ -792,31 +772,66 @@
       retorno.push({ nome: "ROIC", cor: COR.ouro,
                      valores: razao("ebit_contabil", "capital_empregado") });
     }
-    defs.push({ t: "Retorno", s: "% ao ano", series: retorno });
+    defs.push({ c: "retorno", t: "Retorno", s: "% ao ano", series: retorno });
+
+    // a visao de cada grafico no modo escolhido
+    function visao(d) {
+      var modo = (temTrim && d.tri) ? (MODO_GRA[d.c] || "ano") : "ano";
+      if (modo !== "ano") {
+        var v = visaoTrim(cnpj, modo);
+        if (v) return { modo: modo, rotulos: v.rotulos, series: d.tri(v), trimestral: true };
+      }
+      return { modo: "ano", rotulos: anos, series: d.series, trimestral: false };
+    }
+    function temDado(series) {
+      return series.some(function (x) {
+        return x.valores.some(function (v) { return v !== null && isFinite(v); });
+      });
+    }
 
     // grafico sem dado nenhum e pior que grafico ausente: o Itau so publica
     // lucro, proventos e patrimonio na nossa base, e o resto sairia em branco
+    // (vale nos dois modos: o resultado financeiro so existe no trimestral)
     defs = defs.filter(function (d) {
-      return d.series.some(function (x) {
-        return x.valores.some(function (v) { return v !== null && isFinite(v); });
-      });
+      return temDado(d.series) || (temTrim && d.tri && temDado(d.tri(visaoTrim(cnpj, "tri"))));
     });
     if (!defs.length) {
-      $("gra-corpo").innerHTML = '<div class="vazio">Sem histórico anual suficiente ' +
+      $("aba-gra").innerHTML = '<div class="vazio">Sem histórico anual suficiente ' +
         'para esta empresa.</div>';
       GRAFICOS = [];
       return;
     }
-    $("gra-corpo").innerHTML = '<div class="graficos">' + defs.map(function (d, i) {
-      var leg = d.series.map(function (x) {
+    var vistas = defs.map(visao);
+    $("aba-gra").innerHTML =
+      (TRIM || TRIM_FALHOU ? "" : '<div class="nota-periodo">Carregando o histórico trimestral…</div>') +
+      '<div class="graficos">' + defs.map(function (d, i) {
+      var vi = vistas[i];
+      var leg = vi.series.map(function (x) {
         return '<span><i style="background:' + x.cor + '"></i>' + esc(x.nome) + "</span>";
       }).join("");
-      return '<div class="bloco"><h3>' + esc(d.t) + "</h3>" +
-        '<div class="sub">' + esc(d.s) + "</div>" +
+      var seletor = (temTrim && d.tri)
+        ? '<div class="mini-periodo" data-g="' + esc(d.c) + '">' + ["ano", "tri", "ttm"].map(function (m) {
+            return '<button data-m="' + m + '"' + (vi.modo === m ? ' class="ativo"' : "") + ">" +
+                   NOME_MODO[m] + "</button>";
+          }).join("") + "</div>"
+        : "";
+      var sub = d.s + (vi.modo === "tri" ? " · trimestre isolado" : vi.modo === "ttm" ? " · 12 meses em cada trimestre" : "");
+      return '<div class="bloco"><div class="topo-bloco"><h3>' + esc(d.t) + "</h3>" + seletor + "</div>" +
+        '<div class="sub">' + esc(sub) + "</div>" +
         '<canvas id="g' + i + '"></canvas>' +
         '<div class="legenda">' + leg + "</div></div>";
     }).join("") + "</div>";
-    GRAFICOS = defs.map(function (d, i) { return { id: "g" + i, anos: anos, series: d.series }; });
+    Array.prototype.forEach.call(document.querySelectorAll("#aba-gra .mini-periodo"), function (el) {
+      el.addEventListener("click", function (ev) {
+        var b = ev.target.closest("button");
+        if (!b) return;
+        MODO_GRA[el.dataset.g] = b.dataset.m;
+        montarGraficos(ITEM_GRA);
+      });
+    });
+    GRAFICOS = vistas.map(function (vi, i) {
+      return { id: "g" + i, anos: vi.rotulos, series: vi.series, trimestral: vi.trimestral };
+    });
     redesenharGraficos();
   }
 
@@ -932,7 +947,7 @@
   var NOTA = {
     "Bazin": "Dividendo médio de 5 anos dividido por 6% ao ano.",
     "Graham": "Raiz de 22,5 × LPA × VPA.",
-    "Lynch": "LPA vezes o crescimento do lucro em 5 anos (até 25%).",
+    "Lynch": "LPA vezes o crescimento do lucro nos últimos 60 meses (até 25%).",
     "DCF": "Fluxo de caixa livre, 5 anos a 12% e perpetuidade de 4%.",
     "P/L histórico": "LPA vezes o P/L mediano da própria empresa nos últimos 10 anos.",
     "P/VP histórico": "VPA vezes o P/VP mediano da própria empresa nos últimos 10 anos.",
