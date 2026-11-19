@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Comparador de Rentabilidade — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  a{color:var(--gold-ink)}
+  header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .marca{font-weight:800;color:var(--ink);font-size:.95rem}
+  .marca span{color:var(--ink-3);font-weight:600}
+  h1{font-size:1.35rem;margin:0 0 4px;font-weight:800}
+  .sub{color:var(--ink-2);font-size:.85rem;margin:0 0 18px}
+
+  .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    padding:15px 17px;margin-bottom:16px}
+  .bloco h3{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--gold-ink);font-weight:700}
+
+  /* ---------- escolha ---------- */
+  .busca{position:relative;max-width:560px}
+  .busca input{width:100%;padding:10px 12px;border-radius:9px;font-family:var(--font);
+    font-size:.92rem;border:1px solid var(--line-forte);background:var(--card);color:var(--ink)}
+  .busca input:focus{outline:2px solid var(--gold);outline-offset:1px}
+  .sugestoes{position:absolute;top:100%;left:0;right:0;z-index:5;margin-top:3px;
+    background:var(--card);border:1px solid var(--line-forte);border-radius:9px;
+    box-shadow:0 6px 18px rgba(16,35,59,.12);max-height:380px;overflow-y:auto}
+  .sugestoes .grupo{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-3);padding:8px 11px 3px;background:var(--ground)}
+  .sugestoes button{display:block;width:100%;text-align:left;background:none;border:0;
+    border-bottom:1px solid var(--line);padding:8px 11px;font-family:var(--font);
+    font-size:.8rem;color:var(--ink);cursor:pointer}
+  .sugestoes button:hover,.sugestoes button.ativo{background:var(--ground)}
+  .sugestoes .mini{display:block;margin-top:2px}
+  .etiqueta{display:inline-block;font-size:.62rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--gold-ink);border:1px solid var(--line-forte);
+    border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px}
+  .fichas{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .ficha{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-forte);
+    border-radius:999px;padding:5px 8px 5px 12px;font-size:.8rem;font-weight:600;max-width:100%}
+  .ficha .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px}
+  .ficha button{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:1rem;
+    line-height:1;padding:0 3px}
+  .ficha button:hover{color:var(--vermelho)}
+  .vazio{padding:30px;text-align:center;color:var(--ink-3)}
+  .mini{font-size:.7rem;color:var(--ink-3);font-weight:600}
+  .erro{color:var(--vermelho);font-size:.78rem;font-weight:600;margin-top:8px}
+
+  /* ---------- grafico e tabelas ---------- */
+  /* Cores: os ativos escolhidos no marinho da marca e nos slots 6-8 da paleta
+     categorica de referencia (verde, violeta, vermelho); os indices nos cinco
+     primeiros, como na carteira. A cor fica com o ativo enquanto ele estiver
+     na lista -- tirar um nao repinta os outros. */
+  .cmp{--s-a0:#10233B;--s-a1:#008300;--s-a2:#6250d6;--s-a3:#e34948;
+    --s-cdi:#2a78d6;--s-ipca:#eb6834;--s-ibov:#1baf7a;--s-sp500_brl:#eda100;--s-sp500:#e87ba4}
+  .amostra{display:inline-block;width:14px;height:3px;border-radius:2px;flex:none}
+  .controles{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;
+    margin-bottom:12px;font-size:.8rem}
+  .controles label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    color:var(--ink-2);font-weight:600}
+  .controles input[type=number]{width:58px;padding:4px 6px;border-radius:6px;
+    border:1px solid var(--line-forte);font-family:var(--font);font-size:.8rem;text-align:right}
+  .controles select{padding:5px 8px;border-radius:6px;border:1px solid var(--line-forte);
+    font-family:var(--font);font-size:.8rem;background:var(--card);color:var(--ink)}
+  .grafico{position:relative}
+  svg.g{display:block;width:100%;overflow:visible}
+  svg.g text{font-family:var(--font);font-size:11px;fill:var(--ink-3)}
+  .dica{position:absolute;pointer-events:none;background:var(--card);
+    border:1px solid var(--line-forte);border-radius:8px;padding:8px 10px;font-size:.74rem;
+    box-shadow:0 4px 14px rgba(16,35,59,.12);white-space:nowrap;display:none;z-index:2}
+  .dica b{display:block;margin-bottom:4px;color:var(--ink)}
+  .dica div{display:flex;gap:8px;align-items:center;justify-content:space-between}
+  .dica span.n{color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
+  .dica span.v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+  .quadro{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    overflow-x:auto;margin-top:14px}
+  table{width:100%;border-collapse:collapse;font-size:.8rem;min-width:560px}
+  th{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);
+    border-bottom:1px solid var(--line-forte);padding:9px 10px;text-align:right;white-space:nowrap}
+  th:first-child{text-align:left}
+  th .amostra{margin-right:5px;vertical-align:2px}
+  td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  td:first-child{text-align:left;font-weight:700;color:var(--ink)}
+  tbody tr:last-child td{border-bottom:0}
+  tfoot td{font-weight:800;border-top:1px solid var(--line-forte);border-bottom:0}
+  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
+  .avisos{margin-top:12px;font-size:.74rem;line-height:1.65;color:var(--ink-2)}
+  .avisos b{color:var(--ink)}
+  .rodape{margin-top:20px;padding:16px 18px;border-radius:11px;background:var(--card);
+    border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topo">
+    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
+      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+      </g>
+    </svg>
+    <span class="marca">Muita Ação <span>· comparador</span></span>
+  </header>
+
+  <h1>Comparador de rentabilidade</h1>
+  <p class="sub">Ações, FIIs, ETFs, títulos do Tesouro e fundos lado a lado, e contra CDI, IPCA+X, Ibovespa e S&amp;P 500.</p>
+
+  <div class="bloco">
+    <h3>Ativos (até 4)</h3>
+    <div class="busca">
+      <input id="busca" autocomplete="off" spellcheck="false"
+             placeholder="Ticker, título do Tesouro, nome ou CNPJ do fundo">
+      <div class="sugestoes" id="sugestoes" hidden></div>
+    </div>
+    <div class="erro" id="erro" hidden></div>
+    <div class="fichas" id="fichas"></div>
+  </div>
+
+  <div class="bloco cmp" id="resultado"><div class="vazio">Carregando a base…</div></div>
+
+  <div class="rodape" id="rodape"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var HOJE = new Date().toISOString().slice(0, 10), MES_ATUAL = HOJE.slice(0, 7);
+  var MAX_ATIVOS = 4;
+
+  // ---------- estado ----------
+  // ativo = { tipo: "A" (acao, FII, ETF: o que tem ticker) | "TD" | "FI", id }
+  // O estado vai no endereco (#...), para a comparacao poder ser guardada e
+  // mandada adiante. Nada vai para armazenamento local.
+  var EST = { ativos: [], slots: {}, periodo: "tudo", reinvestir: true, x: 6,
+              on: { cdi: true, ipca: true, ibov: false, sp500_brl: false, sp500: false } };
+  var INDICES = [
+    { k: "cdi", nome: "CDI" }, { k: "ipca", nome: "IPCA+" }, { k: "ibov", nome: "Ibovespa" },
+    { k: "sp500_brl", nome: "S&P 500 (R$)" }, { k: "sp500", nome: "S&P 500 (US$)" }];
+
+  var B = { dados: {}, tesouro: null, bench: null, hist: null, prov: null,
+            fundos: null, fundosLista: null, fundosAtual: null, lotes: {}, pedidoFundos: null };
+
+  // ---------- formatacao ----------
+  function brl(v, casas) {
+    if (v === null || v === undefined || !isFinite(v)) return null;
+    var c = casas === undefined ? 2 : casas;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
+  }
+  function sinal(v, casas, suf) {
+    if (v === null || v === undefined || !isFinite(v)) return '<span class="na">—</span>';
+    return '<span class="' + (v >= 0 ? "pos" : "neg") + '">' +
+      (v >= 0 ? "+" : "") + brl(v, casas) + (suf || "") + "</span>";
+  }
+  function num(v, casas, suf) {
+    var s = brl(v, casas);
+    return s === null ? '<span class="na">—</span>' : s + (suf || "");
+  }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+  function semAcento(t) { return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+  function fmtCnpj(k) {
+    return String(k).split("-")[0].replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  }
+  // nome curto para legenda e tabela: sem o juridiques do fim (igual a carteira)
+  function nomeCurto(n) {
+    return String(n || "").replace(/\s*[-–]?\s*(RESPONSABILIDADE|RESP\.?)\s+LIMITADA.*$/i, "")
+      .replace(/\s+(FUNDO DE INVESTIMENTO|FIF|FI|FIC)\b.*$/i, function (m) {
+        return m.length > 40 ? "" : m; }).slice(0, 60);
+  }
+  var MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  function mesExtenso(k) { return MESES_PT[+k.slice(5, 7) - 1] + "/" + k.slice(0, 4); }
+  function mesMais(k, n) {
+    var y = +k.slice(0, 4), m = +k.slice(5, 7) + n;
+    while (m > 12) { m -= 12; y++; }
+    while (m < 1) { m += 12; y--; }
+    return y + "-" + (m < 10 ? "0" : "") + m;
+  }
+  function mesesEntre(a, b) {
+    var out = [];
+    for (var k = a; k <= b; k = mesMais(k, 1)) out.push(k);
+    return out;
+  }
+  function json(url) {
+    return fetch(url).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+                     .catch(function () { return null; });
+  }
+
+  // ---------- eventos acionarios (o mesmo criterio da carteira) ----------
+  // Cotacao e provento do historico estao "da epoca"; tudo aqui e convertido
+  // para as acoes de HOJE pelo produto dos eventos com data >= a do dado.
+  // Dedup por (data, multiplicador); eventos distintos na mesma data se
+  // multiplicam; evento de hoje em diante ainda nao aconteceu.
+  function eventosDe(e, ticker) {
+    var vistos = {}, porData = {};
+    var lista = (e.eventos_por_ticker || {})[ticker] || e.eventos_acionarios || [];
+    lista.forEach(function (x) {
+      if (!x || !x[0] || !(x[1] > 0) || x[0] >= HOJE) return;
+      var k = x[0] + "|" + x[1];
+      if (vistos[k]) return;
+      vistos[k] = true;
+      porData[x[0]] = (porData[x[0]] || 1) * x[1];
+    });
+    return Object.keys(porData).sort().map(function (d) { return [d, porData[d]]; });
+  }
+  function fatorAte(ticker, d) {
+    var ev = B.dados[ticker] && B.dados[ticker].eventos, f = 1;
+    if (!ev) return 1;
+    for (var i = 0; i < ev.length; i++) if (ev[i][0] >= d) f *= ev[i][1];
+    return f;
+  }
+
+  // ---------- fundos (sob demanda) ----------
+  function carregarFundos() {
+    if (B.pedidoFundos) return B.pedidoFundos;
+    B.pedidoFundos = Promise.all([json("fundos/indice.json"), json("fundos/atual.json")])
+      .then(function (r) {
+        if (!r[0] || !r[1]) { B.erroFundos = true; return false; }
+        var c = r[0].campos, idx = {};
+        B.fundosLista = r[0].fundos.map(function (x) {
+          var o = {};
+          c.forEach(function (nome, i) { o[nome] = x[i]; });
+          o.busca = semAcento(o.nome).toLowerCase();
+          idx[o.chave] = o;
+          return o;
+        });
+        B.fundos = idx;
+        var at = {}, cs = r[1].cotas, dt = r[1].data;
+        for (var k in cs) at[k] = typeof cs[k] === "number" ? [dt, cs[k]] : cs[k];
+        B.fundosAtual = at;
+        return true;
+      });
+    return B.pedidoFundos;
+  }
+  function carregarLote(k) {
+    var l = k.slice(0, 3);
+    if (B.lotes[l]) return Promise.resolve(B.lotes[l]);
+    return json("fundos/m/" + l + ".json").then(function (d) { B.lotes[l] = d || {}; return B.lotes[l]; });
+  }
+
+  // ---------- nome e descricao de um ativo ----------
+  function nomeAtivo(a) {
+    if (a.tipo === "FI") { var f = B.fundos && B.fundos[a.id]; return f ? nomeCurto(f.nome) : fmtCnpj(a.id); }
+    return a.id;
+  }
+  function chaveAtivo(a) { return a.tipo + ":" + a.id; }
+
+  // ---------- preco de fim de mes de cada ativo, na base de hoje ----------
+  // {mes: preco}; o mes corrente leva a ultima cotacao conhecida
+  function precosMensais(a) {
+    var p = {};
+    if (a.tipo === "A") {
+      var h = B.hist && B.hist[a.id], d = B.dados[a.id];
+      if (!h) return null;
+      h.forEach(function (x) { p[x[0].slice(0, 7)] = x[1] / fatorAte(a.id, x[0]); });
+      if (d && d.preco) p[MES_ATUAL] = d.preco;
+    } else if (a.tipo === "TD") {
+      var t = B.tesouro && B.tesouro[a.id];
+      if (!t) return null;
+      t.mensal.forEach(function (x) { p[x[0]] = x[1]; });
+      if (t.vivo) p[MES_ATUAL] = t.pu_venda;
+    } else {
+      var lote = B.lotes[a.id.slice(0, 3)], s = lote && lote[a.id];
+      if (!s) return null;
+      var k = s[0];
+      s[1].forEach(function (v) { if (v) p[k] = v; k = mesMais(k, 1); });
+      var ca = B.fundosAtual && B.fundosAtual[a.id];
+      if (ca) p[ca[0].slice(0, 7)] = ca[1];
+    }
+    return p;
+  }
+  // provento por mes (data-ex; FII pela data-com), na base de hoje
+  function proventosMensais(a) {
+    var out = {};
+    if (a.tipo !== "A") return out;
+    ((B.prov && B.prov[a.id]) || []).forEach(function (x) {
+      // SUBSCRICAO e preco do direito de subscrever, nao dinheiro recebido
+      if (/SUBSCRI/i.test(x[2] || "")) return;
+      var k = x[0].slice(0, 7);
+      out[k] = (out[k] || 0) + x[1] / fatorAte(a.id, x[0]);
+    });
+    return out;
+  }
+  // retorno de cada mes: (preco + provento do mes) / preco do mes anterior.
+  // Sem reinvestimento, so preco. Mes sem preco = null (a cadeia quebra ali)
+  function retornosMensais(a) {
+    var p = precosMensais(a);
+    if (!p) return null;
+    var ks = Object.keys(p).sort();
+    if (!ks.length) return null;
+    var pv = EST.reinvestir ? proventosMensais(a) : {}, r = {};
+    mesesEntre(ks[0], MES_ATUAL).forEach(function (m, i, lista) {
+      if (i === 0) return;
+      var p0 = p[lista[i - 1]], p1 = p[m];
+      r[m] = p0 > 0 && p1 > 0 ? (p1 + (pv[m] || 0)) / p0 - 1 : null;
+    });
+    return { r: r, ini: ks[0] };
+  }
+
+  function retornoIndice(k, mes) {
+    var s = B.bench && B.bench[k];
+    if (!s) return null;
+    if (!s._mapa) { s._mapa = {}; s.mensal.forEach(function (x) { s._mapa[x[0]] = x[1] / 100; }); }
+    var r = s._mapa[mes];
+    if (r === undefined) return null;
+    return k === "ipca" ? (1 + r) * Math.pow(1 + EST.x / 100, 1 / 12) - 1 : r;
+  }
+
+  // ---------- busca ----------
+  var SUG = [], SUG_I = -1;
+  function buscar(txt) {
+    var t = semAcento(txt).toLowerCase().trim(), out = [];
+    if (t.length < 2) return out;
+    var palavras = t.split(/\s+/);
+    var dig = txt.replace(/\D/g, ""), soDig = dig.length >= 4 && /^[\d.\/\-\s]+$/.test(txt);
+    // tickers: comeco do codigo, depois nome
+    if (!soDig) {
+      var T = t.toUpperCase().replace(/\s/g, ""), acoes = [];
+      Object.keys(B.dados).forEach(function (k) {
+        var d = B.dados[k];
+        if (k.indexOf(T) === 0) acoes.push([0, k, d]);
+        else if (palavras.every(function (w) { return d.busca.indexOf(w) >= 0; })) acoes.push([1, k, d]);
+      });
+      acoes.sort(function (a, b) { return a[0] - b[0] || (b[2].volume || 0) - (a[2].volume || 0); });
+      acoes.slice(0, 6).forEach(function (x) {
+        out.push({ g: "Ações, FIIs e ETFs", a: { tipo: "A", id: x[1] }, t: x[1],
+                   d: x[2].nome + (x[2].rotulo ? " · " + x[2].rotulo : "") });
+      });
+      Object.keys(B.tesouro || {}).filter(function (n) {
+        var s = semAcento(n).toLowerCase();
+        return palavras.every(function (w) { return s.indexOf(w) >= 0; });
+      }).sort(function (a, b) { return (B.tesouro[b].vivo - B.tesouro[a].vivo) ||
+                                       a.localeCompare(b); })
+        .slice(0, 6).forEach(function (n) {
+          var x = B.tesouro[n];
+          out.push({ g: "Tesouro Direto", a: { tipo: "TD", id: n }, t: n,
+                     d: (x.vivo ? "vence em " : "venceu em ") + x.vencimento.split("-").reverse().join("/") +
+                        (x.cupom ? " · paga cupom semestral, que não entra na conta" : "") });
+        });
+    }
+    if (B.fundosLista) {
+      var n = 0;
+      for (var i = 0; i < B.fundosLista.length && n < 8; i++) {
+        var f = B.fundosLista[i];
+        if (soDig ? f.chave.indexOf(dig) === 0 : palavras.every(function (w) { return f.busca.indexOf(w) >= 0; })) {
+          n++;
+          out.push({ g: "Fundos", a: { tipo: "FI", id: f.chave }, t: f.nome, tag: f.tipo,
+                     d: fmtCnpj(f.chave) + (f.classe ? " · " + f.classe : "") +
+                        (f.pl ? " · PL R$ " + brl(f.pl / 1e6, 0) + " mi" : "") });
+        }
+      }
+    }
+    return out;
+  }
+  var ETIQ = { master: "master", feeder: "feeder", prev: "previdência" };
+  function mostrarSugestoes() {
+    var el = $("sugestoes"), txt = $("busca").value;
+    if (txt.trim().length < 2) { el.hidden = true; return; }
+    if (!B.fundosLista && !B.erroFundos) carregarFundos().then(function () {
+      if ($("busca").value === txt) mostrarSugestoes(); });
+    SUG = buscar(txt); SUG_I = -1;
+    var g = null;
+    el.innerHTML = (SUG.length ? SUG.map(function (s, i) {
+      var cab = s.g !== g ? '<div class="grupo">' + esc(s.g) + "</div>" : "";
+      g = s.g;
+      return cab + '<button type="button" data-i="' + i + '">' + esc(s.t) +
+        (ETIQ[s.tag] ? '<span class="etiqueta">' + ETIQ[s.tag] + "</span>" : "") +
+        '<span class="mini">' + esc(s.d) + "</span></button>";
+    }).join("") : '<div class="vazio" style="padding:12px">Nada encontrado.</div>') +
+      (!B.fundosLista && !B.erroFundos ? '<div class="grupo">Fundos: carregando a base…</div>' : "");
+    el.hidden = false;
+  }
+  function escolher(s) {
+    $("busca").value = "";
+    $("sugestoes").hidden = true;
+    adicionar(s.a);
+  }
+  $("busca").addEventListener("input", mostrarSugestoes);
+  $("busca").addEventListener("keydown", function (ev) {
+    if ($("sugestoes").hidden || !SUG.length) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      SUG_I = (SUG_I + (ev.key === "ArrowDown" ? 1 : SUG.length - 1)) % SUG.length;
+      [].forEach.call($("sugestoes").querySelectorAll("button"), function (b, i) {
+        b.classList.toggle("ativo", i === SUG_I);
+        if (i === SUG_I) b.scrollIntoView({ block: "nearest" });
+      });
+    } else if (ev.key === "Enter") {
+      ev.preventDefault();
+      escolher(SUG[SUG_I >= 0 ? SUG_I : 0]);
+    } else if (ev.key === "Escape") $("sugestoes").hidden = true;
+  });
+  $("sugestoes").addEventListener("mousedown", function (ev) {
+    var b = ev.target.closest("button");
+    if (!b) return;
+    ev.preventDefault();
+    escolher(SUG[+b.dataset.i]);
+  });
+  $("busca").addEventListener("blur", function () {
+    setTimeout(function () { $("sugestoes").hidden = true; }, 150);
+  });
+
+  // ---------- lista de ativos ----------
+  function slotLivre() {
+    for (var i = 0; i < MAX_ATIVOS; i++) {
+      var ocupado = EST.ativos.some(function (a) { return EST.slots[chaveAtivo(a)] === i; });
+      if (!ocupado) return i;
+    }
+    return 0;
+  }
+  function adicionar(a) {
+    var erro = null;
+    if (EST.ativos.some(function (x) { return chaveAtivo(x) === chaveAtivo(a); })) erro = "Esse já está na lista.";
+    else if (EST.ativos.length >= MAX_ATIVOS) erro = "No máximo " + MAX_ATIVOS + " ativos — tire um para pôr outro.";
+    $("erro").textContent = erro || ""; $("erro").hidden = !erro;
+    if (erro) return;
+    EST.slots[chaveAtivo(a)] = slotLivre();
+    EST.ativos.push(a);
+    atualizar();
+  }
+  function remover(i) {
+    var a = EST.ativos.splice(i, 1)[0];
+    delete EST.slots[chaveAtivo(a)];
+    atualizar();
+  }
+  $("fichas").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-i]");
+    if (b) remover(+b.dataset.i);
+  });
+  function desenharFichas() {
+    $("fichas").innerHTML = EST.ativos.map(function (a, i) {
+      return '<span class="ficha cmp"><span class="amostra" style="background:var(--s-a' +
+        EST.slots[chaveAtivo(a)] + ')"></span><span class="nm" title="' + esc(nomeAtivo(a)) + '">' +
+        esc(nomeAtivo(a)) + '</span><button data-i="' + i + '" aria-label="Tirar ' +
+        esc(nomeAtivo(a)) + '">&times;</button></span>';
+    }).join("");
+  }
+
+  // ---------- endereco ----------
+  function gravarEndereco() {
+    var p = [];
+    if (EST.ativos.length) p.push("a=" + EST.ativos.map(function (a) {
+      return encodeURIComponent(chaveAtivo(a)); }).join(","));
+    p.push("i=" + INDICES.filter(function (s) { return EST.on[s.k]; }).map(function (s) { return s.k; }).join(","));
+    p.push("x=" + EST.x, "p=" + EST.periodo, "r=" + (EST.reinvestir ? 1 : 0));
+    try { history.replaceState(null, "", "#" + p.join("&")); } catch (e) {}
+  }
+  function lerEndereco() {
+    var h = (location.hash || "").slice(1);
+    if (!h) return false;
+    h.split("&").forEach(function (par) {
+      var kv = par.split("="), v = kv.slice(1).join("=");
+      if (kv[0] === "a" && v) v.split(",").forEach(function (c) {
+        c = decodeURIComponent(c);
+        var i = c.indexOf(":");
+        if (i > 0 && EST.ativos.length < MAX_ATIVOS) {
+          var a = { tipo: c.slice(0, i), id: c.slice(i + 1) };
+          if (a.tipo === "A" || a.tipo === "TD" || a.tipo === "FI") {
+            EST.slots[chaveAtivo(a)] = EST.ativos.length;
+            EST.ativos.push(a);
+          }
+        }
+      });
+      if (kv[0] === "i") INDICES.forEach(function (s) { EST.on[s.k] = v.split(",").indexOf(s.k) >= 0; });
+      if (kv[0] === "x" && isFinite(parseFloat(v))) EST.x = Math.max(0, Math.min(8, parseFloat(v)));
+      if (kv[0] === "p" && /^(tudo|12|36|60|120)$/.test(v)) EST.periodo = v;
+      if (kv[0] === "r") EST.reinvestir = v !== "0";
+    });
+    return true;
+  }
+
+  // ---------- calculo ----------
+  function atualizar() {
+    desenharFichas();
+    gravarEndereco();
+    var precisaFundos = EST.ativos.some(function (a) { return a.tipo === "FI"; });
+    var espera = precisaFundos ? carregarFundos().then(function () {
+      return Promise.all(EST.ativos.filter(function (a) { return a.tipo === "FI"; })
+        .map(function (a) { return carregarLote(a.id); }));
+    }) : Promise.resolve();
+    espera.then(function () { desenharFichas(); desenhar(); });
+  }
+
+  function desenhar() {
+    var el = $("resultado");
+    if (!B.bench) { el.innerHTML = '<div class="vazio">Não consegui carregar os índices.</div>'; return; }
+    var series = [], semDado = [];
+    EST.ativos.forEach(function (a) {
+      var r = retornosMensais(a);
+      if (r) series.push({ k: "a" + EST.slots[chaveAtivo(a)], nome: nomeAtivo(a), a: a, r: r.r, ini: r.ini });
+      else semDado.push(nomeAtivo(a));
+    });
+    var indices = INDICES.filter(function (s) { return EST.on[s.k]; });
+    // janela: do ultimo inicio entre os ativos ate hoje, so o trecho continuo
+    // final de TODOS (mes sem dado num deles quebra a comparacao ali). Sem
+    // ativo, os indices desde 2000.
+    var ini = series.length ? series.map(function (s) { return s.ini; }).sort().pop() : "2005-12";
+    var meses = mesesEntre(ini, MES_ATUAL);
+    var corte = 0;
+    meses.forEach(function (m, i) {
+      if (i > 0 && series.some(function (s) { return s.r[m] === null || s.r[m] === undefined; })) corte = i;
+    });
+    meses = meses.slice(corte);
+    var n = { "12": 12, "36": 36, "60": 60, "120": 120 }[EST.periodo];
+    if (n && meses.length > n + 1) meses = meses.slice(meses.length - n - 1);
+
+    var todos = series.concat(indices.map(function (s) {
+      return { k: s.k, nome: s.k === "ipca" ? "IPCA+" + brl(EST.x, EST.x % 1 ? 1 : 0) + "%" : s.nome, idx: true };
+    }));
+    function ret(s, m) { return s.idx ? retornoIndice(s.k, m) : s.r[m]; }
+
+    var controles = '<div class="controles">' +
+      '<select id="c-periodo" aria-label="Período">' +
+      [["tudo", "Todo o período em comum"], ["12", "12 meses"], ["36", "36 meses"], ["60", "60 meses"],
+       ["120", "10 anos"]].map(function (o) {
+        return '<option value="' + o[0] + '"' + (EST.periodo === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+      }).join("") + "</select>" +
+      '<label><input type="checkbox" id="c-reinv"' + (EST.reinvestir ? " checked" : "") +
+      ">Reinvestir proventos</label>" +
+      INDICES.map(function (s) {
+        return '<label><input type="checkbox" data-serie="' + s.k + '"' + (EST.on[s.k] ? " checked" : "") +
+          '><span class="amostra" style="background:var(--s-' + s.k + ')"></span>' +
+          (s.k === "ipca" ? 'IPCA+<input type="number" id="c-x" min="0" max="8" step="0.5" value="' + EST.x +
+            '" aria-label="Juro real acima do IPCA, % ao ano">%' : esc(s.nome)) + "</label>";
+      }).join("") + "</div>";
+
+    if (!todos.length) {
+      el.innerHTML = controles + '<div class="vazio">Busque um ativo acima ou ligue um índice.</div>';
+      ligarControles();
+      return;
+    }
+    if (meses.length < 3) {
+      el.innerHTML = controles + '<div class="vazio">Pouco histórico em comum entre os ativos escolhidos ' +
+        "para comparar.</div>" + avisos(series, semDado, meses);
+      ligarControles();
+      return;
+    }
+
+    // acumulado a partir do fechamento do mes-base (o primeiro da janela)
+    var ac = {};
+    todos.forEach(function (s) {
+      var f = 1;
+      ac[s.k] = meses.map(function (m, i) {
+        if (i === 0) return 0;
+        var r = ret(s, m);
+        if (r === null || r === undefined || f === null) { f = null; return null; }
+        f *= 1 + r;
+        return (f - 1) * 100;
+      });
+    });
+
+    el.innerHTML = controles + '<div class="grafico"><svg class="g" id="c-svg" role="img" ' +
+      'aria-label="Rentabilidade acumulada dos ativos e índices escolhidos"></svg>' +
+      '<div class="dica" id="c-dica"></div></div>' + tabelaAnual(todos, meses, ret) +
+      tabelaRisco(todos, meses, ret) + avisos(series, semDado, meses);
+    desenharGrafico(meses, ac, todos);
+    ligarControles();
+  }
+  function ligarControles() {
+    $("c-periodo").addEventListener("change", function (ev) { EST.periodo = ev.target.value; gravarEndereco(); desenhar(); });
+    $("c-reinv").addEventListener("change", function (ev) { EST.reinvestir = ev.target.checked; gravarEndereco(); desenhar(); });
+    [].forEach.call($("resultado").querySelectorAll("input[data-serie]"), function (cb) {
+      cb.addEventListener("change", function () { EST.on[cb.dataset.serie] = cb.checked; gravarEndereco(); desenhar(); });
+    });
+    $("c-x").addEventListener("change", function (ev) {
+      var v = parseFloat(ev.target.value);
+      EST.x = isFinite(v) ? Math.max(0, Math.min(8, v)) : 6;
+      gravarEndereco(); desenhar();
+    });
+  }
+
+  // ---------- grafico (SVG a mao, igual ao da carteira) ----------
+  function escalaBonita(bruto) {
+    var e = Math.pow(10, Math.floor(Math.log10(bruto))), f = bruto / e;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
+  }
+  function desenharGrafico(meses, ac, todos) {
+    var svg = $("c-svg"), W = Math.max(300, svg.parentNode.clientWidth || 600);
+    var H = W < 500 ? 240 : 320, m = { t: 12, r: 12, b: 26, l: 50 };
+    var vals = [0];
+    todos.forEach(function (s) { ac[s.k].forEach(function (v) { if (v !== null) vals.push(v); }); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    var passo = escalaBonita((hi - lo) / 4 || 1);
+    lo = Math.floor(lo / passo) * passo; hi = Math.ceil(hi / passo) * passo;
+    var x = function (i) { return m.l + (W - m.l - m.r) * (i / (meses.length - 1)); };
+    var y = function (v) { return m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo)); };
+    var g = "";
+    for (var v = lo; v <= hi + 1e-9; v += passo) {
+      g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) +
+        '" stroke="' + (Math.abs(v) < 1e-9 ? "#8795A6" : "#E8E3D9") + '" stroke-width="1"/>' +
+        '<text x="' + (m.l - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + brl(v, 0) + "%</text>";
+    }
+    var maxRot = Math.floor((W - m.l - m.r) / 52), rot = [];
+    meses.forEach(function (k, i) { if (meses.length <= 14 ? true : k.slice(5, 7) === "01") rot.push(i); });
+    var pulo = Math.ceil(rot.length / maxRot) || 1;
+    rot.forEach(function (i, j) {
+      if (j % pulo) return;
+      g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' +
+        (meses.length <= 14 ? MESES_PT[+meses[i].slice(5, 7) - 1] : meses[i].slice(0, 4)) + "</text>";
+    });
+    // indices por baixo, ativos por cima; o primeiro ativo por ultimo
+    todos.slice().reverse().forEach(function (s) {
+      var d = "", aberto = false;
+      ac[s.k].forEach(function (v, i) {
+        if (v === null) { aberto = false; return; }
+        d += (aberto ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+        aberto = true;
+      });
+      g += '<path d="' + d + '" fill="none" stroke="var(--s-' + s.k + ')" stroke-width="' +
+        (s.idx ? 2 : 2.5) + '" stroke-linejoin="round" stroke-linecap="round"/>';
+    });
+    g += '<line id="c-mira" y1="' + m.t + '" y2="' + (H - m.b) +
+      '" stroke="#8795A6" stroke-width="1" stroke-dasharray="3 3" visibility="hidden"/>' +
+      '<g id="c-pontos"></g><rect x="' + m.l + '" y="0" width="' + (W - m.l - m.r) + '" height="' + H +
+      '" fill="transparent" id="c-alvo"/>';
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("height", H);
+    svg.innerHTML = g;
+    var alvo = $("c-alvo"), dica = $("c-dica"), mira = $("c-mira"), pts = $("c-pontos");
+    function mover(ev) {
+      var b = svg.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - b.left;
+      var i = Math.round((px - m.l) / (W - m.l - m.r) * (meses.length - 1));
+      i = Math.max(0, Math.min(meses.length - 1, i));
+      mira.setAttribute("x1", x(i)); mira.setAttribute("x2", x(i));
+      mira.setAttribute("visibility", "visible");
+      var linhas = todos.map(function (s) { return [s, ac[s.k][i]]; })
+        .sort(function (a, b) { return (b[1] === null ? -1e9 : b[1]) - (a[1] === null ? -1e9 : a[1]); });
+      pts.innerHTML = linhas.filter(function (l) { return l[1] !== null; }).map(function (l) {
+        return '<circle cx="' + x(i) + '" cy="' + y(l[1]) + '" r="4" fill="var(--s-' + l[0].k +
+          ')" stroke="#fff" stroke-width="2"/>'; }).join("");
+      dica.innerHTML = "<b>" + (i === 0 ? "Início · fim de " : "") + mesExtenso(meses[i]) + "</b>" +
+        linhas.map(function (l) {
+          return '<div><span class="n"><span class="amostra" style="background:var(--s-' + l[0].k +
+            ')"></span>' + esc(l[0].nome) + '</span><span class="v">' +
+            (l[1] === null ? "—" : (l[1] >= 0 ? "+" : "") + brl(l[1], 1) + "%") + "</span></div>";
+        }).join("");
+      dica.style.display = "block";
+      var dx = x(i) / W * b.width, lw = dica.offsetWidth;
+      dica.style.left = (dx + 14 + lw > b.width ? Math.max(0, dx - 14 - lw) : dx + 14) + "px";
+      dica.style.top = "8px";
+    }
+    function sair() { dica.style.display = "none"; mira.setAttribute("visibility", "hidden"); pts.innerHTML = ""; }
+    alvo.addEventListener("mousemove", mover);
+    alvo.addEventListener("touchmove", mover, { passive: true });
+    alvo.addEventListener("touchstart", mover, { passive: true });
+    alvo.addEventListener("mouseleave", sair);
+  }
+
+  // ---------- tabelas ----------
+  function cabecalho(todos) {
+    return todos.map(function (s) {
+      return '<th><span class="amostra" style="background:var(--s-' + s.k + ')"></span>' + esc(s.nome) + "</th>";
+    }).join("");
+  }
+  function tabelaAnual(todos, meses, ret) {
+    var anos = {}, ordem = [], cortado = false;
+    meses.slice(1).forEach(function (m) {
+      var a = m.slice(0, 4);
+      if (!anos[a]) { anos[a] = []; ordem.push(a); }
+      anos[a].push(m);
+    });
+    var ateIpca = B.bench.ipca && B.bench.ipca.ate;
+    function acumulado(s, lista) {
+      var f = 1;
+      for (var i = 0; i < lista.length; i++) {
+        var r = ret(s, lista[i]);
+        if (r === null || r === undefined) {
+          // o IPCA do ultimo mes ainda nao saiu: para no ultimo disponivel
+          if (s.k === "ipca" && ateIpca && lista[i] > ateIpca && i > 0) {
+            cortado = true; return { v: (f - 1) * 100, c: true }; }
+          return null;
+        }
+        f *= 1 + r;
+      }
+      return (f - 1) * 100;
+    }
+    function cel(v) {
+      if (v && v.c) return "<td>" + sinal(v.v, 1, "%") + '<span class="mini">*</span></td>';
+      return "<td>" + sinal(v, 1, "%") + "</td>";
+    }
+    var corpo = ordem.slice().reverse().map(function (a) {
+      var parcial = anos[a].length < 12;
+      return "<tr><td>" + a + (parcial ? ' <span class="mini">(' + anos[a].length + " m)</span>" : "") +
+        "</td>" + todos.map(function (s) { return cel(acumulado(s, anos[a])); }).join("") + "</tr>";
+    }).join("");
+    var lista = meses.slice(1), nAnos = lista.length / 12;
+    var tot = todos.map(function (s) { return acumulado(s, lista); });
+    return '<div class="quadro"><table><thead><tr><th>Ano</th>' + cabecalho(todos) +
+      "</tr></thead><tbody>" + corpo + "</tbody><tfoot>" +
+      "<tr><td>No período</td>" + tot.map(cel).join("") + "</tr>" +
+      (nAnos >= 1 ? "<tr><td>Ao ano</td>" + tot.map(function (v) {
+        if (v && v.c) v = v.v;
+        return cel(v === null ? null : (Math.pow(1 + v / 100, 1 / nAnos) - 1) * 100); }).join("") + "</tr>" : "") +
+      "</tfoot></table></div>" +
+      (cortado ? '<p class="mini" style="margin:6px 0 0">* IPCA até ' + mesExtenso(ateIpca) +
+        "; o do mês seguinte ainda não foi divulgado.</p>" : "");
+  }
+  // oscilacao e pior momento: a mesma janela, mes a mes. Sem o mes corrente,
+  // que e parcial e distorce a volatilidade.
+  function tabelaRisco(todos, meses, ret) {
+    var lista = meses.slice(1).filter(function (m) { return m < MES_ATUAL; });
+    if (lista.length < 12) return "";
+    var linhas = [["Volatilidade ao ano", []], ["Maior queda (do pico ao fundo)", []],
+                  ["Melhor mês", []], ["Pior mês", []], ["Meses no positivo", []]];
+    todos.forEach(function (s) {
+      var rs = lista.map(function (m) { return ret(s, m); });
+      if (rs.some(function (r) { return r === null || r === undefined; })) {
+        linhas.forEach(function (l) { l[1].push(null); }); return;
+      }
+      var media = rs.reduce(function (a, b) { return a + b; }, 0) / rs.length;
+      var dp = Math.sqrt(rs.reduce(function (a, r) { return a + (r - media) * (r - media); }, 0) / (rs.length - 1));
+      var f = 1, pico = 1, queda = 0;
+      rs.forEach(function (r) { f *= 1 + r; pico = Math.max(pico, f); queda = Math.min(queda, f / pico - 1); });
+      linhas[0][1].push(dp * Math.sqrt(12) * 100);
+      linhas[1][1].push(queda * 100);
+      linhas[2][1].push(Math.max.apply(null, rs) * 100);
+      linhas[3][1].push(Math.min.apply(null, rs) * 100);
+      linhas[4][1].push(rs.filter(function (r) { return r > 0; }).length / rs.length * 100);
+    });
+    return '<div class="quadro"><table><thead><tr><th>Oscilação (' + lista.length + " meses)</th>" +
+      cabecalho(todos) + "</tr></thead><tbody>" + linhas.map(function (l, j) {
+        return "<tr><td>" + l[0] + "</td>" + l[1].map(function (v) {
+          if (j === 1 && v !== null && v > -0.05) return "<td>0,0%</td>";
+          return "<td>" + (j === 0 || j === 4 ? num(v, 1, "%") : sinal(v, 1, "%")) + "</td>"; }).join("") + "</tr>";
+      }).join("") + "</tbody></table></div>";
+  }
+
+  function avisos(series, semDado, meses) {
+    var a = [], tipos = {};
+    series.forEach(function (s) { tipos[s.a.tipo] = true; });
+    a.push("<b>Como é calculado:</b> retorno de cada mês, encadeado a partir do fechamento de " +
+      (meses[0] ? mesExtenso(meses[0]) : "—") + " — o início da janela em comum entre os ativos " +
+      "escolhidos. Sem IR, corretagem nem custódia. O mês corrente é parcial.");
+    if (tipos.A) a.push("<b>Ações, FIIs e ETFs:</b> fechamento do mês (semanal antes dos últimos 12 meses), " +
+      "ajustado pelos desdobramentos e grupamentos. " + (EST.reinvestir
+        ? "Proventos (dividendo, JCP bruto, rendimento e amortização de FII) reinvestidos no mês da " +
+          "data-ex (data-com no FII)."
+        : "<b>Sem os proventos</b>: só a variação de preço. O Ibovespa e o S&amp;P daqui reinvestem os " +
+          "deles, então nesse modo a comparação favorece os índices."));
+    if (tipos.TD) a.push("<b>Tesouro:</b> preço de venda (resgate antecipado) do último dia útil do mês. " +
+      "Nos títulos com juros semestrais o cupom não entra — o preço cai no pagamento e o retorno sai subestimado.");
+    if (tipos.FI) a.push("<b>Fundos:</b> cota do último informe do mês à CVM, já líquida das taxas de " +
+      "administração e performance; antes de IR e come-cotas. Na previdência, a taxa de carregamento do " +
+      "plano fica fora.");
+    a.push("<b>Índices:</b> CDI e IPCA do Banco Central; Ibovespa da B3; S&amp;P 500 com dividendos " +
+      "reinvestidos, em dólar e convertido pela PTAX. IPCA+X compõe o IPCA mensal com X% ao ano.");
+    if (semDado.length) a.push("<b>Sem histórico</b> para: " + esc(semDado.join(", ")) + ".");
+    series.forEach(function (s) {
+      if (s.a.tipo === "FI") {
+        var f = B.fundos && B.fundos[s.a.id];
+        if (f && f.saltos) a.push('<b style="color:var(--vermelho)">Atenção:</b> a cota do ' + esc(s.nome) +
+          " variou mais de 50% num mês (" + f.saltos.slice(-3).map(mesExtenso).join(", ") +
+          ") sem evento de cota identificado.");
+        if (f && f.tipo === "master") a.push(esc(s.nome) + " é um fundo <b>master</b>: ninguém aplica nele " +
+          "direto, e a cota dele vem antes das taxas dos fundos que o compram.");
+      }
+    });
+    return '<div class="avisos">' + a.join("<br>") + "</div>";
+  }
+
+  var redim = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(redim);
+    redim = setTimeout(function () { if (B.bench) desenhar(); }, 150);
+  });
+
+  // ---------- carga ----------
+  Promise.all([json("dados-cvm.json"), json("tesouro.json"), json("benchmarks.json"),
+               json("historico.json"), json("proventos.json")])
+  .then(function (r) {
+    var b = r[0];
+    if (b) {
+      Object.keys(b.empresas).forEach(function (cnpj) {
+        var e = b.empresas[cnpj];
+        Object.keys(e.mercado || {}).forEach(function (t) {
+          B.dados[t] = { nome: e.nome, preco: e.mercado[t].preco, volume: e.mercado[t].volume,
+                         eventos: eventosDe(e, t) };
+        });
+      });
+      Object.keys(b.etfs || {}).forEach(function (t) {
+        if (B.dados[t]) return;
+        var x = b.etfs[t];
+        B.dados[t] = { nome: x.nome, preco: x.preco, volume: x.volume, rotulo: "ETF" };
+      });
+      Object.keys(b.fiis || {}).forEach(function (t) {
+        if (B.dados[t]) return;
+        var x = b.fiis[t];
+        B.dados[t] = { nome: x.nome, preco: x.preco, volume: x.volume, rotulo: "FII", eventos: eventosDe(x, t) };
+      });
+      Object.keys(B.dados).forEach(function (t) {
+        B.dados[t].busca = semAcento(t + " " + B.dados[t].nome).toLowerCase();
+      });
+    }
+    B.tesouro = r[1] && r[1].titulos;
+    B.bench = r[2] && r[2].series;
+    B.hist = r[3];
+    B.prov = r[4];
+    $("rodape").innerHTML = "<b>Conteúdo educacional, não é recomendação de investimento.</b> " +
+      "Rentabilidade passada não garante rentabilidade futura. A ordem dos ativos é a que você " +
+      "escolheu; a página não classifica nem sugere nenhum." +
+      (b && b.pregao ? " Cotações do pregão de " + b.pregao.split("-").reverse().join("/") + "." : "");
+    if (!lerEndereco()) EST.ativos = [];
+    atualizar();
+  });
+})();
+</script>
+</body>
+</html>

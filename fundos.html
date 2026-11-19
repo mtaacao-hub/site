@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Raio-X do Fundo — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+    --s-fundo:#10233B; --s-cdi:#2a78d6; --s-ipca:#eb6834; --s-ibov:#1baf7a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  a{color:var(--gold-ink)}
+  header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .marca{font-weight:800;color:var(--ink);font-size:.95rem}
+  .marca span{color:var(--ink-3);font-weight:600}
+
+  .busca{position:relative;max-width:620px;margin-bottom:18px}
+  .busca input{width:100%;padding:10px 12px;border-radius:9px;font-family:var(--font);
+    font-size:.92rem;border:1px solid var(--line-forte);background:var(--card);color:var(--ink)}
+  .busca input:focus{outline:2px solid var(--gold);outline-offset:1px}
+  .sugestoes{position:absolute;top:100%;left:0;right:0;z-index:5;margin-top:3px;
+    background:var(--card);border:1px solid var(--line-forte);border-radius:9px;
+    box-shadow:0 6px 18px rgba(16,35,59,.12);max-height:380px;overflow-y:auto}
+  .sugestoes button{display:block;width:100%;text-align:left;background:none;border:0;
+    border-bottom:1px solid var(--line);padding:8px 11px;font-family:var(--font);
+    font-size:.8rem;color:var(--ink);cursor:pointer}
+  .sugestoes button:hover,.sugestoes button.ativo{background:var(--ground)}
+  .sugestoes .mini{display:block;margin-top:2px}
+  .etiqueta{display:inline-block;font-size:.62rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.05em;color:var(--gold-ink);border:1px solid var(--line-forte);
+    border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:2px}
+
+  h1{font-size:1.25rem;margin:0 0 4px;font-weight:800;line-height:1.35}
+  .sub{color:var(--ink-2);font-size:.8rem;margin:0 0 6px}
+  .nota{background:#FBF6E6;border:1px solid #EADFB8;border-radius:10px;padding:10px 13px;
+    font-size:.8rem;color:var(--ink);margin:12px 0}
+  .resumo{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;margin:16px 0}
+  .resumo > div{padding:12px 15px;box-shadow:inset -1px -1px 0 var(--line)}
+  .resumo dt{font-size:.64rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-3);font-weight:700}
+  .resumo dd{margin:3px 0 0;font-size:1.05rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .resumo .obs{font-size:.7rem;font-weight:600;color:var(--ink-2);margin-top:2px}
+
+  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--ink-2);margin:26px 0 10px;font-weight:700}
+  .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px}
+  .bloco h3{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;
+    letter-spacing:.07em;color:var(--gold-ink);font-weight:700}
+  .duas{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .controles{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-bottom:12px;font-size:.8rem}
+  .controles label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink-2);font-weight:600}
+  .controles select{padding:5px 8px;border-radius:6px;border:1px solid var(--line-forte);
+    font-family:var(--font);font-size:.8rem;background:var(--card);color:var(--ink)}
+  .amostra{display:inline-block;width:14px;height:3px;border-radius:2px;flex:none}
+  .grafico{position:relative}
+  svg.g{display:block;width:100%;overflow:visible}
+  svg.g text{font-family:var(--font);font-size:11px;fill:var(--ink-3)}
+  .dica{position:absolute;pointer-events:none;background:var(--card);
+    border:1px solid var(--line-forte);border-radius:8px;padding:8px 10px;font-size:.74rem;
+    box-shadow:0 4px 14px rgba(16,35,59,.12);white-space:nowrap;display:none;z-index:2}
+  .dica b{display:block;margin-bottom:4px;color:var(--ink)}
+  .dica div{display:flex;gap:8px;align-items:center;justify-content:space-between}
+  .dica span.n{color:var(--ink-2);display:inline-flex;align-items:center;gap:5px}
+  .dica span.v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink)}
+  .quadro{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.8rem}
+  th{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);
+    border-bottom:1px solid var(--line-forte);padding:9px 10px;text-align:right;white-space:nowrap}
+  th:first-child{text-align:left}
+  td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  td:first-child{text-align:left;font-weight:600;color:var(--ink);white-space:normal}
+  tbody tr:last-child td{border-bottom:0}
+  tfoot td{font-weight:800;border-top:1px solid var(--line-forte);border-bottom:0}
+  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
+  .mini{font-size:.7rem;color:var(--ink-3);font-weight:600}
+  .barras{display:flex;flex-direction:column;gap:9px}
+  .linha-barra{display:grid;grid-template-columns:150px 1fr 64px;gap:11px;align-items:center;font-size:.8rem}
+  .trilho{background:var(--ground);border-radius:4px;height:14px;overflow:hidden}
+  .trilho i{display:block;height:100%;background:var(--ink);border-radius:4px}
+  .linha-barra b{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .lista dl{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;margin:0;font-size:.8rem}
+  .lista dt{color:var(--ink-3);font-weight:600}
+  .lista dd{margin:0;color:var(--ink)}
+  .avisos{margin-top:10px;font-size:.74rem;line-height:1.6;color:var(--ink-2)}
+  .vazio{padding:30px;text-align:center;color:var(--ink-3)}
+  .rodape{margin-top:26px;padding:16px 18px;border-radius:11px;background:var(--card);
+    border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
+  @media (max-width:520px){ .linha-barra{grid-template-columns:110px 1fr 54px} .lista dl{grid-template-columns:120px 1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topo">
+    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
+      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+      </g>
+    </svg>
+    <span class="marca">Muita Ação <span>· fundos</span></span>
+  </header>
+
+  <div class="busca">
+    <input id="busca" autocomplete="off" spellcheck="false" placeholder="Nome ou CNPJ do fundo">
+    <div class="sugestoes" id="sugestoes" hidden></div>
+  </div>
+
+  <div id="conteudo"><div class="vazio">Carregando a base de fundos…</div></div>
+
+  <div class="rodape"><b>Conteúdo educacional, não é recomendação de investimento.</b>
+    Rentabilidade passada não garante rentabilidade futura. Dados públicos da CVM: informe
+    diário (cota, patrimônio, cotistas), cadastro, extrato anual (taxas, aplicação mínima,
+    prazos) e composição da carteira mensal (CDA). A cota já desconta as taxas de administração
+    e de performance, mas não o IR nem o come-cotas.</div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var HOJE = new Date().toISOString().slice(0, 10), MES_ATUAL = HOJE.slice(0, 7);
+  var B = { lista: null, idx: null, atual: null, data: null, mesFechado: null,
+            lotes: {}, fichas: {}, bench: null };
+  var EST = { chave: null, periodo: "60" };
+
+  // ---------- formatacao ----------
+  function brl(v, casas) {
+    if (v === null || v === undefined || !isFinite(v)) return null;
+    var c = casas === undefined ? 2 : casas;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
+  }
+  function num(v, casas, suf) { var s = brl(v, casas); return s === null ? '<span class="na">—</span>' : s + (suf || ""); }
+  function sinal(v, casas, suf) {
+    if (v === null || v === undefined || !isFinite(v)) return '<span class="na">—</span>';
+    return '<span class="' + (v >= 0 ? "pos" : "neg") + '">' + (v >= 0 ? "+" : "") + brl(v, casas) + (suf || "") + "</span>";
+  }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]; });
+  }
+  function semAcento(t) { return String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, ""); }
+  function fmtCnpj(k) {
+    return String(k).split("-")[0].replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  }
+  function nomeCurto(n) {
+    return String(n || "").replace(/\s*[-–]?\s*(RESPONSABILIDADE|RESP\.?)\s+LIMITADA.*$/i, "")
+      .replace(/\s+(FUNDO DE INVESTIMENTO|FIF|FI|FIC)\b.*$/i, function (m) { return m.length > 40 ? "" : m; })
+      .slice(0, 70);
+  }
+  function dmy(iso) { return String(iso || "").split("-").reverse().join("/"); }
+  var MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  function mesExtenso(k) { return MESES_PT[+k.slice(5, 7) - 1] + "/" + k.slice(0, 4); }
+  function mesMais(k, n) {
+    var y = +k.slice(0, 4), m = +k.slice(5, 7) + n;
+    while (m > 12) { m -= 12; y++; }
+    while (m < 1) { m += 12; y--; }
+    return y + "-" + (m < 10 ? "0" : "") + m;
+  }
+  function mesesEntre(a, b) { var out = []; for (var k = a; k <= b; k = mesMais(k, 1)) out.push(k); return out; }
+  function reais(v) {
+    if (!isFinite(v)) return "—";
+    if (Math.abs(v) >= 1e9) return "R$ " + brl(v / 1e9, 1) + " bi";
+    if (Math.abs(v) >= 1e6) return "R$ " + brl(v / 1e6, v >= 1e8 ? 0 : 1) + " mi";
+    return "R$ " + brl(v, 0);
+  }
+  function json(url) {
+    return fetch(url).then(function (r) { if (!r.ok) throw 0; return r.json(); }).catch(function () { return null; });
+  }
+  var TIPO = { master: "master", feeder: "feeder", prev: "previdência" };
+
+  // ---------- busca ----------
+  var SUG = [], SUG_I = -1;
+  function buscar(txt) {
+    var dig = txt.replace(/\D/g, ""), out = [];
+    var soDig = dig.length >= 4 && /^[\d.\/\-\s]+$/.test(txt);
+    var palavras = semAcento(txt).toLowerCase().split(/\s+/).filter(Boolean);
+    if (!palavras.length || !B.lista) return out;
+    for (var i = 0; i < B.lista.length && out.length < 15; i++) {
+      var f = B.lista[i];
+      if (soDig ? f.chave.indexOf(dig) === 0 : palavras.every(function (w) { return f.busca.indexOf(w) >= 0; })) out.push(f);
+    }
+    return out;
+  }
+  function mostrarSugestoes() {
+    var el = $("sugestoes"), txt = $("busca").value;
+    if (txt.trim().length < 2) { el.hidden = true; return; }
+    SUG = buscar(txt); SUG_I = -1;
+    el.innerHTML = SUG.length ? SUG.map(function (f, i) {
+      return '<button type="button" data-i="' + i + '">' + esc(f.nome) +
+        (TIPO[f.tipo] ? '<span class="etiqueta">' + TIPO[f.tipo] + "</span>" : "") +
+        '<span class="mini">' + esc(fmtCnpj(f.chave) + (f.classe ? " · " + f.classe : "") +
+          (f.gestor ? " · " + f.gestor : "") + (f.pl ? " · PL " + reais(f.pl) : "")) + "</span></button>";
+    }).join("") : '<div class="vazio" style="padding:12px">Nenhum fundo com esse nome ou CNPJ.</div>';
+    el.hidden = false;
+  }
+  function escolher(f) { $("busca").value = ""; $("sugestoes").hidden = true; abrir(f.chave); }
+  $("busca").addEventListener("input", mostrarSugestoes);
+  $("busca").addEventListener("keydown", function (ev) {
+    if ($("sugestoes").hidden || !SUG.length) return;
+    if (ev.key === "ArrowDown" || ev.key === "ArrowUp") {
+      ev.preventDefault();
+      SUG_I = (SUG_I + (ev.key === "ArrowDown" ? 1 : SUG.length - 1)) % SUG.length;
+      [].forEach.call($("sugestoes").querySelectorAll("button"), function (b, i) {
+        b.classList.toggle("ativo", i === SUG_I); if (i === SUG_I) b.scrollIntoView({ block: "nearest" }); });
+    } else if (ev.key === "Enter") { ev.preventDefault(); escolher(SUG[SUG_I >= 0 ? SUG_I : 0]); }
+    else if (ev.key === "Escape") $("sugestoes").hidden = true;
+  });
+  $("sugestoes").addEventListener("mousedown", function (ev) {
+    var b = ev.target.closest("button"); if (!b) return; ev.preventDefault(); escolher(SUG[+b.dataset.i]); });
+  $("busca").addEventListener("blur", function () { setTimeout(function () { $("sugestoes").hidden = true; }, 150); });
+
+  // ---------- dados de um fundo ----------
+  function lote(dir, k) {
+    var l = k.slice(0, 3), cache = dir === "m" ? B.lotes : B.fichas;
+    if (cache[l]) return Promise.resolve(cache[l]);
+    return json("fundos/" + dir + "/" + l + ".json").then(function (d) { cache[l] = d || {}; return cache[l]; });
+  }
+  function serieDe(k) { var l = B.lotes[k.slice(0, 3)]; return l && l[k]; }
+  function fichaDe(k) {
+    var l = B.fichas[k.slice(0, 3)];
+    if (!l) return null;
+    // subclasse: cadastro e extrato proprios quando existem, senao os da classe
+    return l[k] || l[k.split("-")[0]] || null;
+  }
+  // cota de fim de mes {mes: cota} + a ultima do mes corrente
+  function cotas(k) {
+    var s = serieDe(k), p = {};
+    if (!s) return p;
+    var m = s[0];
+    s[1].forEach(function (v) { if (v) p[m] = v; m = mesMais(m, 1); });
+    var a = B.atual[k];
+    if (a) p[a[0].slice(0, 7)] = a[1];
+    return p;
+  }
+  function retornoIndice(kk, mes) {
+    var s = B.bench && B.bench[kk];
+    if (!s) return null;
+    if (!s._m) { s._m = {}; s.mensal.forEach(function (x) { s._m[x[0]] = x[1] / 100; }); }
+    var r = s._m[mes];
+    return r === undefined ? null : r;
+  }
+
+  // ---------- pagina ----------
+  function abrir(k) {
+    EST.chave = k;
+    try { history.replaceState(null, "", "#" + k); } catch (e) {}
+    var f = B.idx[k];
+    if (!f) { $("conteudo").innerHTML = '<div class="vazio">Fundo não encontrado na base.</div>'; return; }
+    $("conteudo").innerHTML = '<div class="vazio">Carregando ' + esc(nomeCurto(f.nome)) + "…</div>";
+    var pedir = [lote("m", k), lote("f", k)];
+    if (f.master) pedir.push(lote("f", f.master), lote("m", f.master));
+    Promise.all(pedir).then(function () { desenhar(f); });
+  }
+
+  function desenhar(f) {
+    var k = f.chave, fi = fichaDe(k) || {}, ex = fi.extrato || {}, a = B.atual[k];
+    var master = f.master && B.idx[f.master];
+    var feeders = f.tipo === "master" || B.lista.some(function (x) { return x.master === k; })
+      ? B.lista.filter(function (x) { return x.master === k; }) : [];
+
+    var h = '<h1>' + esc(f.nome) + (TIPO[f.tipo] ? '<span class="etiqueta">' + TIPO[f.tipo] + "</span>" : "") + "</h1>" +
+      '<p class="sub">' + esc([fmtCnpj(k), f.classe, f.gestor].filter(Boolean).join(" · ")) + "</p>";
+    if (f.tipo === "master")
+      h += '<div class="nota">Fundo <b>master</b>: ninguém aplica nele direto — quem investe entra por um ' +
+        "dos fundos que compram as cotas dele (lista abaixo). A cota do master vem <b>antes</b> das taxas desses fundos.</div>";
+    if (master)
+      h += '<div class="nota">Este fundo aplica quase tudo no <a href="#' + esc(master.chave) + '">' +
+        esc(nomeCurto(master.nome)) + "</a>. A estratégia é a dele; a diferença de rentabilidade entre os " +
+        "dois é, basicamente, a taxa cobrada aqui.</div>";
+    if (f.tipo === "prev")
+      h += '<div class="nota">Fundo de <b>previdência</b> (PGBL/VGBL): o cotista é a seguradora, e quem tem o plano ' +
+        "está aqui dentro. A taxa de carregamento do plano não está na cota.</div>";
+
+    // resumo
+    var taxa = ex.taxa_adm !== undefined ? brl(ex.taxa_adm, 2) + "% a.a." : "—";
+    var perf = ex.taxa_perf ? brl(ex.taxa_perf, 0) + "% do que passar de " +
+      (ex.perf_pct && ex.perf_pct !== 100 ? brl(ex.perf_pct, 0) + "% do " : "") + (ex.perf_indice || "—") : (ex.data ? "não tem" : "—");
+    var resg = ex.dias_conversao !== undefined ? "D+" + brl(ex.dias_conversao, 0) +
+      (ex.dias_pagamento !== undefined && ex.dias_pagamento !== ex.dias_conversao ? " (paga em D+" + brl(ex.dias_pagamento, 0) + ")" : "") : "—";
+    h += '<dl class="resumo">' +
+      cartao("Cota", a ? brl(a[1], 6) : "—", a ? "de " + dmy(a[0]) : "") +
+      cartao("Patrimônio", reais(f.pl), "fim de " + mesExtenso(B.mesFechado)) +
+      cartao("Cotistas", brl(f.cotistas, 0) || "—", "") +
+      cartao("Taxa de administração", taxa, ex.data ? "extrato de " + dmy(ex.data) : "sem extrato recente") +
+      cartao("Taxa de performance", perf, "") +
+      cartao("Aplicação mínima", ex.aplic_min !== undefined ? reais(ex.aplic_min) : "—", "") +
+      cartao("Resgate", resg, ex.tipo_dia ? ex.tipo_dia.toLowerCase() : "") +
+      cartao("Série desde", f.inicio ? mesExtenso(f.inicio) : "—", "") + "</dl>";
+
+    // rentabilidade
+    h += '<h2 class="sec">Rentabilidade</h2><div class="bloco" id="rent"></div>';
+
+    // carteira
+    var cart = fi.carteira, cartDe = null;
+    if (master && fichaDe(master.chave) && fichaDe(master.chave).carteira) {
+      cartDe = master; cart = fichaDe(master.chave).carteira;
+    }
+    h += '<h2 class="sec">Carteira' + (cart ? " em " + mesExtenso(cart.mes) : "") +
+      (cartDe ? ' <span class="mini">(a do master, ' + esc(nomeCurto(cartDe.nome)) + ")</span>" : "") + "</h2>";
+    h += blocoCarteira(cart);
+
+    // patrimonio e cotistas
+    if (fi.pl_mi || fi.cotistas)
+      h += '<h2 class="sec">Patrimônio e cotistas, 5 anos</h2><div class="duas">' +
+        '<div class="bloco"><h3>Patrimônio (R$ milhões)</h3><svg class="g" id="g-pl"></svg></div>' +
+        '<div class="bloco"><h3>Cotistas</h3><svg class="g" id="g-cot"></svg></div></div>';
+
+    // feeders
+    if (feeders.length) {
+      feeders.sort(function (x, y) { return y.pl - x.pl; });
+      h += '<h2 class="sec">Fundos que compram este master (' + feeders.length + ")</h2>" +
+        '<div class="quadro"><table><thead><tr><th>Fundo</th><th>Patrimônio</th><th>Cotistas</th>' +
+        "<th>12 meses</th></tr></thead><tbody>" + feeders.slice(0, 40).map(function (x) {
+          return '<tr><td><a href="#' + esc(x.chave) + '">' + esc(nomeCurto(x.nome)) + '</a><div class="mini">' +
+            esc(fmtCnpj(x.chave) + (x.gestor ? " · " + x.gestor : "")) + "</div></td><td>" + reais(x.pl) +
+            "</td><td>" + (brl(x.cotistas, 0) || "—") + '</td><td data-r12="' + esc(x.chave) + '">…</td></tr>';
+        }).join("") + "</tbody></table></div>" +
+        '<p class="mini" style="margin-top:6px">Em ordem de patrimônio. O retorno de 12 meses de cada um, lado a lado, ' +
+        "mostra o custo de cada porta de entrada para a mesma estratégia.</p>";
+    }
+
+    // cadastro
+    var cad = [["Fundo (CNPJ)", fi.cnpj_fundo && fi.cnpj_fundo !== k ? fmtCnpj(fi.cnpj_fundo) + " — " + (fi.fundo || "") : ""],
+      ["Administrador", fi.administrador], ["Custodiante", fi.custodiante], ["Auditor", fi.auditor],
+      ["Público-alvo", fi.publico], ["Condomínio", fi.condominio], ["Classe na CVM", fi.classe_cvm],
+      ["Indicador de desempenho", fi.indicador], ["Tributação", fi.longo_prazo === "S" ? "longo prazo" :
+        fi.longo_prazo === "N" ? "curto prazo" : ""], ["Taxa de saída", ex.tem_taxa_saida === "S" ?
+        (ex.taxa_saida ? brl(ex.taxa_saida, 2) + "%" : "sim") : ""], ["Situação", fi.situacao]]
+      .filter(function (x) { return x[1]; });
+    h += '<h2 class="sec">Cadastro</h2><div class="bloco lista"><dl>' + cad.map(function (x) {
+      return "<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("") + "</dl></div>";
+    h += '<p class="mini" style="margin-top:10px"><a href="comparador.html#a=FI%3A' + encodeURIComponent(k) +
+      '&i=cdi,ipca">Comparar este fundo com outros ativos e índices →</a></p>';
+
+    $("conteudo").innerHTML = h;
+    desenharRent(f);
+    if (fi.pl_mi) barras("g-pl", fi.pl_mi, function (v) { return brl(v, v < 10 ? 1 : 0); });
+    if (fi.cotistas) barras("g-cot", fi.cotistas, function (v) { return brl(v, 0); });
+    if (feeders.length) {
+      Promise.all(feeders.slice(0, 40).map(function (x) { return lote("m", x.chave); })).then(function () {
+        feeders.slice(0, 40).forEach(function (x) {
+          var c = cotas(x.chave), ks = Object.keys(c).sort(), td = document.querySelector('[data-r12="' + x.chave + '"]');
+          if (!td) return;
+          var fim = mesMais(MES_ATUAL, -1), ini = mesMais(fim, -12);
+          td.innerHTML = c[fim] && c[ini] ? sinal((c[fim] / c[ini] - 1) * 100, 1, "%") : '<span class="na">—</span>';
+        });
+      });
+    }
+    window.scrollTo(0, 0);
+  }
+  function cartao(t, v, obs) {
+    return "<div><dt>" + esc(t) + "</dt><dd>" + esc(v) + "</dd>" + (obs ? '<div class="obs">' + esc(obs) + "</div>" : "") + "</div>";
+  }
+
+  function blocoCarteira(c) {
+    if (!c) return '<div class="bloco"><div class="vazio">Sem carteira publicada na CVM no último mês.</div></div>';
+    var sig = c.sigilo ? '<p class="mini" style="margin:10px 0 0">' + (c.sigilo >= 100
+      ? "A carteira deste mês está <b>inteira sob sigilo</b>" : brl(c.sigilo, 1) + "% do patrimônio está <b>sob sigilo</b>") +
+      " — a CVM permite que o fundo esconda posições por até 90 dias, para não revelar a estratégia.</p>" : "";
+    if (!c.comp.length) return '<div class="bloco">' + (sig || '<div class="vazio">Carteira vazia no último informe.</div>') + "</div>";
+    var pos = c.comp.filter(function (x) { return x[1] > 0; });
+    var maior = Math.max.apply(null, pos.map(function (x) { return x[1]; }).concat([1]));
+    var comp = '<div class="bloco"><h3>Por tipo de ativo (% do patrimônio)</h3><div class="barras">' +
+      pos.map(function (x) {
+        return '<div class="linha-barra"><span>' + esc(x[0]) + '</span><span class="trilho"><i style="width:' +
+          (x[1] / maior * 100) + '%"></i></span><b>' + brl(x[1], 1) + "%</b></div>";
+      }).join("") + "</div>" +
+      (c.comp.some(function (x) { return x[1] < 0; }) ? '<p class="mini" style="margin:10px 0 0">Posições negativas ' +
+        "(vendidas, a pagar): " + c.comp.filter(function (x) { return x[1] < 0; }).map(function (x) {
+          return esc(x[0]) + " " + brl(x[1], 1) + "%"; }).join(", ") + ". Por isso a soma pode passar de 100%.</p>" : "") +
+      sig + "</div>";
+    var top = '<div class="bloco"><h3>Maiores posições (' + c.top.length + " de " + c.n + ")</h3>" +
+      '<div class="quadro" style="border:0"><table><tbody>' + c.top.map(function (x) {
+        var nm = x[3] && B.idx[x[3]] ? '<a href="#' + esc(x[3]) + '">' + esc(x[0]) + "</a>" : esc(x[0]);
+        return "<tr><td>" + nm + '<div class="mini">' + esc(x[2]) + "</div></td><td>" + num(x[1], 1, "%") + "</td></tr>";
+      }).join("") + "</tbody></table></div></div>";
+    return '<div class="duas">' + comp + top + "</div>";
+  }
+
+  // ---------- grafico de rentabilidade: fundo x CDI x IPCA ----------
+  function desenharRent(f) {
+    var el = $("rent"), c = cotas(f.chave), ks = Object.keys(c).sort();
+    if (ks.length < 3) { el.innerHTML = '<div class="vazio">Histórico de cota curto demais.</div>'; return; }
+    var meses = mesesEntre(ks[0], MES_ATUAL), corte = 0;
+    meses.forEach(function (m, i) { if (i > 0 && !(c[m] > 0 && c[meses[i - 1]] > 0)) corte = i; });
+    meses = meses.slice(corte);
+    var n = { "12": 12, "36": 36, "60": 60, "120": 120 }[EST.periodo];
+    if (n && meses.length > n + 1) meses = meses.slice(meses.length - n - 1);
+    var series = [{ k: "fundo", nome: nomeCurto(f.nome), r: function (m, i) { return c[m] / c[meses[i - 1]] - 1; } },
+                  { k: "cdi", nome: "CDI", r: function (m) { return retornoIndice("cdi", m); } },
+                  { k: "ibov", nome: "Ibovespa", r: function (m) { return retornoIndice("ibov", m); } }];
+    var ac = {};
+    series.forEach(function (s) {
+      var acc = 1;
+      ac[s.k] = meses.map(function (m, i) {
+        if (i === 0) return 0;
+        var r = s.r(m, i);
+        if (r === null || !isFinite(r) || acc === null) { acc = null; return null; }
+        acc *= 1 + r; return (acc - 1) * 100;
+      });
+    });
+    el.innerHTML = '<div class="controles"><select id="r-per" aria-label="Período">' +
+      [["12", "12 meses"], ["36", "36 meses"], ["60", "60 meses"], ["120", "10 anos"], ["tudo", "Desde o início"]]
+        .map(function (o) { return '<option value="' + o[0] + '"' + (EST.periodo === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") +
+      "</select>" + series.map(function (s) {
+        return '<label style="cursor:default"><span class="amostra" style="background:var(--s-' + s.k + ')"></span>' + esc(s.nome) + "</label>"; }).join("") +
+      '</div><div class="grafico"><svg class="g" id="r-svg" role="img" aria-label="Rentabilidade acumulada do fundo, do CDI e do Ibovespa"></svg>' +
+      '<div class="dica" id="r-dica"></div></div>' + tabelaAnual(series, meses);
+    grafico(meses, ac, series);
+    $("r-per").addEventListener("change", function (ev) { EST.periodo = ev.target.value; desenharRent(f); });
+  }
+  function tabelaAnual(series, meses) {
+    var anos = {}, ordem = [];
+    meses.forEach(function (m, i) { if (!i) return; var a = m.slice(0, 4); if (!anos[a]) { anos[a] = []; ordem.push(a); } anos[a].push(i); });
+    function acum(s, idxs) {
+      var f = 1;
+      for (var j = 0; j < idxs.length; j++) { var r = s.r(meses[idxs[j]], idxs[j]); if (r === null || !isFinite(r)) return null; f *= 1 + r; }
+      return (f - 1) * 100;
+    }
+    var todos = meses.map(function (m, i) { return i; }).slice(1);
+    function linha(rot, idxs) {
+      var v = series.map(function (s) { return acum(s, idxs); });
+      // % do CDI so com os dois positivos: com perda, a razao nao quer dizer nada
+      var pct = v[0] > 0 && v[1] > 0 ? v[0] / v[1] * 100 : null;
+      return "<tr><td>" + rot + "</td>" + v.map(function (x) { return "<td>" + sinal(x, 1, "%") + "</td>"; }).join("") +
+        "<td>" + (pct !== null && v[1] > 0 ? num(pct, 0, "%") : '<span class="na">—</span>') + "</td></tr>";
+    }
+    return '<div class="quadro" style="margin-top:14px"><table><thead><tr><th>Ano</th>' +
+      series.map(function (s) { return "<th>" + esc(s.nome) + "</th>"; }).join("") + "<th>% do CDI</th></tr></thead><tbody>" +
+      ordem.slice().reverse().map(function (a) {
+        return linha(a + (anos[a].length < 12 ? ' <span class="mini">(' + anos[a].length + " m)</span>" : ""), anos[a]); }).join("") +
+      "</tbody><tfoot>" + linha("No período", todos) + "</tfoot></table></div>" +
+      '<p class="mini" style="margin-top:6px">Cota do fim de cada mês; o mês corrente é parcial. "% do CDI" só faz ' +
+      "sentido para renda fixa e multimercado — num fundo de ações, compare com o Ibovespa.</p>";
+  }
+  function escalaBonita(bruto) {
+    var e = Math.pow(10, Math.floor(Math.log10(bruto))), f = bruto / e;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
+  }
+  function grafico(meses, ac, series) {
+    var svg = $("r-svg"), W = Math.max(300, svg.parentNode.clientWidth || 600);
+    var H = W < 500 ? 230 : 290, m = { t: 12, r: 12, b: 26, l: 50 };
+    var vals = [0];
+    series.forEach(function (s) { ac[s.k].forEach(function (v) { if (v !== null) vals.push(v); }); });
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    var passo = escalaBonita((hi - lo) / 4 || 1);
+    lo = Math.floor(lo / passo) * passo; hi = Math.ceil(hi / passo) * passo;
+    var x = function (i) { return m.l + (W - m.l - m.r) * (i / (meses.length - 1)); };
+    var y = function (v) { return m.t + (H - m.t - m.b) * (1 - (v - lo) / (hi - lo)); };
+    var g = "";
+    for (var v = lo; v <= hi + 1e-9; v += passo)
+      g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="' +
+        (Math.abs(v) < 1e-9 ? "#8795A6" : "#E8E3D9") + '"/><text x="' + (m.l - 6) + '" y="' + (y(v) + 4) +
+        '" text-anchor="end">' + brl(v, 0) + "%</text>";
+    var maxRot = Math.floor((W - m.l - m.r) / 52), rot = [];
+    meses.forEach(function (k, i) { if (meses.length <= 14 ? true : k.slice(5, 7) === "01") rot.push(i); });
+    var pulo = Math.ceil(rot.length / maxRot) || 1;
+    rot.forEach(function (i, j) {
+      if (j % pulo) return;
+      g += '<text x="' + x(i) + '" y="' + (H - 6) + '" text-anchor="middle">' +
+        (meses.length <= 14 ? MESES_PT[+meses[i].slice(5, 7) - 1] : meses[i].slice(0, 4)) + "</text>";
+    });
+    series.slice().reverse().forEach(function (s) {
+      var d = "", ab = false;
+      ac[s.k].forEach(function (v, i) { if (v === null) { ab = false; return; } d += (ab ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); ab = true; });
+      g += '<path d="' + d + '" fill="none" stroke="var(--s-' + s.k + ')" stroke-width="' + (s.k === "fundo" ? 3 : 2) +
+        '" stroke-linejoin="round" stroke-linecap="round"/>';
+    });
+    g += '<line id="r-mira" y1="' + m.t + '" y2="' + (H - m.b) + '" stroke="#8795A6" stroke-dasharray="3 3" visibility="hidden"/>' +
+      '<g id="r-pts"></g><rect x="' + m.l + '" y="0" width="' + (W - m.l - m.r) + '" height="' + H + '" fill="transparent" id="r-alvo"/>';
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("height", H); svg.innerHTML = g;
+    var alvo = $("r-alvo"), dica = $("r-dica"), mira = $("r-mira"), pts = $("r-pts");
+    function mover(ev) {
+      var b = svg.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - b.left;
+      var i = Math.max(0, Math.min(meses.length - 1, Math.round((px - m.l) / (W - m.l - m.r) * (meses.length - 1))));
+      mira.setAttribute("x1", x(i)); mira.setAttribute("x2", x(i)); mira.setAttribute("visibility", "visible");
+      pts.innerHTML = series.filter(function (s) { return ac[s.k][i] !== null; }).map(function (s) {
+        return '<circle cx="' + x(i) + '" cy="' + y(ac[s.k][i]) + '" r="4" fill="var(--s-' + s.k + ')" stroke="#fff" stroke-width="2"/>'; }).join("");
+      dica.innerHTML = "<b>" + (i === 0 ? "Início · fim de " : "") + mesExtenso(meses[i]) + "</b>" + series.map(function (s) {
+        var v = ac[s.k][i];
+        return '<div><span class="n"><span class="amostra" style="background:var(--s-' + s.k + ')"></span>' + esc(s.nome) +
+          '</span><span class="v">' + (v === null ? "—" : (v >= 0 ? "+" : "") + brl(v, 1) + "%") + "</span></div>"; }).join("");
+      dica.style.display = "block";
+      var dx = x(i) / W * b.width, lw = dica.offsetWidth;
+      dica.style.left = (dx + 14 + lw > b.width ? Math.max(0, dx - 14 - lw) : dx + 14) + "px"; dica.style.top = "8px";
+    }
+    function sair() { dica.style.display = "none"; mira.setAttribute("visibility", "hidden"); pts.innerHTML = ""; }
+    alvo.addEventListener("mousemove", mover);
+    alvo.addEventListener("touchmove", mover, { passive: true });
+    alvo.addEventListener("touchstart", mover, { passive: true });
+    alvo.addEventListener("mouseleave", sair);
+  }
+  // barras mensais (patrimonio, cotistas): partem do zero
+  function barras(id, s, fmt) {
+    var svg = $(id); if (!svg) return;
+    var W = Math.max(280, svg.parentNode.clientWidth - 34 || 480), H = 160, m = { t: 8, r: 6, b: 22, l: 46 };
+    var vals = s[1], mes0 = s[0], max = Math.max.apply(null, vals.filter(function (v) { return v !== null; }).concat([0]));
+    if (!(max > 0)) { svg.outerHTML = '<div class="vazio">Sem dado.</div>'; return; }
+    var passo = escalaBonita(max / 3), hi = Math.ceil(max / passo) * passo;
+    var bw = (W - m.l - m.r) / vals.length, g = "";
+    for (var v = 0; v <= hi + 1e-9; v += passo) {
+      var yy = m.t + (H - m.t - m.b) * (1 - v / hi);
+      g += '<line x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + yy + '" y2="' + yy + '" stroke="' + (v ? "#E8E3D9" : "#8795A6") +
+        '"/><text x="' + (m.l - 6) + '" y="' + (yy + 4) + '" text-anchor="end">' + fmt(v) + "</text>";
+    }
+    vals.forEach(function (v, i) {
+      var mes = mesMais(mes0, i);
+      if (mes.slice(5) === "01") g += '<text x="' + (m.l + bw * (i + 0.5)) + '" y="' + (H - 6) + '" text-anchor="middle">' + mes.slice(0, 4) + "</text>";
+      if (v === null) return;
+      var hh = (H - m.t - m.b) * v / hi;
+      g += '<rect x="' + (m.l + bw * i + 0.5) + '" y="' + (H - m.b - hh) + '" width="' + Math.max(1, bw - 1.5) +
+        '" height="' + hh + '" rx="1.5" fill="#10233B"><title>' + mesExtenso(mes) + ": " + fmt(v) + "</title></rect>";
+    });
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.setAttribute("height", H); svg.innerHTML = g;
+  }
+
+  window.addEventListener("hashchange", function () {
+    var k = decodeURIComponent((location.hash || "").slice(1));
+    if (k && k !== EST.chave && B.idx && B.idx[k]) abrir(k);
+  });
+
+  // ---------- carga ----------
+  Promise.all([json("fundos/indice.json"), json("fundos/atual.json"), json("benchmarks.json")]).then(function (r) {
+    if (!r[0] || !r[1]) { $("conteudo").innerHTML = '<div class="vazio">Não consegui carregar a base de fundos.</div>'; return; }
+    var c = r[0].campos, idx = {};
+    B.lista = r[0].fundos.map(function (x) {
+      var o = {}; c.forEach(function (n, i) { o[n] = x[i]; });
+      o.busca = semAcento(o.nome).toLowerCase(); idx[o.chave] = o; return o;
+    });
+    B.idx = idx;
+    B.mesFechado = r[0].mes_fechado;
+    var at = {}, cs = r[1].cotas, dt = r[1].data;
+    for (var k in cs) at[k] = typeof cs[k] === "number" ? [dt, cs[k]] : cs[k];
+    B.atual = at; B.data = dt;
+    B.bench = r[2] && r[2].series;
+    var h = decodeURIComponent((location.hash || "").slice(1));
+    if (h && idx[h]) abrir(h);
+    else $("conteudo").innerHTML = '<div class="vazio">Busque um fundo pelo nome ou CNPJ. São ' +
+      brl(B.lista.length, 0) + " fundos da CVM (os exclusivos, de um investidor só, ficam fora — menos os de previdência).</div>";
+  });
+})();
+</script>
+</body>
+</html>
