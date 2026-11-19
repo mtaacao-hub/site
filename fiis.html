@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Raio-X do FII — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Mesma identidade da marca, invertida: o marinho deixa de ser fundo e
+       passa a ser tinta. O fundo e um off-white levemente quente, derivado
+       do creme da marca, pra que o cartao branco puro se destaque dele sem
+       precisar de borda forte nem sombra. */
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;     /* o dourado nao tem contraste pra texto pequeno no branco */
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;    /* escurecidos pra ler no claro */
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  a{color:var(--gold-ink)}
+
+  header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:5;padding:14px 0;margin-bottom:22px;
+    background:var(--ground);border-bottom:1px solid var(--line)}
+  .marca{font-weight:800;color:var(--ink);font-size:.95rem;letter-spacing:.01em}
+  .busca{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  input[type=search]{min-width:230px;padding:10px 14px;border-radius:9px;font-family:var(--font);
+    font-size:.95rem;background:var(--card);border:1px solid var(--line-forte);color:var(--ink)}
+  input[type=search]::placeholder{color:var(--ink-3)}
+  input[type=search]:focus{outline:2px solid var(--gold);outline-offset:1px}
+
+  /* ---------- cabecalho da empresa ---------- */
+  /* Sem cartao: o nome da empresa e a cotacao sao o topo da pagina, nao um
+     bloco dentro dela. So uma regra fina embaixo. */
+  .ficha{padding:4px 2px 16px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .ficha .linha1{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .papel{font-size:2rem;font-weight:800;color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+  .empresa{font-size:1rem;color:var(--ink-2)}
+  .setor{font-size:.8rem;color:var(--ink-3)}
+  .cotacao{margin-left:auto;text-align:right}
+  .cotacao .v{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  .cotacao .d{font-size:.78rem;color:var(--ink-3);display:block}
+  .avisos{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .tag{font-size:.7rem;padding:4px 10px;border-radius:20px;border:1px solid var(--line-forte);
+    background:var(--card);color:var(--ink-2)}
+  .tag.alerta{border-color:rgba(181,57,43,.35);background:#FDF4F2;color:var(--vermelho)}
+
+  /* ---------- grafico ---------- */
+  .grafico{border:1px solid var(--line);border-radius:14px;padding:16px 18px 10px;
+    background:var(--card);margin-bottom:22px}
+  .periodos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+  .periodos button{background:var(--card);border:1px solid var(--line-forte);color:var(--ink-2);
+    padding:6px 13px;border-radius:8px;cursor:pointer;font-family:var(--font);font-size:.78rem;
+    font-weight:600;transition:.15s}
+  .periodos button:hover{border-color:var(--gold);color:var(--ink)}
+  .periodos button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  canvas{width:100%;height:260px;display:block}
+  .resumo-grafico{display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-3);
+    padding:10px 2px 2px}
+  .resumo-grafico b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* ---------- precos de valuation ---------- */
+  .valuation{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;
+    margin-bottom:18px}
+  .metodo{border:1px solid var(--line);border-radius:12px;padding:14px 15px;background:var(--card)}
+  /* o unico lugar onde o dourado e preenchimento: o numero que resume os outros */
+  .metodo.media{border-color:var(--gold);background:#FFFCF2}
+  /* com sete metodos a Media sobrava sozinha numa segunda linha: vira uma
+     faixa de largura inteira, embaixo, que e o papel dela (o resumo) */
+  .valuation .metodo.media{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px}
+  .valuation .metodo.media .nome{flex-basis:100%}
+  .metodo .nome{font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold-ink);
+    font-weight:700}
+  .metodo .preco{font-size:1.35rem;font-weight:800;margin-top:6px;font-variant-numeric:tabular-nums}
+  .metodo .margem{font-size:.8rem;font-weight:700;margin-top:3px}
+  .metodo .nota{font-size:.68rem;color:var(--ink-3);margin-top:7px;line-height:1.45}
+  .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
+
+  /* ---------- paineis de indicadores ---------- */
+  .paineis{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:14px}
+  .painel{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px}
+  .painel h3{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--gold-ink);font-weight:700}
+  .painel dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline}
+  .painel dt,.painel dd{padding:6px 0;border-top:1px solid var(--line)}
+  .painel dt:first-of-type,.painel dd:first-of-type{border-top:0;padding-top:0}
+  .painel dt{color:var(--ink-2);font-size:.82rem}
+  .painel dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;font-size:.88rem}
+
+  /* ---------- lista ---------- */
+  .lista{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    overflow-x:auto;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:620px}
+  th{text-align:right;padding:11px 10px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--ink-2);background:var(--card);border-bottom:1px solid var(--line-forte);
+    cursor:pointer;white-space:nowrap;user-select:none;position:sticky;top:0}
+  th:hover{color:var(--gold-ink)}
+  th:first-child,th:nth-child(2){text-align:left}
+  td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  td:first-child{text-align:left;font-weight:700;color:var(--ink);cursor:pointer}
+  td:nth-child(2){text-align:left;color:var(--ink-2);max-width:210px;overflow:hidden;text-overflow:ellipsis}
+  tbody tr:hover{background:#FFFBEF;cursor:pointer}
+
+  .rodape{margin-top:26px;padding:16px 18px;border-radius:11px;background:var(--card);
+    border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
+  .rodape b{color:var(--ink)}
+  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);
+    margin:28px 0 11px;font-weight:700}
+  .carregando{padding:50px;text-align:center;color:var(--ink-3)}
+
+  /* ---------- abas ---------- */
+  .abas{display:flex;gap:4px;margin:28px 0 14px;border-bottom:1px solid var(--line)}
+  .abas button{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-3);
+    padding:9px 15px;cursor:pointer;font-family:var(--font);font-size:.82rem;font-weight:700;
+    letter-spacing:.02em;transition:.15s;margin-bottom:-1px}
+  .abas button:hover{color:var(--ink)}
+  .abas button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--gold)}
+  .aba-sub{color:var(--ink-2);font-size:.82rem;margin:0 0 12px}
+
+  /* ---------- graficos anuais ---------- */
+  .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .topo-bloco{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .mini-periodo{display:flex;gap:2px;background:#F3EFE6;border-radius:8px;padding:2px}
+  .mini-periodo button{font-family:var(--font);font-size:.7rem;padding:3px 8px;border:0;border-radius:6px;
+    background:none;color:var(--ink-2);cursor:pointer}
+  .mini-periodo button.ativo{background:var(--card);color:var(--ink);font-weight:600;
+    box-shadow:0 1px 2px rgba(16,35,59,.12)}
+  .nota-periodo{font-size:.76rem;color:var(--ink-3);margin-left:6px}
+  .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px 10px}
+  .bloco h3{margin:0 0 2px;font-size:.84rem;font-weight:700;color:var(--ink)}
+  .bloco .sub{font-size:.7rem;color:var(--ink-3);margin-bottom:8px}
+  .bloco canvas{height:190px}
+  .legenda{display:flex;gap:14px;flex-wrap:wrap;font-size:.7rem;color:var(--ink-2);padding:4px 0 2px}
+  .legenda i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;
+    vertical-align:baseline}
+  .vazio{padding:28px 6px;text-align:center;color:var(--ink-3);font-size:.8rem}
+
+  /* ---------- historico do indicador ---------- */
+  .hist{border:1px solid var(--line-forte);background:var(--card);border-radius:6px;
+    padding:1px 4px 0;margin-left:5px;cursor:pointer;line-height:0;vertical-align:middle;
+    color:var(--ink-3);transition:.15s}
+  .hist:hover{border-color:var(--gold);color:var(--gold-ink)}
+  .hist svg{display:block}
+  .modal{position:fixed;inset:0;z-index:20;background:rgba(16,35,59,.42);
+    display:flex;align-items:center;justify-content:center;padding:16px}
+  /* o display:flex acima ganha do [hidden] do navegador por especificidade:
+     sem esta linha o modal nasce aberto */
+  .modal[hidden]{display:none}
+  .modal .caixa{background:var(--card);border-radius:14px;max-width:720px;width:100%;
+    max-height:92vh;overflow-y:auto;border:1px solid var(--line-forte)}
+  .modal header{display:flex;align-items:center;gap:12px;padding:18px 22px 14px}
+  .modal h3{margin:0;font-size:1.25rem;font-weight:800;color:var(--ink)}
+  .modal .fechar{margin-left:auto;border:0;background:var(--ground);color:var(--ink-2);
+    width:34px;height:34px;border-radius:50%;font-size:1.2rem;cursor:pointer;line-height:1}
+  .modal .fechar:hover{background:var(--ink);color:#fff}
+  .sumario{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--line);border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line)}
+  .sumario div{background:var(--card);padding:13px 22px}
+  .sumario dt{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);
+    font-weight:700}
+  .sumario dd{margin:3px 0 0;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums}
+  .sumario .obs{font-size:.72rem;font-weight:600;color:var(--ink-2)}
+  /* .pos/.neg sozinhas perdem pra .sumario .obs na especificidade */
+  .sumario .obs.pos{color:var(--verde)} .sumario .obs.neg{color:var(--vermelho)}
+  #modal-chart{height:300px;padding:6px 10px 0}
+  .modal .nota{padding:4px 22px 18px;font-size:.72rem;color:var(--ink-3);line-height:1.6}
+
+  /* ---------- so do FII ---------- */
+  .filtros{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:6px}
+  .filtros button{background:var(--card);border:1px solid var(--line-forte);color:var(--ink-2);
+    padding:5px 12px;border-radius:20px;cursor:pointer;font-family:var(--font);font-size:.75rem;font-weight:600}
+  .filtros button:hover{border-color:var(--gold);color:var(--ink)}
+  .filtros button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .filtros select{font-family:var(--font);font-size:.75rem;padding:5px 10px;border-radius:20px;
+    border:1px solid var(--line-forte);background:var(--card);color:var(--ink-2);margin-left:auto}
+  .bloco.largo{grid-column:1/-1}
+  .bloco.largo canvas{height:240px}
+  .barras-css{display:grid;grid-template-columns:minmax(120px,auto) 1fr 56px;gap:9px 12px;
+    align-items:center;font-size:.8rem;margin-top:6px}
+  .barras-css .rot{color:var(--ink-2)}
+  .barras-css .trilho{background:#F3EFE6;border-radius:4px;height:11px;overflow:hidden}
+  .barras-css .trilho i{display:block;height:100%;background:var(--ink);border-radius:4px}
+  .barras-css .trilho i.ouro{background:var(--gold)}
+  .barras-css .val{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+  .tab-imoveis{width:100%;min-width:560px}
+  .tab-imoveis td:first-child{white-space:normal;max-width:260px;cursor:default}
+  .tab-imoveis td:nth-child(2){white-space:normal;max-width:200px}
+  .tab-imoveis tbody tr:hover{background:none;cursor:default}
+  .tab-rend{min-width:0}
+  .tab-rend td:first-child{cursor:default;font-weight:600}
+  .tab-rend tbody tr:hover{background:none;cursor:default}
+  .resumo-linha{display:flex;gap:22px;flex-wrap:wrap;font-size:.8rem;color:var(--ink-2);margin:0 0 12px}
+  .resumo-linha b{color:var(--ink);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topo">
+    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
+      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
+        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
+        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
+        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
+        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
+      </g>
+    </svg>
+    <span class="marca">Muita Ação · FIIs</span>
+    <div class="busca">
+      <input type="search" id="busca" placeholder="Ticker, fundo ou segmento…" list="tickers" autocomplete="off" spellcheck="false">
+      <datalist id="tickers"></datalist>
+    </div>
+  </header>
+
+  <div id="conteudo"><div class="carregando">Carregando a base…</div></div>
+
+  <h2 class="sec" id="tit-lista">Todos os FIIs</h2>
+  <div class="filtros" id="filtros"></div>
+  <div class="lista">
+    <table>
+      <thead><tr>
+        <th data-col="ticker">Ticker</th><th data-col="nome">Fundo</th>
+        <th data-col="tipo" style="text-align:left">Tipo</th><th data-col="segmento" style="text-align:left">Segmento</th>
+        <th data-col="preco">Preço</th><th data-col="p_vp">P/VP</th><th data-col="dy_12m">DY 12m</th>
+        <th data-col="ult">Últ. rend.</th><th data-col="valor_mercado">Valor de mercado</th>
+        <th data-col="volume">Volume</th><th data-col="cotistas">Cotistas</th>
+      </tr></thead>
+      <tbody id="corpo"><tr><td colspan="11" class="carregando">…</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="rodape" id="rodape"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = null, HIST = {}, PROV = {}, LISTA = [], ATUAL = null, PERIODO = 365;
+  var FILTRO = "Todos", SEGMENTO = "", ABA = "ren", MODO_REN = "mes";
+  var ordem = { col: "volume", asc: false };
+  var COR_LINHA = "#10233B";
+  var COR = { azul: "#10233B", ouro: "#C9A227", verde: "#1C7F4D", vermelho: "#B5392B", cinza: "#B9C1CC" };
+  var MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+  var TIPOS = ["Todos", "Tijolo", "Papel", "Fundo de fundos", "Híbrido", "Desenvolvimento"];
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- formatacao ----------
+  function brl(v, casas) {
+    if (v === null || v === undefined || !isFinite(v)) return null;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: casas === undefined ? 2 : casas,
+                                       maximumFractionDigits: casas === undefined ? 2 : casas });
+  }
+  function num(v, casas, sufixo) {
+    var s = brl(v, casas);
+    return s === null ? '<span class="na">—</span>' : s + (sufixo || "");
+  }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+  function dataBR(iso) {
+    if (!iso) return "—";
+    var p = String(iso).slice(0, 10).split("-");
+    return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : iso;
+  }
+  function grande(v) {         // R$ em mi / bi
+    if (v === null || v === undefined || !isFinite(v)) return '<span class="na">—</span>';
+    if (Math.abs(v) >= 1e9) return "R$ " + brl(v / 1e9, 2) + " bi";
+    if (Math.abs(v) >= 1e6) return "R$ " + brl(v / 1e6, 1) + " mi";
+    return "R$ " + brl(v / 1e3, 0) + " mil";
+  }
+  function inteiro(v) { return v === null || v === undefined ? '<span class="na">—</span>' : brl(v, 0); }
+
+  // ---------- grafico de linha (o mesmo da ficha da acao) ----------
+  function desenhar(canvas, serie, cor, casas) {
+    var dpr = window.devicePixelRatio || 1;
+    var L = canvas.clientWidth, A = canvas.clientHeight;
+    canvas.width = L * dpr; canvas.height = A * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, L, A);
+    if (!serie || serie.length < 2) {
+      ctx.fillStyle = "rgba(16,35,59,.42)"; ctx.font = "13px Poppins, Arial";
+      ctx.fillText("Sem histórico para este período.", 12, A / 2);
+      return;
+    }
+    var mg = { e: 52, d: 10, t: 14, b: 22 };
+    var vs = serie.map(function (p) { return p[1]; });
+    var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
+    if (max === min) { max += 1; min -= 1; }
+    var folga = (max - min) * 0.08; min -= folga; max += folga;
+    if (min < 0 && Math.min.apply(null, vs) >= 0) min = 0;   // preco nao e negativo (HDEL11: eixo ia a -4,88)
+    var px = function (i) { return mg.e + (L - mg.e - mg.d) * (i / (serie.length - 1)); };
+    var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
+    ctx.strokeStyle = "rgba(16,35,59,.10)"; ctx.fillStyle = "rgba(16,35,59,.48)";
+    ctx.font = "10px Poppins, Arial"; ctx.lineWidth = 1;
+    for (var k = 0; k <= 4; k++) {
+      var v = min + (max - min) * k / 4, y = Math.round(py(v)) + .5;
+      ctx.beginPath(); ctx.moveTo(mg.e, y); ctx.lineTo(L - mg.d, y); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(brl(v, casas === undefined ? 2 : casas), mg.e - 7, y + 3);
+    }
+    ctx.textAlign = "left"; ctx.fillText(dataBR(serie[0][0]), mg.e, A - 6);
+    ctx.textAlign = "right"; ctx.fillText(dataBR(serie[serie.length - 1][0]), L - mg.d, A - 6);
+    var grad = ctx.createLinearGradient(0, mg.t, 0, A - mg.b);
+    grad.addColorStop(0, cor + "2E"); grad.addColorStop(1, cor + "00");
+    ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
+    serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
+    ctx.lineTo(px(serie.length - 1), A - mg.b); ctx.lineTo(px(0), A - mg.b); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
+    serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
+    ctx.strokeStyle = cor; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px(serie.length - 1), py(serie[serie.length - 1][1]), 3.5, 0, 7);
+    ctx.fillStyle = cor; ctx.fill();
+  }
+
+  // ---------- barras (o mesmo da ficha da acao: partem do zero) ----------
+  function barras(canvas, rotulos, series) {
+    var dpr = window.devicePixelRatio || 1;
+    var L = canvas.clientWidth, A = canvas.clientHeight;
+    canvas.width = L * dpr; canvas.height = A * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, L, A);
+    var todos = [];
+    series.forEach(function (s) { s.valores.forEach(function (v) { if (v !== null && isFinite(v)) todos.push(v); }); });
+    if (!todos.length) {
+      ctx.fillStyle = "rgba(16,35,59,.42)"; ctx.font = "13px Poppins, Arial";
+      ctx.fillText("Sem rendimento no período.", 12, A / 2);
+      return;
+    }
+    var max = Math.max.apply(null, todos), min = 0;
+    if (max <= 0) max = 1;
+    max *= 1.14;
+    var mg = { e: 46, d: 8, t: 14, b: 20 };
+    var larg = (L - mg.e - mg.d) / rotulos.length;
+    var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
+    var zero = py(0);
+    ctx.font = "9px Poppins, Arial"; ctx.lineWidth = 1;
+    for (var k = 0; k <= 3; k++) {
+      var v = min + (max - min) * k / 3, y = Math.round(py(v)) + 0.5;
+      ctx.strokeStyle = "rgba(16,35,59,.08)";
+      ctx.beginPath(); ctx.moveTo(mg.e, y); ctx.lineTo(L - mg.d, y); ctx.stroke();
+      ctx.fillStyle = "rgba(16,35,59,.45)"; ctx.textAlign = "right";
+      ctx.fillText(brl(v, v < 10 ? 2 : 0), mg.e - 6, y + 3);
+    }
+    var n = series.length;
+    // valor em cima da barra so quando cabe (como no Status: e o numero que
+    // se quer ler, nao a escala)
+    var cabe = larg / n >= 26;
+    series.forEach(function (s, j) {
+      var w = (larg * 0.66) / n;
+      s.valores.forEach(function (v, i) {
+        if (v === null || !isFinite(v)) return;
+        var x = mg.e + larg * (i + 0.17) + w * j, y = py(v);
+        ctx.fillStyle = s.cor;
+        ctx.fillRect(x, Math.min(y, zero), w - 1, Math.max(1, Math.abs(zero - y)));
+        if (cabe && v > 0) {
+          ctx.fillStyle = "rgba(16,35,59,.7)"; ctx.textAlign = "center"; ctx.font = "9px Poppins, Arial";
+          ctx.fillText(brl(v, v < 10 ? 2 : 1), x + (w - 1) / 2, y - 4);
+        }
+      });
+    });
+    ctx.fillStyle = "rgba(16,35,59,.5)"; ctx.textAlign = "center"; ctx.font = "9px Poppins, Arial";
+    var maior = rotulos.reduce(function (m, x) { return Math.max(m, ctx.measureText(String(x)).width); }, 0);
+    var passo = Math.max(1, Math.ceil((maior + 8) / larg));
+    rotulos.forEach(function (r, i) {
+      if (i % passo) return;
+      ctx.fillText(r, mg.e + larg * (i + 0.5), A - 6);
+    });
+  }
+
+  // ---------- dados ----------
+  // TUDO NA COTA DE HOJE. historico.json, proventos.json e o VP da CVM estao
+  // na cota DA EPOCA (HGLG11: R$ 1.044 e rendimento de 8,70 antes do
+  // desdobramento 1:10 de 2018). Divide pelo produto dos eventos com data >=
+  // a do ponto -- a mesma regra da acoes.html e da carteira.
+  function fatorDepois(t, iso) {
+    var f = 1;
+    (BASE.fiis[t].eventos_acionarios || []).forEach(function (e) { if (e[0] >= iso && e[1]) f *= e[1]; });
+    return f;
+  }
+  var HIST_AJ = {};
+  function serieHoje(t) {
+    if (!HIST_AJ[t]) HIST_AJ[t] = (HIST[t] || []).map(function (p) { return [p[0], p[1] / fatorDepois(t, p[0])]; });
+    return HIST_AJ[t];
+  }
+  function fatiar(ticker, dias) {
+    var s = serieHoje(ticker);
+    if (!s.length) return [];
+    var limite = new Date(s[s.length - 1][0]);
+    limite.setDate(limite.getDate() - dias);
+    var iso = limite.toISOString().slice(0, 10);
+    var corte = s.filter(function (p) { return p[0] >= iso; });
+    return corte.length >= 2 ? corte : s.slice(-2);
+  }
+  // rendimentos por data-com, somados por dia (o Fundamentus lista
+  // rendimento e amortizacao separados na mesma data)
+  // So RENDIMENTO: a amortizacao devolve capital (a cota cai do mesmo
+  // tanto) e o mercado nao a poe no DY de FII. Ela sai na tabela, a parte.
+  function ehAmort(x) { return /AMORTIZ/i.test(x[2] || ""); }
+  function rendimentos(t, comAmort) {
+    var por = {};
+    (PROV[t] || []).forEach(function (x) {
+      if (x[1] > 0 && (comAmort || !ehAmort(x))) por[x[0]] = (por[x[0]] || 0) + x[1] / fatorDepois(t, x[0]);
+    });
+    return Object.keys(por).sort().map(function (d) { return [d, por[d]]; });
+  }
+  function precoEm(t, iso) {      // ultimo fechamento ate a data, na cota de hoje
+    var s = serieHoje(t), r = null;
+    for (var i = 0; i < s.length && s[i][0] <= iso; i++) r = s[i][1];
+    return r;
+  }
+  function fimDoMes(ym) {
+    var a = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7));
+    var d = new Date(Date.UTC(a, m, 0));
+    return d.toISOString().slice(0, 10);
+  }
+
+  // ---------- ficha do FII ----------
+  function abrir(t) {
+    var f = BASE.fiis[t];
+    if (!f) return;
+    ATUAL = t;
+    var tags = [];
+    if (f.informe) tags.push("informe da CVM de " + f.informe.slice(5, 7) + "/" + f.informe.slice(0, 4));
+    if (f.gestao) tags.push("gestão " + f.gestao.toLowerCase());
+    if (f.administrador) tags.push("adm.: " + f.administrador);
+    if (f.publico && !/GERAL/i.test(f.publico)) tags.push("público: " + f.publico.toLowerCase());
+    var alertas = [];
+    if (f.amortizacao_12m && f.preco && f.amortizacao_12m > 0.2 * f.preco)
+      alertas.push("amortizou R$ " + brl(f.amortizacao_12m, 2) + " por cota em 12 meses — o DY sobre a cotação de hoje fica distorcido");
+    if (f.vacancia_inconsistente) alertas.push("vacância declarada à CVM não confiável");
+    var r12 = f.rendimento_12m, ult = f.ultimo_rendimento;
+    var nImo = (f.imoveis || []).length;
+
+    var h = '<section class="ficha"><div class="linha1">' +
+      '<span class="papel">' + esc(t) + '</span><span class="empresa">' + esc(f.nome) + '</span>' +
+      '<span class="setor">' + esc([f.tipo, f.segmento].filter(Boolean).join(" · ")) + '</span>' +
+      '<span class="cotacao"><span class="v">R$ ' + brl(f.preco) + '</span>' +
+      '<span class="d">fechamento de ' + dataBR(f.data) + '</span></span></div>' +
+      '<div class="avisos">' + alertas.map(function (x) { return '<span class="tag alerta">' + esc(x) + '</span>'; }).join("") +
+      tags.map(function (x) { return '<span class="tag">' + esc(x) + '</span>'; }).join("") +
+      '</div></section>';
+
+    h += '<section class="grafico"><div class="periodos" id="periodos">' +
+      [["5d", 7], ["1m", 31], ["3m", 92], ["6m", 183], ["12m", 365], ["60m", 1826], ["Máx", 99999]].map(function (p) {
+        return '<button data-d="' + p[1] + '" aria-pressed="' + (p[1] === PERIODO) + '">' + p[0] + '</button>';
+      }).join("") + '</div><canvas id="chart"></canvas><div class="resumo-grafico" id="resumo-grafico"></div></section>';
+
+    h += '<div class="paineis">' +
+      painel("Valuation", [
+        ["P/VP", num(f.p_vp, 2)],
+        ["Valor patrimonial por cota", f.vp_cota ? "R$ " + brl(f.vp_cota) : num(null)],
+        ["Dividend yield 12m", num(f.dy_12m, 2, "%")],
+        ["Rendimento 12m por cota", r12 ? "R$ " + brl(r12, 2) : num(null)],
+        ["Último rendimento", ult ? "R$ " + brl(ult[1], 2) + ' <span class="na">(' + dataBR(ult[0]) + ")</span>" : num(null)],
+        ["Yield do último", ult && f.preco ? brl(ult[1] / f.preco * 100, 2) + "%" : num(null)]
+      ]) +
+      painel("Fundo", [
+        ["Patrimônio líquido", grande(f.pl)],
+        ["Valor de mercado", grande(f.valor_mercado)],
+        ["Cotas emitidas", inteiro(f.cotas)],
+        ["Cotistas", inteiro(f.cotistas)],
+        ["Taxa de adm. (mês, % do PL)", f.taxa_adm_mes !== null && f.taxa_adm_mes !== undefined ? brl(f.taxa_adm_mes * 100, 3) + "%" : num(null)],
+        ["Volume no pregão", grande(f.volume)]
+      ]) +
+      painel("Imóveis", [
+        ["Imóveis", nImo ? brl(nImo, 0) : '<span class="na">nenhum</span>'],
+        ["Área total", f.area_total ? brl(f.area_total, 0) + " m²" : num(null)],
+        ["Vacância física", f.vacancia_inconsistente ? '<span class="na">não confiável</span>'
+                            : nImo ? num(f.vacancia_fisica, 1, "%") : num(null)],
+        ["Em imóveis", f.composicao ? brl(f.composicao.imoveis, 1) + "%" : num(null)],
+        ["Em papel (CRI, LCI…)", f.composicao ? brl(f.composicao.papel, 1) + "%" : num(null)],
+        ["Em cotas de FII", f.composicao ? brl(f.composicao.fii, 1) + "%" : num(null)]
+      ]) + '</div>';
+
+    h += '<div class="abas" role="tablist">' +
+      aba("ren", "Rendimentos") + aba("imo", "Imóveis" + (nImo ? " (" + nImo + ")" : "")) +
+      aba("com", "Composição") + aba("his", "P/VP no tempo") + '</div><div id="aba"></div>';
+    $("conteudo").innerHTML = h;
+
+    $("periodos").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      PERIODO = Number(b.dataset.d);
+      Array.prototype.forEach.call($("periodos").children, function (x) { x.setAttribute("aria-pressed", x === b); });
+      grafPreco();
+    });
+    document.querySelector(".abas").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      ABA = b.dataset.aba; abaAtual();
+    });
+    grafPreco();
+    abaAtual();
+  }
+  function painel(tit, linhas) {
+    return '<div class="painel"><h3>' + tit + '</h3><dl>' + linhas.map(function (l) {
+      return "<dt>" + l[0] + "</dt><dd>" + l[1] + "</dd>";
+    }).join("") + "</dl></div>";
+  }
+  function aba(k, nome) {
+    return '<button role="tab" data-aba="' + k + '" aria-selected="' + (ABA === k) + '">' + nome + '</button>';
+  }
+  function grafPreco() {
+    var s = fatiar(ATUAL, PERIODO);
+    desenhar($("chart"), s, COR_LINHA);
+    if (s.length >= 2) {
+      var vs = s.map(function (p) { return p[1]; }), v = (s[s.length - 1][1] / s[0][1] - 1) * 100;
+      $("resumo-grafico").innerHTML = 'No período: <b class="' + (v >= 0 ? "pos" : "neg") + '">' +
+        (v >= 0 ? "+" : "") + brl(v, 1) + '%</b> <span>Mínima: <b>R$ ' + brl(Math.min.apply(null, vs)) +
+        '</b></span> <span>Máxima: <b>R$ ' + brl(Math.max.apply(null, vs)) + '</b></span>' +
+        ' <span>Cotação sem os rendimentos, que nos FIIs são a maior parte do retorno.</span>';
+    } else $("resumo-grafico").innerHTML = "";
+  }
+  function abaAtual() {
+    Array.prototype.forEach.call(document.querySelectorAll(".abas button"), function (b) {
+      b.setAttribute("aria-selected", b.dataset.aba === ABA);
+    });
+    ({ ren: abaRendimentos, imo: abaImoveis, com: abaComposicao, his: abaHistorico })[ABA]();
+  }
+
+  // ---------- aba: rendimentos (como o grafico do Status Invest) ----------
+  var NOME_REN = { mes: "Mês a mês", u24: "24 meses", a5: "5 anos", max: "Máx" };
+  function visaoRend(t, modo) {
+    var r = rendimentos(t);
+    if (!r.length) return null;
+    var hoje = BASE.fiis[t].data || new Date().toISOString().slice(0, 10);
+    var ano = Number(hoje.slice(0, 4));
+    if (modo === "mes") {
+      // ano corrente contra o anterior, mes a mes, pela data-com
+      var a = [], b = [];
+      for (var m = 0; m < 12; m++) { a.push(null); b.push(null); }
+      r.forEach(function (x) {
+        var y = Number(x[0].slice(0, 4)), mm = Number(x[0].slice(5, 7)) - 1;
+        if (y === ano) b[mm] = (b[mm] || 0) + x[1];
+        if (y === ano - 1) a[mm] = (a[mm] || 0) + x[1];
+      });
+      return { rotulos: MESES, series: [
+        { nome: String(ano - 1), cor: COR.cinza, valores: a },
+        { nome: String(ano), cor: COR.verde, valores: b }] };
+    }
+    if (modo === "u24") {
+      var corte = new Date(hoje); corte.setMonth(corte.getMonth() - 24);
+      var c = corte.toISOString().slice(0, 10);
+      var x24 = r.filter(function (x) { return x[0] > c; });
+      return { rotulos: x24.map(function (x) { return x[0].slice(5, 7) + "/" + x[0].slice(2, 4); }),
+               series: [{ nome: "Rendimento por cota (pela data-com)", cor: COR.verde,
+                          valores: x24.map(function (x) { return x[1]; }) }] };
+    }
+    var por = {};
+    r.forEach(function (x) { var y = x[0].slice(0, 4); por[y] = (por[y] || 0) + x[1]; });
+    var anos = Object.keys(por).sort();
+    if (modo === "a5") anos = anos.filter(function (y) { return Number(y) > ano - 5; });
+    return { rotulos: anos, series: [{ nome: "Rendimento por cota no ano", cor: COR.verde,
+             valores: anos.map(function (y) { return por[y]; }) }],
+             parcial: String(ano) };
+  }
+  function abaRendimentos() {
+    var t = ATUAL, f = BASE.fiis[t];
+    var v = visaoRend(t, MODO_REN);
+    var h = '<div class="graficos"><div class="bloco largo"><div class="topo-bloco"><h3>Rendimentos por cota</h3>' +
+      '<div class="mini-periodo" id="modo-ren">' + Object.keys(NOME_REN).map(function (k) {
+        return '<button data-m="' + k + '" class="' + (k === MODO_REN ? "ativo" : "") + '">' + NOME_REN[k] + '</button>';
+      }).join("") + '</div></div>' +
+      '<div class="sub">R$ por cota, pela data-com, sem amortização' +
+      (v && v.parcial ? " · " + v.parcial + " até agora" : "") + '</div>';
+    if (!v) h += '<div class="vazio">Sem rendimento registrado para este fundo.</div>';
+    else h += '<canvas id="c-ren"></canvas><div class="legenda">' + v.series.map(function (s) {
+      return '<span><i style="background:' + s.cor + '"></i>' + esc(s.nome) + '</span>';
+    }).join("") + '</div>';
+    h += '</div></div>';
+    // tabela dos ultimos 12, com o yield sobre a cotacao da data-com
+    var r = (PROV[t] || []).filter(function (x) { return x[1] > 0; })
+      .sort(function (a, b) { return a[0] < b[0] ? 1 : -1; }).slice(0, 12)
+      .map(function (x) { return [x[0], x[1] / fatorDepois(t, x[0]), x[2]]; });
+    if (r.length) {
+      h += '<h2 class="sec">Últimos rendimentos</h2><div class="lista"><table class="tab-rend"><thead><tr>' +
+        '<th>Data-com</th><th>Tipo</th><th>Valor por cota</th><th>Cotação na data-com</th><th>Yield do mês</th></tr></thead><tbody>' +
+        r.map(function (x) {
+          var p = precoEm(t, x[0]);
+          return '<tr><td>' + dataBR(x[0]) + '</td><td>' + (ehAmort(x) ? "Amortização" : "Rendimento") +
+            '</td><td>R$ ' + brl(x[1], 2) + '</td><td>' +
+            (p ? "R$ " + brl(p) : num(null)) + '</td><td>' + (p ? brl(x[1] / p * 100, 2) + "%" : num(null)) + '</td></tr>';
+        }).join("") + '</tbody></table></div>';
+    }
+    $("aba").innerHTML = h;
+    if (v) barras($("c-ren"), v.rotulos, v.series);
+    var mr = $("modo-ren");
+    if (mr) mr.addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      MODO_REN = b.dataset.m; abaRendimentos();
+    });
+  }
+
+  // ---------- aba: imoveis ----------
+  function local(end) {
+    // a CVM grava "Logradouro, numero, ..., Cidade/UF, Brasil, CEP"
+    var m = String(end || "").match(/([^,]+\/[A-Z]{2})\b/);
+    return m ? m[1].trim() : "";
+  }
+  function abaImoveis() {
+    var f = BASE.fiis[ATUAL], im = f.imoveis || [];
+    if (!im.length) {
+      $("aba").innerHTML = '<div class="vazio">' + (f.tipo === "Papel" || f.tipo === "Fundo de fundos"
+        ? "Fundo de " + f.tipo.toLowerCase() + ": não tem imóvel próprio informado à CVM."
+        : "Nenhum imóvel no último informe trimestral da CVM.") + '</div>';
+      return;
+    }
+    var h = '<p class="resumo-linha"><span>Imóveis: <b>' + im.length + '</b></span>' +
+      (f.area_total ? '<span>Área total: <b>' + brl(f.area_total, 0) + ' m²</b></span>' : "") +
+      (f.vacancia_inconsistente ? "" : '<span>Vacância física: <b>' + num(f.vacancia_fisica, 1, "%") + '</b></span>') +
+      '<span>pelo informe trimestral da CVM, ordenado pela participação na receita</span></p>' +
+      (f.vacancia_inconsistente ? '<p class="aba-sub"><b>Vacância omitida.</b> O fundo declara à CVM 100% de ' +
+        'vacância em imóveis que respondem pela maior parte da receita — imóvel vago não paga aluguel, então o ' +
+        'campo provavelmente recebeu a taxa de <b>ocupação</b>. Outros sites repetem o número porque leem o mesmo ' +
+        'campo.</p>' : "") +
+      '<div class="lista"><table class="tab-imoveis"><thead><tr><th>Imóvel</th><th>Local</th>' +
+      '<th>Área (m²)</th><th>Vacância</th><th>Inadimplência</th><th>% da receita</th></tr></thead><tbody>' +
+      im.map(function (x) {
+        return '<tr><td>' + esc(x.nome) + '</td><td>' + esc(local(x.endereco)) + '</td><td>' +
+          (x.area ? brl(x.area, 0) : num(null)) + '</td><td>' +
+          (x.vacancia !== null ? brl(x.vacancia * 100, 1) + "%" : num(null)) + '</td><td>' +
+          (x.inadimplencia !== null ? brl(x.inadimplencia * 100, 1) + "%" : num(null)) + '</td><td>' +
+          (x.receita !== null ? brl(x.receita * 100, 1) + "%" : num(null)) + '</td></tr>';
+      }).join("") + '</tbody></table></div>';
+    var inq = f.inquilinos_setor || {};
+    var ks = Object.keys(inq);
+    if (ks.length) {
+      var mx = Math.max.apply(null, ks.map(function (k) { return inq[k]; }));
+      h += '<h2 class="sec">Inquilinos por setor (% da receita)</h2><div class="painel"><div class="barras-css">' +
+        ks.map(function (k) {
+          return '<span class="rot">' + esc(k) + '</span><span class="trilho"><i class="ouro" style="width:' +
+            (mx ? inq[k] / mx * 100 : 0) + '%"></i></span><span class="val">' + brl(inq[k], 1) + '%</span>';
+        }).join("") + '</div></div>';
+    }
+    $("aba").innerHTML = h;
+  }
+
+  // ---------- aba: composicao ----------
+  function abaComposicao() {
+    var c = BASE.fiis[ATUAL].composicao;
+    if (!c) { $("aba").innerHTML = '<div class="vazio">Sem composição no último informe mensal.</div>'; return; }
+    var linhas = [["Imóveis e direitos reais", c.imoveis], ["Papel (CRI, LCI, LH, debêntures…)", c.papel],
+                  ["Cotas de outros FIIs", c.fii]];
+    var resto = Math.max(0, 100 - c.imoveis - c.papel - c.fii);
+    if (resto >= 0.5) linhas.push(["Outros (ações, FIP, FIDC…)", resto]);
+    var h = '<p class="aba-sub">Onde está o dinheiro investido, pelo informe mensal da CVM. Classificação: ' +
+      '<b>' + esc(BASE.fiis[ATUAL].tipo || "—") + '</b> — papel ou cotas de FII acima de 50% fazem o fundo de ' +
+      'papel ou de fundos; imóveis acima de 50%, de tijolo.</p><div class="painel"><div class="barras-css">' +
+      linhas.map(function (l) {
+        return '<span class="rot">' + l[0] + '</span><span class="trilho"><i style="width:' +
+          Math.min(100, l[1]) + '%"></i></span><span class="val">' + brl(l[1], 1) + '%</span>';
+      }).join("") + '</div></div>';
+    h += '<p class="aba-sub" style="margin-top:12px">Além do investido, o fundo guarda em caixa e títulos ' +
+      'públicos o equivalente a <b>' + brl(c.caixa_liquidez, 1) + '%</b> dele' +
+      (c.desenvolvimento ? '; <b>' + brl(c.desenvolvimento, 1) + '%</b> está em imóvel em construção, para venda ou terreno' : "") +
+      '.</p>';
+    $("aba").innerHTML = h;
+  }
+
+  // ---------- aba: P/VP e VP por cota no tempo ----------
+  function abaHistorico() {
+    var t = ATUAL, f = BASE.fiis[t];
+    var vp = (f.historico || []).filter(function (x) { return x[1] > 0; })
+      .map(function (x) { var d = fimDoMes(x[0]); return [d, x[1] / fatorDepois(t, d)]; });
+    var pvp = vp.map(function (x) { var p = precoEm(t, x[0]); return p ? [x[0], p / x[1]] : null; })
+      .filter(Boolean);
+    $("aba").innerHTML = '<div class="graficos">' +
+      '<div class="bloco"><h3>P/VP</h3><div class="sub">cotação do fim do mês ÷ valor patrimonial do informe do mês</div>' +
+      '<canvas id="c-pvp"></canvas></div>' +
+      '<div class="bloco"><h3>Valor patrimonial por cota</h3><div class="sub">R$, informe mensal da CVM, na cota de hoje</div>' +
+      '<canvas id="c-vp"></canvas></div></div>';
+    desenhar($("c-pvp"), pvp, COR.ouro);
+    desenhar($("c-vp"), vp, COR_LINHA);
+  }
+
+  // ---------- lista ----------
+  function render() {
+    var q = $("busca").value.trim().toUpperCase();
+    var linhas = LISTA.filter(function (x) {
+      if (FILTRO !== "Todos" && x.tipo !== FILTRO) return false;
+      if (SEGMENTO && x.segmento !== SEGMENTO) return false;
+      if (!q) return true;
+      return (x.ticker + " " + x.nome + " " + (x.segmento || "") + " " + (x.tipo || "")).toUpperCase().indexOf(q) >= 0;
+    });
+    var c = ordem.col, s = ordem.asc ? 1 : -1;
+    linhas.sort(function (a, b) {
+      var va = a.ord[c], vb = b.ord[c];
+      if (va === null || va === undefined) return 1;
+      if (vb === null || vb === undefined) return -1;
+      return (typeof va === "string" ? va.localeCompare(vb) : va - vb) * s;
+    });
+    $("tit-lista").textContent = linhas.length === LISTA.length ? "Todos os FIIs (" + LISTA.length + ")"
+                                                                  : linhas.length + " de " + LISTA.length + " FIIs";
+    $("corpo").innerHTML = linhas.map(function (x) {
+      return '<tr data-t="' + x.ticker + '"><td>' + x.ticker + '</td><td>' + esc(x.nome) + '</td>' +
+        '<td style="text-align:left">' + esc(x.tipo || "—") + '</td><td style="text-align:left">' + esc(x.segmento || "—") + '</td>' +
+        '<td>' + num(x.preco) + '</td><td>' + num(x.p_vp) + '</td><td>' + num(x.dy_12m, 2, "%") + '</td>' +
+        '<td>' + num(x.ord.ult) + '</td><td>' + grande(x.valor_mercado) + '</td><td>' + grande(x.volume) + '</td>' +
+        '<td>' + inteiro(x.cotistas) + '</td></tr>';
+    }).join("") || '<tr><td colspan="11" class="carregando">Nenhum FII com esse filtro.</td></tr>';
+  }
+  function montarFiltros() {
+    var segs = {};
+    LISTA.forEach(function (x) { if (x.segmento) segs[x.segmento] = (segs[x.segmento] || 0) + 1; });
+    $("filtros").innerHTML = TIPOS.map(function (t) {
+      var n = t === "Todos" ? LISTA.length : LISTA.filter(function (x) { return x.tipo === t; }).length;
+      return '<button data-t="' + t + '" aria-pressed="' + (t === FILTRO) + '">' + t + ' · ' + n + '</button>';
+    }).join("") + '<select id="segmento"><option value="">Todos os segmentos</option>' +
+      Object.keys(segs).sort().map(function (s) {
+        return '<option value="' + esc(s) + '">' + esc(s) + ' (' + segs[s] + ')</option>';
+      }).join("") + '</select>';
+    $("filtros").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button"); if (!b) return;
+      FILTRO = b.dataset.t;
+      Array.prototype.forEach.call($("filtros").querySelectorAll("button"), function (x) {
+        x.setAttribute("aria-pressed", x === b);
+      });
+      render();
+    });
+    $("segmento").addEventListener("change", function () { SEGMENTO = this.value; render(); });
+  }
+
+  Promise.all([
+    fetch("fiis.json").then(function (r) { return r.json(); }),
+    fetch("historico.json").then(function (r) { return r.json(); }).catch(function () { return {}; }),
+    fetch("proventos.json").then(function (r) { return r.json(); }).catch(function () { return {}; })
+  ]).then(function (res) {
+    BASE = res[0]; HIST = res[1]; PROV = res[2];
+    Object.keys(BASE.fiis).forEach(function (t) {
+      var f = BASE.fiis[t];
+      var x = Object.assign({ ticker: t }, f);
+      x.ord = { ticker: t, nome: f.nome, tipo: f.tipo, segmento: f.segmento, preco: f.preco, p_vp: f.p_vp,
+                dy_12m: f.dy_12m, ult: f.ultimo_rendimento ? f.ultimo_rendimento[1] : null,
+                valor_mercado: f.valor_mercado, volume: f.volume, cotistas: f.cotistas };
+      LISTA.push(x);
+    });
+    LISTA.sort(function (a, b) { return (b.volume || 0) - (a.volume || 0); });
+    $("tickers").innerHTML = LISTA.map(function (x) {
+      return '<option value="' + x.ticker + '">' + esc(x.nome) + "</option>";
+    }).join("");
+    var cf = BASE.conferencia || {};
+    $("rodape").innerHTML =
+      "<b>" + LISTA.length + " fundos imobiliários</b> com cotação na B3 e informe na CVM. " +
+      "Patrimônio, cotas, cotistas, composição e segmento do <b>Informe Mensal</b> da CVM; imóveis, " +
+      "vacância e inquilinos do <b>Informe Trimestral</b>; cotação do pregão da B3; rendimentos por cota " +
+      "do histórico do Fundamentus. " +
+      (cf.p_vp ? "Conferido contra o Fundamentus na mesma cotação: P/VP bate em <b>" + brl(cf.p_vp.acerto_pct, 1) +
+        "%</b> dos fundos" + (cf.dy_12m ? ", DY de 12 meses em <b>" + brl(cf.dy_12m.acerto_pct, 1) + "%</b>" : "") +
+        (cf.vacancia ? ", vacância em <b>" + brl(cf.vacancia.acerto_pct, 1) + "%</b>" : "") + ". " : "") +
+      "<br><br><b>Tipo</b> é nosso, pela composição do informe mensal (a CVM só dá o segmento). " +
+      "<b>Segmento</b> é o da CVM; para fundo de tijolo que a CVM chama de “Multicategoria”, deduzimos dos " +
+      "nomes dos imóveis quando 60% ou mais da receita está num segmento só. " +
+      "<b>Vacância física</b> é a média dos imóveis pela área, como declarada à CVM. " +
+      "<b>DY</b> é a soma dos rendimentos com data-com nos últimos 12 meses sobre a cotação de hoje. " +
+      "Volume é o do último pregão.<br><br>" +
+      "Conteúdo educacional, não é recomendação de investimento.";
+    montarFiltros();
+    var pedido = (location.hash || "").replace("#", "").toUpperCase();
+    abrir(BASE.fiis[pedido] ? pedido : LISTA[0].ticker);
+    render();
+  }).catch(function () {
+    $("conteudo").innerHTML = '<div class="carregando">Não consegui carregar a base de FIIs.</div>';
+  });
+
+  $("busca").addEventListener("input", function () {
+    var t = $("busca").value.trim().toUpperCase();
+    if (BASE && BASE.fiis[t]) abrir(t);
+    render();
+  });
+  $("corpo").addEventListener("click", function (ev) {
+    var tr = ev.target.closest("tr");
+    if (tr && tr.dataset.t) { abrir(tr.dataset.t); window.scrollTo({ top: 0, behavior: "smooth" }); }
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"), function (th) {
+    th.addEventListener("click", function () {
+      var c = th.dataset.col;
+      var texto = c === "ticker" || c === "nome" || c === "tipo" || c === "segmento";
+      ordem = (ordem.col === c) ? { col: c, asc: !ordem.asc } : { col: c, asc: texto };
+      render();
+    });
+  });
+  window.addEventListener("resize", function () {
+    if (!ATUAL) return;
+    grafPreco();
+    if (ABA === "ren" || ABA === "his") abaAtual();
+  });
+})();
+</script>
+</body>
+</html>

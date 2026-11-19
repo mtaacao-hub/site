@@ -229,7 +229,7 @@
 <script>
 (function () {
   "use strict";
-  var BASE = null, HIST = {}, SERIES = {}, LISTA = [], ATUAL = null, PERIODO = 252;
+  var BASE = null, HIST = {}, SERIES = {}, LISTA = [], ATUAL = null, PERIODO = 365;
   // Uma cor so pra linha. Verde/vermelho conforme a variacao do periodo dava
   // a impressao de que a cor mudava sozinha: o redesenho do resize usava
   // verde fixo, e no celular rolar a tela recolhe a barra de endereco e
@@ -321,6 +321,7 @@
     var min = Math.min.apply(null, precosArr), max = Math.max.apply(null, precosArr);
     if (max === min) { max += 1; min -= 1; }
     var folga = (max - min) * 0.08; min -= folga; max += folga;
+    if (min < 0 && Math.min.apply(null, precosArr) >= 0) min = 0;   // preco nao e negativo (HDEL11: eixo ia a -4,88)
     var px = function (i) { return mg.e + (L - mg.e - mg.d) * (i / (serie.length - 1)); };
     var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
 
@@ -423,7 +424,9 @@
       '</div>' + (avisos.length ? '<div class="avisos">' + avisos.join("") + "</div>" : "") + "</div>" +
 
       '<div class="grafico"><div class="periodos" id="periodos">' +
-        [[5, "5d"], [21, "1m"], [63, "3m"], [126, "6m"], [252, "12m"], [1260, "60m"],
+        // DIAS CORRIDOS: o fatiar() subtrai do calendario. Com os pregoes
+        // (252 = 12m) o "12m" mostrava 8 meses e o "60m", 3 anos e meio.
+        [[7, "5d"], [31, "1m"], [92, "3m"], [183, "6m"], [365, "12m"], [1826, "60m"],
          [99999, "Máx"]].map(function (x) {
           return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '">' + x[1] + "</button>";
         }).join("") +
