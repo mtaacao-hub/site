@@ -180,6 +180,11 @@
   .sumario .obs.pos{color:var(--verde)} .sumario .obs.neg{color:var(--vermelho)}
   #modal-chart{height:300px;padding:6px 10px 0}
   .modal .nota{padding:4px 22px 18px;font-size:.72rem;color:var(--ink-3);line-height:1.6}
+  /* rotulo da barra ao passar o mouse ou tocar (como no Status) */
+  .dica{position:fixed;z-index:40;pointer-events:none;background:rgba(16,35,59,.94);color:#fff;
+    font-size:.72rem;padding:6px 10px;border-radius:7px;white-space:nowrap;display:none;
+    box-shadow:0 2px 8px rgba(16,35,59,.25)}
+  .dica b{display:block;font-size:.9rem;font-weight:700;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -549,6 +554,7 @@
     series.forEach(function (s) {
       s.valores.forEach(function (v) { if (v !== null && isFinite(v)) todos.push(v); });
     });
+    canvas._hit = [];
     if (!todos.length) { return; }
     var max = Math.max.apply(null, todos), min = Math.min.apply(null, todos);
     // a base e sempre o zero quando tudo tem o mesmo sinal: barra que nao
@@ -562,6 +568,8 @@
 
     var mg = { e: 46, d: 8, t: 10, b: 20 };
     var larg = (L - mg.e - mg.d) / anos.length;
+    var hit = canvas._hit;
+    canvas._grade = { e: mg.e, larg: larg, casas: opt.casas, moeda: opt.moeda };
     var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
     var zero = py(0);
 
@@ -587,6 +595,7 @@
         ctx.strokeStyle = s.cor; ctx.lineWidth = 2; ctx.stroke();
         s.valores.forEach(function (v, i) {
           if (v === null || !isFinite(v)) return;
+          hit.push({ i: i, cx: mg.e + larg * (i + 0.5), v: v, rot: anos[i], nome: s.nome });
           ctx.beginPath();
           ctx.arc(mg.e + larg * (i + 0.5), py(v), 3, 0, 7);
           ctx.fillStyle = s.cor; ctx.fill();
@@ -599,6 +608,7 @@
         if (v === null || !isFinite(v)) return;
         var x = mg.e + larg * (i + 0.19) + w * j;
         var y = py(v);
+        hit.push({ i: i, cx: x + (w - 1) / 2, v: v, rot: anos[i], nome: s.nome });
         ctx.fillStyle = s.cor;
         ctx.fillRect(x, Math.min(y, zero), w - 1, Math.max(1, Math.abs(zero - y)));
       });
@@ -623,6 +633,39 @@
       ctx.fillText(txt, mg.e + larg * (i + 0.5), A - 6);
     });
   }
+
+
+  // ---------- rotulo da barra (mouse ou toque) ----------
+  // Cada barras() guarda no canvas o que desenhou (_hit) e a grade (_grade);
+  // um ouvinte so, no documento, acha a COLUNA sob o cursor e, nela, a barra
+  // mais perto -- barra fina de 24 meses e pequena demais para acertar com o dedo.
+  var DICA = null;
+  function esconderDica() { if (DICA) DICA.style.display = "none"; }
+  function mostrarDica(ev) {
+    var c = ev.target, g = c._grade;
+    if (!c._hit || !c._hit.length || !g) { esconderDica(); return; }
+    var r = c.getBoundingClientRect(), mx = ev.clientX - r.left;
+    var col = Math.floor((mx - g.e) / g.larg);
+    var nela = c._hit.filter(function (b) { return b.i === col; });
+    if (!nela.length) { esconderDica(); return; }
+    var h = nela.reduce(function (a, b) { return Math.abs(b.cx - mx) < Math.abs(a.cx - mx) ? b : a; });
+    if (!DICA) { DICA = document.createElement("div"); DICA.className = "dica"; document.body.appendChild(DICA); }
+    var casas = g.casas !== undefined && g.casas !== null ? g.casas : (Math.abs(h.v) < 10 ? 2 : 0);
+    DICA.innerHTML = "<b>" + (g.moeda ? "R$ " : "") + brl(h.v, casas) + "</b>" + esc(h.rot) +
+                     (h.nome ? " · " + esc(h.nome) : "");
+    DICA.style.display = "block";
+    var x = ev.clientX + 14, y = ev.clientY - DICA.offsetHeight - 10;
+    if (x + DICA.offsetWidth > window.innerWidth - 8) x = ev.clientX - DICA.offsetWidth - 14;
+    DICA.style.left = Math.max(4, x) + "px";
+    DICA.style.top = Math.max(4, y) + "px";
+  }
+  ["mousemove", "click"].forEach(function (tipo) {
+    document.addEventListener(tipo, function (ev) {
+      if (ev.target && ev.target.tagName === "CANVAS" && ev.target._hit) mostrarDica(ev);
+      else esconderDica();
+    });
+  });
+  window.addEventListener("scroll", esconderDica, { passive: true });
 
   var COR = { azul: "#10233B", ouro: "#C9A227", verde: "#1C7F4D",
               vermelho: "#B5392B", cinza: "#8795A6" };
@@ -909,7 +952,10 @@
       });
     });
     GRAFICOS = vistas.map(function (vi, i) {
-      return { id: "g" + i, anos: vi.rotulos, series: vi.series, trimestral: vi.trimestral };
+      // proventos em R$ por acao com 4 casas, como o Status; o resto pelo tamanho
+      var prov = defs[i].c === "dividendos";
+      return { id: "g" + i, anos: vi.rotulos, series: vi.series, trimestral: vi.trimestral,
+               casas: prov ? 4 : null, moeda: prov };
     });
     redesenharGraficos();
   }
@@ -917,7 +963,7 @@
   function redesenharGraficos() {
     GRAFICOS.forEach(function (g) {
       var c = $(g.id);
-      if (c && c.clientWidth) barras(c, g.anos, g.series, { trimestral: g.trimestral });
+      if (c && c.clientWidth) barras(c, g.anos, g.series, { trimestral: g.trimestral, casas: g.casas, moeda: g.moeda });
     });
   }
 

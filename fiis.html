@@ -210,6 +210,11 @@
   .agrupa.off{opacity:.4;cursor:default}
   .resumo-linha{display:flex;gap:22px;flex-wrap:wrap;font-size:.8rem;color:var(--ink-2);margin:0 0 12px}
   .resumo-linha b{color:var(--ink);font-variant-numeric:tabular-nums}
+  /* rotulo da barra ao passar o mouse ou tocar (como no Status) */
+  .dica{position:fixed;z-index:40;pointer-events:none;background:rgba(16,35,59,.94);color:#fff;
+    font-size:.72rem;padding:6px 10px;border-radius:7px;white-space:nowrap;display:none;
+    box-shadow:0 2px 8px rgba(16,35,59,.25)}
+  .dica b{display:block;font-size:.9rem;font-weight:700;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -340,7 +345,9 @@
   }
 
   // ---------- barras (o mesmo da ficha da acao: partem do zero) ----------
-  function barras(canvas, rotulos, series) {
+  function barras(canvas, rotulos, series, opt) {
+    opt = opt || {};
+    canvas._hit = [];
     var dpr = window.devicePixelRatio || 1;
     var L = canvas.clientWidth, A = canvas.clientHeight;
     canvas.width = L * dpr; canvas.height = A * dpr;
@@ -359,6 +366,8 @@
     max *= 1.14;
     var mg = { e: 46, d: 8, t: 14, b: 20 };
     var larg = (L - mg.e - mg.d) / rotulos.length;
+    var hit = canvas._hit;
+    canvas._grade = { e: mg.e, larg: larg, casas: opt.casas, moeda: opt.moeda };
     var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
     var zero = py(0);
     ctx.font = "9px Poppins, Arial"; ctx.lineWidth = 1;
@@ -378,6 +387,7 @@
       s.valores.forEach(function (v, i) {
         if (v === null || !isFinite(v)) return;
         var x = mg.e + larg * (i + 0.17) + w * j, y = py(v);
+        hit.push({ i: i, cx: x + (w - 1) / 2, v: v, rot: rotulos[i], nome: s.nome });
         ctx.fillStyle = s.cor;
         ctx.fillRect(x, Math.min(y, zero), w - 1, Math.max(1, Math.abs(zero - y)));
         if (cabe && v > 0) {
@@ -394,6 +404,39 @@
       ctx.fillText(r, mg.e + larg * (i + 0.5), A - 6);
     });
   }
+
+
+  // ---------- rotulo da barra (mouse ou toque) ----------
+  // Cada barras() guarda no canvas o que desenhou (_hit) e a grade (_grade);
+  // um ouvinte so, no documento, acha a COLUNA sob o cursor e, nela, a barra
+  // mais perto -- barra fina de 24 meses e pequena demais para acertar com o dedo.
+  var DICA = null;
+  function esconderDica() { if (DICA) DICA.style.display = "none"; }
+  function mostrarDica(ev) {
+    var c = ev.target, g = c._grade;
+    if (!c._hit || !c._hit.length || !g) { esconderDica(); return; }
+    var r = c.getBoundingClientRect(), mx = ev.clientX - r.left;
+    var col = Math.floor((mx - g.e) / g.larg);
+    var nela = c._hit.filter(function (b) { return b.i === col; });
+    if (!nela.length) { esconderDica(); return; }
+    var h = nela.reduce(function (a, b) { return Math.abs(b.cx - mx) < Math.abs(a.cx - mx) ? b : a; });
+    if (!DICA) { DICA = document.createElement("div"); DICA.className = "dica"; document.body.appendChild(DICA); }
+    var casas = g.casas !== undefined && g.casas !== null ? g.casas : (Math.abs(h.v) < 10 ? 2 : 0);
+    DICA.innerHTML = "<b>" + (g.moeda ? "R$ " : "") + brl(h.v, casas) + "</b>" + esc(h.rot) +
+                     (h.nome ? " · " + esc(h.nome) : "");
+    DICA.style.display = "block";
+    var x = ev.clientX + 14, y = ev.clientY - DICA.offsetHeight - 10;
+    if (x + DICA.offsetWidth > window.innerWidth - 8) x = ev.clientX - DICA.offsetWidth - 14;
+    DICA.style.left = Math.max(4, x) + "px";
+    DICA.style.top = Math.max(4, y) + "px";
+  }
+  ["mousemove", "click"].forEach(function (tipo) {
+    document.addEventListener(tipo, function (ev) {
+      if (ev.target && ev.target.tagName === "CANVAS" && ev.target._hit) mostrarDica(ev);
+      else esconderDica();
+    });
+  });
+  window.addEventListener("scroll", esconderDica, { passive: true });
 
   // ---------- dados ----------
   // TUDO NA COTA DE HOJE. historico.json, proventos.json e o VP da CVM estao
@@ -616,7 +659,7 @@
         }).join("") + '</tbody></table></div>';
     }
     $("aba").innerHTML = h;
-    if (v) barras($("c-ren"), v.rotulos, v.series);
+    if (v) barras($("c-ren"), v.rotulos, v.series, { casas: 4, moeda: true });
     var ag = $("agrupa");
     if (ag) ag.addEventListener("change", function () { AGRUPA = ag.checked; abaRendimentos(); });
     var mr = $("modo-ren");
@@ -699,8 +742,15 @@
       .map(function (x) { var d = fimDoMes(x[0]); return [d, x[1] / fatorDepois(t, d)]; });
     var pvp = vp.map(function (x) { var p = precoEm(t, x[0]); return p ? [x[0], p / x[1]] : null; })
       .filter(Boolean);
+    // a mediana do periodo e a referencia do "P/VP de costume", como o P/VP
+    // historico das acoes (mediana de 10 exercicios)
+    var ord = pvp.map(function (x) { return x[1]; }).sort(function (a, b) { return a - b; });
+    var med = ord.length ? (ord.length % 2 ? ord[(ord.length - 1) / 2]
+                                           : (ord[ord.length / 2 - 1] + ord[ord.length / 2]) / 2) : null;
     $("aba").innerHTML = '<div class="graficos">' +
-      '<div class="bloco"><h3>P/VP</h3><div class="sub">cotação do fim do mês ÷ valor patrimonial do informe do mês</div>' +
+      '<div class="bloco"><h3>P/VP</h3><div class="sub">cotação do fim do mês ÷ valor patrimonial do informe do mês' +
+      (med ? ' · mediana desde ' + pvp[0][0].slice(0, 4) + ': <b>' + brl(med, 2) + '</b>, hoje ' +
+             brl(pvp[pvp.length - 1][1], 2) : '') + '</div>' +
       '<canvas id="c-pvp"></canvas></div>' +
       '<div class="bloco"><h3>Valor patrimonial por cota</h3><div class="sub">R$, informe mensal da CVM, na cota de hoje</div>' +
       '<canvas id="c-vp"></canvas></div></div>';
