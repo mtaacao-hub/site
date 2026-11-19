@@ -1,5 +1,5 @@
 {
- "gerado_em": "2026-11-19T11:47:17",
+ "gerado_em": "2026-11-19T11:57:42",
  "metodo": {
   "pl": "soma do valor de mercado / soma do lucro do controlador",
   "pl_mediana": "mediana dos P/L positivos, empresa a empresa",
@@ -1513,9 +1513,9 @@
    "lucro": 465312859843.0,
    "semanal": {
     "pl": {
-     "fechamento": 9.86,
-     "min": 9.74,
-     "min_data": "2026-10-30",
+     "fechamento": 9.73,
+     "min": 9.73,
+     "min_data": "2026-11-18",
      "max": 13.35,
      "max_data": "2026-02-20",
      "media": 11.39,
@@ -1523,9 +1523,9 @@
      "semanas": 47
     },
     "pl_lucrativas": {
-     "fechamento": 9.07,
-     "min": 8.99,
-     "min_data": "2026-10-30",
+     "fechamento": 8.96,
+     "min": 8.96,
+     "min_data": "2026-11-18",
      "max": 12.01,
      "max_data": "2026-02-20",
      "media": 10.36,
@@ -1535,7 +1535,7 @@
     "pl_mediana": {
      "fechamento": 8.08,
      "min": 8.08,
-     "min_data": "2026-11-17",
+     "min_data": "2026-11-18",
      "max": 11.16,
      "max_data": "2026-02-27",
      "media": 9.63,
@@ -1555,19 +1555,19 @@
    "pl_ponderado_indice": 9.72,
    "semanal": {
     "pl": {
-     "fechamento": 9.59,
-     "min": 9.52,
-     "min_data": "2026-10-30",
+     "fechamento": 9.47,
+     "min": 9.47,
+     "min_data": "2026-11-18",
      "max": 13.01,
      "max_data": "2026-02-20",
-     "media": 11.06,
+     "media": 11.05,
      "mediana": 10.81,
      "semanas": 47
     },
     "pl_lucrativas": {
-     "fechamento": 9.17,
-     "min": 9.12,
-     "min_data": "2026-10-30",
+     "fechamento": 9.06,
+     "min": 9.06,
+     "min_data": "2026-11-18",
      "max": 12.27,
      "max_data": "2026-02-20",
      "media": 10.51,
@@ -1575,7 +1575,7 @@
      "semanas": 47
     },
     "pl_mediana": {
-     "fechamento": 9.3,
+     "fechamento": 9.17,
      "min": 8.92,
      "min_data": "2026-10-30",
      "max": 14.39,
@@ -7792,9 +7792,9 @@
     265
    ],
    [
-    "2026-11-17",
-    9.86,
-    9.07,
+    "2026-11-18",
+    9.73,
+    8.96,
     8.08,
     265
    ]
@@ -13996,10 +13996,10 @@
     74
    ],
    [
-    "2026-11-17",
-    9.59,
+    "2026-11-18",
+    9.47,
+    9.06,
     9.17,
-    9.3,
     74
    ]
   ]
