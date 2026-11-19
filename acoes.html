@@ -479,8 +479,10 @@
           ["Receita", num((r.receita_ttm || 0) / 1e6, 0) + " mi"],
           ["EBIT", num((r.ebit_ttm || 0) / 1e6, 0) + " mi"],
           ["Lucro", num((r.lucro_ttm || 0) / 1e6, 0) + " mi"],
-          ["Balanço de", dataBR(r.vpa_data)],
-          ["Ranking Magic Formula", m.magic_rank ? "#" + m.magic_rank : '<span class="na">—</span>']
+          // A Magic Formula (ranking de Greenblatt) saiu daqui em 18/11/2026: nao e
+          // preco justo, e uma lista ordenada de compra -- o que o CLAUDE.md
+          // manda nao pôr em tela sem o OK do Ricardo. O dado segue no JSON.
+          ["Balanço de", dataBR(r.vpa_data)]
         ]) + "</dl></div>" +
       "</div></div>";
 
