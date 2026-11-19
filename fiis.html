@@ -183,6 +183,9 @@
     padding:5px 12px;border-radius:20px;cursor:pointer;font-family:var(--font);font-size:.75rem;font-weight:600}
   .filtros button:hover{border-color:var(--gold);color:var(--ink)}
   .filtros button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .filtros{flex-direction:column;align-items:stretch}
+  .filtros-linha{display:flex;gap:6px;flex-wrap:wrap}
+  .filtros-linha.sub button{font-size:.7rem;padding:4px 10px;font-weight:500}
   .filtros select{font-family:var(--font);font-size:.75rem;padding:5px 10px;border-radius:20px;
     border:1px solid var(--line-forte);background:var(--card);color:var(--ink-2);margin-left:auto}
   .bloco.largo{grid-column:1/-1}
@@ -201,6 +204,10 @@
   .tab-rend{min-width:0}
   .tab-rend td:first-child{cursor:default;font-weight:600}
   .tab-rend tbody tr:hover{background:none;cursor:default}
+  .agrupa{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;color:var(--ink-2);
+    cursor:pointer;margin-left:auto;user-select:none}
+  .agrupa input{accent-color:var(--ink);margin:0;cursor:pointer}
+  .agrupa.off{opacity:.4;cursor:default}
   .resumo-linha{display:flex;gap:22px;flex-wrap:wrap;font-size:.8rem;color:var(--ink-2);margin:0 0 12px}
   .resumo-linha b{color:var(--ink);font-variant-numeric:tabular-nums}
 </style>
@@ -250,6 +257,10 @@
   "use strict";
   var BASE = null, HIST = {}, PROV = {}, LISTA = [], ATUAL = null, PERIODO = 365;
   var FILTRO = "Todos", SEGMENTO = "", ABA = "ren", MODO_REN = "mes";
+  // "Agrupar por ano", como no Status: o periodo escolhe a janela, e isto
+  // troca cada rendimento pelo total do ano. Nao vale no "Mes a mes", que ja
+  // e a comparacao com o ano anterior.
+  var AGRUPA = false;
   var ordem = { col: "volume", asc: false };
   var COR_LINHA = "#10233B";
   var COR = { azul: "#10233B", ouro: "#C9A227", verde: "#1C7F4D", vermelho: "#B5392B", cinza: "#B9C1CC" };
@@ -553,21 +564,25 @@
         { nome: String(ano - 1), cor: COR.cinza, valores: a },
         { nome: String(ano), cor: COR.verde, valores: b }] };
     }
+    var lista = r;
     if (modo === "u24") {
       var corte = new Date(hoje); corte.setMonth(corte.getMonth() - 24);
       var c = corte.toISOString().slice(0, 10);
-      var x24 = r.filter(function (x) { return x[0] > c; });
-      return { rotulos: x24.map(function (x) { return x[0].slice(5, 7) + "/" + x[0].slice(2, 4); }),
-               series: [{ nome: "Rendimento por cota (pela data-com)", cor: COR.verde,
-                          valores: x24.map(function (x) { return x[1]; }) }] };
+      lista = r.filter(function (x) { return x[0] > c; });
+    } else if (modo === "a5") {
+      // 5 anos CIVIS: o corrente e os 4 anteriores (agrupado, 5 barras)
+      lista = r.filter(function (x) { return Number(x[0].slice(0, 4)) > ano - 5; });
     }
+    if (!AGRUPA)
+      return { rotulos: lista.map(function (x) { return x[0].slice(5, 7) + "/" + x[0].slice(2, 4); }),
+               series: [{ nome: "Rendimento por cota (pela data-com)", cor: COR.verde,
+                          valores: lista.map(function (x) { return x[1]; }) }] };
     var por = {};
-    r.forEach(function (x) { var y = x[0].slice(0, 4); por[y] = (por[y] || 0) + x[1]; });
+    lista.forEach(function (x) { var y = x[0].slice(0, 4); por[y] = (por[y] || 0) + x[1]; });
     var anos = Object.keys(por).sort();
-    if (modo === "a5") anos = anos.filter(function (y) { return Number(y) > ano - 5; });
     return { rotulos: anos, series: [{ nome: "Rendimento por cota no ano", cor: COR.verde,
              valores: anos.map(function (y) { return por[y]; }) }],
-             parcial: String(ano) };
+             parcial: anos.indexOf(String(ano)) >= 0 ? String(ano) : null };
   }
   function abaRendimentos() {
     var t = ATUAL, f = BASE.fiis[t];
@@ -581,7 +596,10 @@
     if (!v) h += '<div class="vazio">Sem rendimento registrado para este fundo.</div>';
     else h += '<canvas id="c-ren"></canvas><div class="legenda">' + v.series.map(function (s) {
       return '<span><i style="background:' + s.cor + '"></i>' + esc(s.nome) + '</span>';
-    }).join("") + '</div>';
+    }).join("") + '<label class="agrupa' + (MODO_REN === "mes" ? " off" : "") + '"' +
+      (MODO_REN === "mes" ? ' title="O mês a mês já compara com o ano anterior"' : "") +
+      '><input type="checkbox" id="agrupa"' + (AGRUPA ? " checked" : "") +
+      (MODO_REN === "mes" ? " disabled" : "") + '> Agrupar por ano</label></div>';
     h += '</div></div>';
     // tabela dos ultimos 12, com o yield sobre a cotacao da data-com
     var r = (PROV[t] || []).filter(function (x) { return x[1] > 0; })
@@ -599,6 +617,8 @@
     }
     $("aba").innerHTML = h;
     if (v) barras($("c-ren"), v.rotulos, v.series);
+    var ag = $("agrupa");
+    if (ag) ag.addEventListener("change", function () { AGRUPA = ag.checked; abaRendimentos(); });
     var mr = $("modo-ren");
     if (mr) mr.addEventListener("click", function (ev) {
       var b = ev.target.closest("button"); if (!b) return;
@@ -693,7 +713,7 @@
     var q = $("busca").value.trim().toUpperCase();
     var linhas = LISTA.filter(function (x) {
       if (FILTRO !== "Todos" && x.tipo !== FILTRO) return false;
-      if (SEGMENTO && x.segmento !== SEGMENTO) return false;
+      if (SEGMENTO && (x.segmento || "Sem segmento") !== SEGMENTO) return false;
       if (!q) return true;
       return (x.ticker + " " + x.nome + " " + (x.segmento || "") + " " + (x.tipo || "")).toUpperCase().indexOf(q) >= 0;
     });
@@ -714,25 +734,31 @@
         '<td>' + inteiro(x.cotistas) + '</td></tr>';
     }).join("") || '<tr><td colspan="11" class="carregando">Nenhum FII com esse filtro.</td></tr>';
   }
+  // Tipo na primeira linha; na segunda, os SEGMENTOS do tipo escolhido, com a
+  // contagem (pedido do Ricardo: dentro de tijolo, ver shoppings, lajes,
+  // galpoes...). Trocar de tipo zera o segmento.
   function montarFiltros() {
+    var dele = LISTA.filter(function (x) { return FILTRO === "Todos" || x.tipo === FILTRO; });
     var segs = {};
-    LISTA.forEach(function (x) { if (x.segmento) segs[x.segmento] = (segs[x.segmento] || 0) + 1; });
-    $("filtros").innerHTML = TIPOS.map(function (t) {
+    dele.forEach(function (x) { var k = x.segmento || "Sem segmento"; segs[k] = (segs[k] || 0) + 1; });
+    var ordemSeg = Object.keys(segs).sort(function (a, b) { return segs[b] - segs[a] || a.localeCompare(b); });
+    $("filtros").innerHTML = '<div class="filtros-linha">' + TIPOS.map(function (t) {
       var n = t === "Todos" ? LISTA.length : LISTA.filter(function (x) { return x.tipo === t; }).length;
       return '<button data-t="' + t + '" aria-pressed="' + (t === FILTRO) + '">' + t + ' · ' + n + '</button>';
-    }).join("") + '<select id="segmento"><option value="">Todos os segmentos</option>' +
-      Object.keys(segs).sort().map(function (s) {
-        return '<option value="' + esc(s) + '">' + esc(s) + ' (' + segs[s] + ')</option>';
-      }).join("") + '</select>';
+    }).join("") + '</div><div class="filtros-linha sub">' +
+      '<button data-s="" aria-pressed="' + (!SEGMENTO) + '">Todos os segmentos</button>' +
+      ordemSeg.map(function (k) {
+        return '<button data-s="' + esc(k) + '" aria-pressed="' + (k === SEGMENTO) + '">' + esc(k) + ' · ' + segs[k] + '</button>';
+      }).join("") + '</div>';
+  }
+  function ligarFiltros() {
     $("filtros").addEventListener("click", function (ev) {
       var b = ev.target.closest("button"); if (!b) return;
-      FILTRO = b.dataset.t;
-      Array.prototype.forEach.call($("filtros").querySelectorAll("button"), function (x) {
-        x.setAttribute("aria-pressed", x === b);
-      });
+      if (b.dataset.t !== undefined) { FILTRO = b.dataset.t; SEGMENTO = ""; }
+      else SEGMENTO = b.dataset.s;
+      montarFiltros();
       render();
     });
-    $("segmento").addEventListener("change", function () { SEGMENTO = this.value; render(); });
   }
 
   Promise.all([
@@ -763,13 +789,16 @@
         "%</b> dos fundos" + (cf.dy_12m ? ", DY de 12 meses em <b>" + brl(cf.dy_12m.acerto_pct, 1) + "%</b>" : "") +
         (cf.vacancia ? ", vacância em <b>" + brl(cf.vacancia.acerto_pct, 1) + "%</b>" : "") + ". " : "") +
       "<br><br><b>Tipo</b> é nosso, pela composição do informe mensal (a CVM só dá o segmento). " +
-      "<b>Segmento</b> é o da CVM; para fundo de tijolo que a CVM chama de “Multicategoria”, deduzimos dos " +
-      "nomes dos imóveis quando 60% ou mais da receita está num segmento só. " +
+      "<b>Segmento</b> do tijolo: o do Investidor10 quando ele dá um segmento específico; senão o da CVM; " +
+      "senão deduzido dos nomes dos imóveis quando 60% ou mais da receita está num segmento só. A CVM põe quase " +
+      "todo tijolo em “Multicategoria”, e no que ela é específica bate com o Investidor10 em 91% dos fundos. " +
+      "No fundo de papel e no de fundos, o segmento é o que eles carregam. " +
       "<b>Vacância física</b> é a média dos imóveis pela área, como declarada à CVM. " +
       "<b>DY</b> é a soma dos rendimentos com data-com nos últimos 12 meses sobre a cotação de hoje. " +
       "Volume é o do último pregão.<br><br>" +
       "Conteúdo educacional, não é recomendação de investimento.";
     montarFiltros();
+    ligarFiltros();
     var pedido = (location.hash || "").replace("#", "").toUpperCase();
     abrir(BASE.fiis[pedido] ? pedido : LISTA[0].ticker);
     render();

@@ -137,6 +137,10 @@
   .mini-periodo button.ativo{background:var(--card);color:var(--ink);font-weight:600;
     box-shadow:0 1px 2px rgba(16,35,59,.12)}
   .nota-periodo{font-size:.76rem;color:var(--ink-3);margin-left:6px}
+  /* "Agrupar por ano" dos proventos, como no Status Invest */
+  .agrupa{display:inline-flex;align-items:center;gap:5px;font-size:.7rem;color:var(--ink-2);
+    cursor:pointer;margin-left:auto;user-select:none}
+  .agrupa input{accent-color:var(--ink);margin:0;cursor:pointer}
   .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px 10px}
   .bloco h3{margin:0 0 2px;font-size:.84rem;font-weight:700;color:var(--ink)}
   .bloco .sub{font-size:.7rem;color:var(--ink-3);margin-bottom:8px}
@@ -630,6 +634,11 @@
   var TRIM = null, TRIM_PEDIDO = null, TRIM_FALHOU = false, ITEM_GRA = null;
   var QTD_TRIM = 20;              // 5 anos: com mais, as barras ficam finas demais
   var MODO_GRA = {};              // chave do grafico -> "ano" | "tri" | "ttm" (vale entre empresas)
+  // Proventos: o PERIODO (24 meses, 5 anos, max) escolhe a janela e o
+  // "Agrupar por ano" troca cada pagamento pelo total do ano -- o jeito de
+  // ver o crescimento ao longo dos anos (pedido do Ricardo, como no Status).
+  // Vale entre empresas.
+  var AGRUPA_PROV = false;
   var NOME_MODO = { ano: "Ano", tri: "Tri", ttm: "12m" };
 
   var PROV = null;               // proventos.json: {ticker: [[data_ex, valor, tipo]]}, valor DA EPOCA
@@ -747,28 +756,36 @@
     var defs = [];
     var prov = PROV ? proventosHoje(item.ticker, emp) : [];
     if (prov.length) {
-      var porAno = {};
-      prov.forEach(function (x) { var a = x[0].slice(0, 4); porAno[a] = (porAno[a] || 0) + x[1]; });
-      var anosProv = Object.keys(porAno).sort();
       var hojeISO = new Date().toISOString().slice(0, 10);
       var corte24 = (Number(hojeISO.slice(0, 4)) - 2) + hojeISO.slice(4);
-      var anual = function (lista) {
-        return { rotulos: lista, series: [{ nome: "Proventos por ação", cor: COR.verde,
-                 valores: lista.map(function (a) { return porAno[a]; }) }] };
+      var anoHoje = hojeISO.slice(0, 4);
+      // a janela, por pagamento ou somada por ano
+      var janela = function (lista) {
+        if (AGRUPA_PROV) {
+          var por = {};
+          lista.forEach(function (x) { var a = x[0].slice(0, 4); por[a] = (por[a] || 0) + x[1]; });
+          var as = Object.keys(por).sort();
+          return { rotulos: as, parcial: as.indexOf(anoHoje) >= 0,
+                   series: [{ nome: "Proventos no ano", cor: COR.verde,
+                              valores: as.map(function (a) { return por[a]; }) }] };
+        }
+        return { rotulos: lista.map(function (x) { return x[0].slice(8, 10) + "/" + x[0].slice(5, 7) + "/" + x[0].slice(2, 4); }),
+                 series: [{ nome: "Provento (por data-ex)", cor: COR.verde,
+                            valores: lista.map(function (x) { return x[1]; }) }] };
       };
       defs.push({ c: "dividendos", t: "Proventos por ação",
                   s: "R$ por ação, nas ações de hoje (ajustado por desdobramento e grupamento)",
                   series: [{ nome: "Proventos", cor: COR.verde, valores: [1] }],   // so para o filtro
                   padrao: "pag", nomes: { pag: "24 meses", "5a": "5 anos", max: "Máx" },
+                  agrupa: true,
                   modos: {
-                    pag: function () {
-                      var ult = prov.filter(function (x) { return x[0] >= corte24; });
-                      return { rotulos: ult.map(function (x) { return x[0].slice(8, 10) + "/" + x[0].slice(5, 7) + "/" + x[0].slice(2, 4); }),
-                               series: [{ nome: "Provento (por data-ex)", cor: COR.verde,
-                                          valores: ult.map(function (x) { return x[1]; }) }] };
+                    pag: function () { return janela(prov.filter(function (x) { return x[0] >= corte24; })); },
+                    // 5 anos CIVIS (o corrente e os 4 anteriores): agrupado, sao 5 barras
+                    "5a": function () {
+                      var de = String(Number(anoHoje) - 4);
+                      return janela(prov.filter(function (x) { return x[0].slice(0, 4) >= de; }));
                     },
-                    "5a": function () { return anual(anosProv.slice(-5)); },
-                    max: function () { return anual(anosProv); }
+                    max: function () { return janela(prov); }
                   } });
     }
     if (temReceita) {
@@ -830,7 +847,7 @@
     function visao(d) {
       if (d.modos) {
         var m = MODO_GRA[d.c] || d.padrao, r = d.modos[m]();
-        return { modo: m, rotulos: r.rotulos, series: r.series, trimestral: false };
+        return { modo: m, rotulos: r.rotulos, series: r.series, trimestral: false, parcial: r.parcial };
       }
       var modo = (temTrim && d.tri) ? (MODO_GRA[d.c] || "ano") : "ano";
       if (modo !== "ano") {
@@ -872,12 +889,17 @@
                    nomes[m] + "</button>";
           }).join("") + "</div>"
         : "";
-      var sub = d.s + (vi.modo === "tri" ? " · trimestre isolado" : vi.modo === "ttm" ? " · 12 meses em cada trimestre" : "");
+      var sub = d.s + (vi.modo === "tri" ? " · trimestre isolado" : vi.modo === "ttm" ? " · 12 meses em cada trimestre" : "") +
+                (vi.parcial ? " · " + new Date().getFullYear() + " até agora" : "");
+      if (d.agrupa) leg += '<label class="agrupa"><input type="checkbox" data-agrupa' +
+                           (AGRUPA_PROV ? " checked" : "") + '> Agrupar por ano</label>';
       return '<div class="bloco"><div class="topo-bloco"><h3>' + esc(d.t) + "</h3>" + seletor + "</div>" +
         '<div class="sub">' + esc(sub) + "</div>" +
         '<canvas id="g' + i + '"></canvas>' +
         '<div class="legenda">' + leg + "</div></div>";
     }).join("") + "</div>";
+    var cx = document.querySelector("#aba-gra [data-agrupa]");
+    if (cx) cx.addEventListener("change", function () { AGRUPA_PROV = cx.checked; montarGraficos(ITEM_GRA); });
     Array.prototype.forEach.call(document.querySelectorAll("#aba-gra .mini-periodo"), function (el) {
       el.addEventListener("click", function (ev) {
         var b = ev.target.closest("button");
