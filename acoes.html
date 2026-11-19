@@ -130,6 +130,11 @@
 
   /* ---------- graficos anuais ---------- */
   .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .periodo{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .periodo button{font-family:var(--font);font-size:.8rem;padding:6px 12px;border-radius:20px;
+    border:1px solid var(--line-forte);background:var(--card);color:var(--ink-2);cursor:pointer}
+  .periodo button.ativo{background:var(--ink);border-color:var(--ink);color:#fff}
+  .nota-periodo{font-size:.76rem;color:var(--ink-3);margin-left:6px}
   .bloco{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px 10px}
   .bloco h3{margin:0 0 2px;font-size:.84rem;font-weight:700;color:var(--ink)}
   .bloco .sub{font-size:.7rem;color:var(--ink-3);margin-bottom:8px}
@@ -588,20 +593,135 @@
     // anos embaixo
     ctx.fillStyle = "rgba(16,35,59,.5)"; ctx.textAlign = "center";
     ctx.font = "9px Poppins, Arial";
+    // rotulo que nao cabe: so um a cada `passo` (no trimestral, o 1T de cada
+    // ano vira o ano: "'25")
+    var passo = Math.max(1, Math.ceil(26 / larg));
     anos.forEach(function (ano, i) {
-      ctx.fillText(ano, mg.e + larg * (i + 0.5), A - 6);
+      var txt = ano;
+      if (passo > 1) {
+        if (opt.trimestral) {
+          if (ano.charAt(0) !== "1") return;
+          txt = "\u2019" + ano.slice(2);
+        } else if (i % passo) return;
+      }
+      ctx.fillText(txt, mg.e + larg * (i + 0.5), A - 6);
     });
   }
 
   var COR = { azul: "#10233B", ouro: "#C9A227", verde: "#1C7F4D",
               vermelho: "#B5392B", cinza: "#8795A6" };
 
+  // ---------- graficos: anual, trimestre isolado ou 12 meses ----------
+  // O trimestral (pedido do Ricardo: "q nem o Fundamentus") vem de outro
+  // arquivo, trimestral.json, que so e buscado quando alguem abre a visao
+  // trimestral: o anual continua abrindo sem esperar por ele.
+  var PERIODO_GRA = "ano", TRIM = null, TRIM_PEDIDO = null, ITEM_GRA = null;
+  var QTD_TRIM = 20;   // 5 anos: com mais, as barras ficam finas demais
+
   function montarGraficos(item) {
+    ITEM_GRA = item;
+    $("aba-gra").innerHTML =
+      '<div class="periodo" id="periodo-gra">' +
+        '<button data-p="ano"' + (PERIODO_GRA === "ano" ? ' class="ativo"' : "") + '>Anual</button>' +
+        '<button data-p="tri"' + (PERIODO_GRA === "tri" ? ' class="ativo"' : "") + '>Trimestre</button>' +
+        '<button data-p="ttm"' + (PERIODO_GRA === "ttm" ? ' class="ativo"' : "") + '>12 meses</button>' +
+        '<span class="nota-periodo" id="nota-periodo"></span>' +
+      '</div><div id="gra-corpo"></div>';
+    $("periodo-gra").addEventListener("click", function (ev) {
+      var b = ev.target.closest("button");
+      if (!b) return;
+      PERIODO_GRA = b.dataset.p;
+      montarGraficos(ITEM_GRA);
+    });
+    if (PERIODO_GRA === "ano") {
+      $("nota-periodo").textContent = "Exercícios fechados. O ano corrente está em Trimestre e 12 meses.";
+      montarAnual(item);
+      return;
+    }
+    $("nota-periodo").textContent = PERIODO_GRA === "tri"
+      ? "Cada trimestre isolado, últimos " + QTD_TRIM / 4 + " anos."
+      : "Últimos 12 meses em cada trimestre, últimos " + QTD_TRIM / 4 + " anos.";
+    if (TRIM) { montarTrimestral(item); return; }
+    $("gra-corpo").innerHTML = '<div class="vazio">Carregando o histórico trimestral…</div>';
+    TRIM_PEDIDO = TRIM_PEDIDO || fetch("trimestral.json").then(function (r) { return r.json(); });
+    TRIM_PEDIDO.then(function (d) { TRIM = d; if (ITEM_GRA === item) montarGraficos(item); })
+      .catch(function () {
+        $("gra-corpo").innerHTML = '<div class="vazio">Não foi possível carregar o histórico trimestral.</div>';
+      });
+  }
+
+  // "2025T3" -> indice continuo, para saber se 4 trimestres sao seguidos
+  function idxTri(r) { return Number(r.slice(0, 4)) * 4 + Number(r.slice(5)) - 1; }
+
+  function montarTrimestral(item) {
+    var t = TRIM[item.cnpj];
+    if (!t || !t.q || t.q.length < 4) {
+      $("gra-corpo").innerHTML = '<div class="vazio">Sem histórico trimestral para esta empresa.</div>';
+      GRAFICOS = [];
+      return;
+    }
+    var fin = !!(item.resumo && item.resumo.financeira), ttm = PERIODO_GRA === "ttm";
+    // 12 meses de cada trimestre: soma dos 4 ultimos, so se forem SEGUIDOS
+    function serie(campo) {
+      var v = t[campo] || [];
+      if (!ttm) return v.slice();
+      return v.map(function (_, i) {
+        if (i < 3 || idxTri(t.q[i]) - idxTri(t.q[i - 3]) !== 3) return null;
+        var soma = 0;
+        for (var k = i - 3; k <= i; k++) { if (v[k] === null || v[k] === undefined) return null; soma += v[k]; }
+        return soma;
+      });
+    }
+    var n = t.q.length, ini = Math.max(0, n - QTD_TRIM);
+    function corta(a) { return a.slice(ini).map(function (x) { return x === null || x === undefined ? null : x / 1000; }); }
+    var rec = serie("receita"), luc = serie("lucro"), eb = serie("ebit"), rf = serie("res_fin");
+    function margem(cima) {
+      return cima.map(function (x, i) {
+        return (x !== null && x !== undefined && rec[i]) ? x / rec[i] * 100 : null;
+      }).slice(ini);
+    }
+    // rotulo: "3T25" quando cabe; senao so o ano no 1o trimestre
+    var rotulos = t.q.slice(ini).map(function (r) { return r.slice(5) + "T" + r.slice(2, 4); });
+    var defs = [];
+    defs.push({ t: fin ? "Receita de intermediação financeira" : "Receita líquida", s: "R$ milhões",
+                series: [{ nome: "Receita", cor: COR.azul, valores: corta(rec) }] });
+    defs.push({ t: "Lucro líquido", s: "R$ milhões, do controlador",
+                series: [{ nome: "Lucro", cor: COR.azul, valores: corta(luc) }] });
+    if (!fin) {
+      defs.push({ t: "EBIT", s: "R$ milhões, contábil",
+                  series: [{ nome: "EBIT", cor: COR.azul, valores: corta(eb) }] });
+      defs.push({ t: "Resultado financeiro", s: "R$ milhões — receitas menos despesas financeiras",
+                  series: [{ nome: "Resultado financeiro", cor: COR.cinza, valores: corta(rf) }] });
+      defs.push({ t: "Margens", s: "% da receita",
+                  series: [{ nome: "EBIT", tipo: "linha", cor: COR.ouro, valores: margem(eb) },
+                           { nome: "Líquida", tipo: "linha", cor: COR.verde, valores: margem(luc) }] });
+    }
+    defs = defs.filter(function (d) {
+      return d.series.some(function (x) {
+        return x.valores.some(function (v) { return v !== null && isFinite(v); });
+      });
+    });
+    $("gra-corpo").innerHTML = '<div class="graficos">' + defs.map(function (d, i) {
+      var leg = d.series.map(function (x) {
+        return '<span><i style="background:' + x.cor + '"></i>' + esc(x.nome) + "</span>";
+      }).join("");
+      return '<div class="bloco"><h3>' + esc(d.t) + "</h3>" +
+        '<div class="sub">' + esc(d.s) + "</div>" +
+        '<canvas id="g' + i + '"></canvas>' +
+        '<div class="legenda">' + leg + "</div></div>";
+    }).join("") + "</div>";
+    GRAFICOS = defs.map(function (d, i) {
+      return { id: "g" + i, anos: rotulos, series: d.series, trimestral: true };
+    });
+    redesenharGraficos();
+  }
+
+  function montarAnual(item) {
     var cnpj = item.cnpj, emp = BASE.empresas[cnpj];
     var anosObj = (emp && emp.anos) || {};
     var anos = Object.keys(anosObj).sort();
     if (anos.length < 2) {
-      $("aba-gra").innerHTML = '<div class="vazio">Sem histórico anual para esta empresa.</div>';
+      $("gra-corpo").innerHTML = '<div class="vazio">Sem histórico anual para esta empresa.</div>';
       GRAFICOS = [];
       return;
     }
@@ -682,12 +802,12 @@
       });
     });
     if (!defs.length) {
-      $("aba-gra").innerHTML = '<div class="vazio">Sem histórico anual suficiente ' +
+      $("gra-corpo").innerHTML = '<div class="vazio">Sem histórico anual suficiente ' +
         'para esta empresa.</div>';
       GRAFICOS = [];
       return;
     }
-    $("aba-gra").innerHTML = '<div class="graficos">' + defs.map(function (d, i) {
+    $("gra-corpo").innerHTML = '<div class="graficos">' + defs.map(function (d, i) {
       var leg = d.series.map(function (x) {
         return '<span><i style="background:' + x.cor + '"></i>' + esc(x.nome) + "</span>";
       }).join("");
@@ -703,7 +823,7 @@
   function redesenharGraficos() {
     GRAFICOS.forEach(function (g) {
       var c = $(g.id);
-      if (c && c.clientWidth) barras(c, g.anos, g.series);
+      if (c && c.clientWidth) barras(c, g.anos, g.series, { trimestral: g.trimestral });
     });
   }
 
