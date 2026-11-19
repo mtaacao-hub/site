@@ -602,7 +602,9 @@
     ctx.font = "9px Poppins, Arial";
     // rotulo que nao cabe: so um a cada `passo` (no trimestral, o 1T de cada
     // ano vira o ano: "'25")
-    var passo = Math.max(1, Math.ceil(26 / larg));
+    // pelo TAMANHO do rotulo: "11/03/25" precisa de mais espaco que "2024"
+    var maior = anos.reduce(function (m, x) { return Math.max(m, ctx.measureText(String(x)).width); }, 0);
+    var passo = Math.max(1, Math.ceil((opt.trimestral ? 26 : maior + 8) / larg));
     anos.forEach(function (ano, i) {
       var txt = ano;
       if (passo > 1) {
@@ -627,12 +629,33 @@
   var MODO_GRA = {};              // chave do grafico -> "ano" | "tri" | "ttm" (vale entre empresas)
   var NOME_MODO = { ano: "Ano", tri: "Tri", ttm: "12m" };
 
+  var PROV = null;               // proventos.json: {ticker: [[data_ex, valor, tipo]]}, valor DA EPOCA
   function carregarTrim() {
     if (TRIM || TRIM_FALHOU) return Promise.resolve();
-    TRIM_PEDIDO = TRIM_PEDIDO || fetch("trimestral.json").then(function (r) { return r.json(); })
-      .then(function (d) { TRIM = d; })
+    TRIM_PEDIDO = TRIM_PEDIDO || Promise.all([
+      fetch("trimestral.json").then(function (r) { return r.json(); }),
+      fetch("proventos.json").then(function (r) { return r.json(); }).catch(function () { return {}; })
+    ]).then(function (d) { TRIM = d[0]; PROV = d[1]; })
       .catch(function () { TRIM_FALHOU = true; });
     return TRIM_PEDIDO;
+  }
+
+  // Proventos do papel NAS ACOES DE HOJE: o proventos.json esta em acoes da
+  // epoca (medido em 80 eventos), entao cada valor e dividido pelos eventos
+  // com data >= a data-ex -- a mesma regra da carteira. Soma por data (JCP e
+  // dividendo no mesmo dia viram uma barra). Conferido com o Status Invest:
+  // BBAS3 2022-2025 = 2,07 / 2,27 / 2,60 / 1,17 (Status 2,08 / 2,28 / 2,62 / 1,18).
+  function proventosHoje(ticker, emp) {
+    var lista = (PROV && PROV[ticker]) || [];
+    var ev = ((emp.eventos_por_ticker || {})[ticker] || emp.eventos_acionarios || [])
+      .map(function (x) { return [x[0], x[1]]; });
+    var por = {};
+    lista.forEach(function (x) {
+      var f = 1;
+      ev.forEach(function (e) { if (e[0] >= x[0]) f *= e[1]; });
+      if (x[1] > 0) por[x[0]] = (por[x[0]] || 0) + x[1] / f;
+    });
+    return Object.keys(por).sort().map(function (d) { return [d, por[d]]; });
   }
 
   // "2025T3" -> indice continuo, para saber se 4 trimestres sao seguidos
@@ -719,6 +742,32 @@
     // Fundamentus troca os graficos por outros nesses casos.
     // `tri`: como montar o grafico no trimestral (sem `tri`, so anual).
     var defs = [];
+    var prov = PROV ? proventosHoje(item.ticker, emp) : [];
+    if (prov.length) {
+      var porAno = {};
+      prov.forEach(function (x) { var a = x[0].slice(0, 4); porAno[a] = (porAno[a] || 0) + x[1]; });
+      var anosProv = Object.keys(porAno).sort();
+      var hojeISO = new Date().toISOString().slice(0, 10);
+      var corte24 = (Number(hojeISO.slice(0, 4)) - 2) + hojeISO.slice(4);
+      var anual = function (lista) {
+        return { rotulos: lista, series: [{ nome: "Proventos por ação", cor: COR.verde,
+                 valores: lista.map(function (a) { return porAno[a]; }) }] };
+      };
+      defs.push({ c: "dividendos", t: "Proventos por ação",
+                  s: "R$ por ação, nas ações de hoje (ajustado por desdobramento e grupamento)",
+                  series: [{ nome: "Proventos", cor: COR.verde, valores: [1] }],   // so para o filtro
+                  padrao: "pag", nomes: { pag: "24 meses", "5a": "5 anos", max: "Máx" },
+                  modos: {
+                    pag: function () {
+                      var ult = prov.filter(function (x) { return x[0] >= corte24; });
+                      return { rotulos: ult.map(function (x) { return x[0].slice(8, 10) + "/" + x[0].slice(5, 7) + "/" + x[0].slice(2, 4); }),
+                               series: [{ nome: "Provento (por data-ex)", cor: COR.verde,
+                                          valores: ult.map(function (x) { return x[1]; }) }] };
+                    },
+                    "5a": function () { return anual(anosProv.slice(-5)); },
+                    max: function () { return anual(anosProv); }
+                  } });
+    }
     if (temReceita) {
       defs.push({ c: "receita", t: fin ? "Receita de intermediação financeira" : "Receita líquida",
                   s: "R$ milhões", series: [{ nome: "Receita", cor: COR.azul,
@@ -776,6 +825,10 @@
 
     // a visao de cada grafico no modo escolhido
     function visao(d) {
+      if (d.modos) {
+        var m = MODO_GRA[d.c] || d.padrao, r = d.modos[m]();
+        return { modo: m, rotulos: r.rotulos, series: r.series, trimestral: false };
+      }
       var modo = (temTrim && d.tri) ? (MODO_GRA[d.c] || "ano") : "ano";
       if (modo !== "ano") {
         var v = visaoTrim(cnpj, modo);
@@ -809,10 +862,11 @@
       var leg = vi.series.map(function (x) {
         return '<span><i style="background:' + x.cor + '"></i>' + esc(x.nome) + "</span>";
       }).join("");
-      var seletor = (temTrim && d.tri)
-        ? '<div class="mini-periodo" data-g="' + esc(d.c) + '">' + ["ano", "tri", "ttm"].map(function (m) {
+      var nomes = d.modos ? d.nomes : NOME_MODO;
+      var seletor = (d.modos || (temTrim && d.tri))
+        ? '<div class="mini-periodo" data-g="' + esc(d.c) + '">' + Object.keys(nomes).map(function (m) {
             return '<button data-m="' + m + '"' + (vi.modo === m ? ' class="ativo"' : "") + ">" +
-                   NOME_MODO[m] + "</button>";
+                   nomes[m] + "</button>";
           }).join("") + "</div>"
         : "";
       var sub = d.s + (vi.modo === "tri" ? " · trimestre isolado" : vi.modo === "ttm" ? " · 12 meses em cada trimestre" : "");
