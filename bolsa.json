@@ -1,5 +1,5 @@
 {
- "gerado_em": "2026-11-19T11:57:42",
+ "gerado_em": "2026-11-20T21:31:12",
  "metodo": {
   "pl": "soma do valor de mercado / soma do lucro do controlador",
   "pl_mediana": "mediana dos P/L positivos, empresa a empresa",
@@ -1502,14 +1502,14 @@
   }
  },
  "atual": {
-  "data": "2026-11-18",
+  "data": "2026-11-19",
   "mercado": {
-   "pl": 10.14,
-   "pl_mediana": 8.06,
-   "pl_lucrativas": 8.92,
+   "pl": 10.06,
+   "pl_mediana": 8.02,
+   "pl_lucrativas": 8.85,
    "n": 274,
    "n_prejuizo": 66,
-   "valor_mercado": 4717015376091.0,
+   "valor_mercado": 4681398733247.0,
    "lucro": 465312859843.0,
    "semanal": {
     "pl": {
@@ -1545,14 +1545,14 @@
    }
   },
   "ibov": {
-   "pl": 9.41,
-   "pl_mediana": 9.17,
-   "pl_lucrativas": 9.01,
+   "pl": 9.35,
+   "pl_mediana": 8.97,
+   "pl_lucrativas": 8.95,
    "n": 74,
    "n_prejuizo": 9,
-   "valor_mercado": 4221195188725.0,
+   "valor_mercado": 4194866545793.0,
    "lucro": 448526353578.0,
-   "pl_ponderado_indice": 9.72,
+   "pl_ponderado_indice": 9.65,
    "semanal": {
     "pl": {
      "fechamento": 9.47,
