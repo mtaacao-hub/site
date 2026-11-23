@@ -185,22 +185,15 @@
     font-size:.72rem;padding:6px 10px;border-radius:7px;white-space:nowrap;display:none;
     box-shadow:0 2px 8px rgba(16,35,59,.25)}
   .dica b{display:block;font-size:.9rem;font-weight:700;font-variant-numeric:tabular-nums}
+  td a.lk{color:inherit;text-decoration:none}
+  td a.lk:hover{text-decoration:underline}
 </style>
 </head>
 <body>
+<script src="menu.js"></script>
 <div class="wrap">
 
   <header class="topo">
-    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
-      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
-        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
-        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
-        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
-      </g>
-    </svg>
-    <span class="marca">Muita Ação</span>
     <div class="busca">
       <input type="search" id="busca" placeholder="Ticker, empresa ou setor…" list="tickers" autocomplete="off" spellcheck="false">
       <datalist id="tickers"></datalist>
@@ -371,11 +364,39 @@
     return corte.length >= 2 ? corte : s.slice(-2);
   }
 
+
+  // ---------- endereco proprio de cada papel ----------
+  // ?t=PETR4 abre direto no papel; trocar de papel atualiza o endereco
+  // (compartilhavel, e o voltar do navegador funciona). Quando a marca for
+  // para um host com reescrita de URL, /acoes/petr4 aponta para este mesmo
+  // arquivo (o GitHub Pages nao reescreve).
+  var VOLTANDO = false, PRIMEIRA = true;
+  function tickerDaUrl() {
+    var q = new URLSearchParams(location.search).get("t") || (location.hash || "").replace("#", "");
+    return (q || "").trim().toUpperCase();
+  }
+  function marcarUrl(t, rotulo) {
+    document.title = t + " — " + rotulo + " — Muita Ação";
+    if (VOLTANDO) return;
+    var alvo = "?t=" + encodeURIComponent(t);
+    if (location.search === alvo && !location.hash) { PRIMEIRA = false; return; }
+    try {
+      history[PRIMEIRA ? "replaceState" : "pushState"]({ t: t }, "", alvo);
+    } catch (e) { /* file:// ou sandbox: segue sem mexer no endereco */ }
+    PRIMEIRA = false;
+  }
+  // clique comum abre aqui; ctrl/cmd/botao do meio abre em outra aba (o
+  // ticker e um <a href="?t=...">)
+  function cliqueSimples(ev) {
+    return !(ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey || ev.button === 1);
+  }
+
   // ---------- ficha da empresa ----------
   function abrir(ticker) {
     var item = LISTA.filter(function (x) { return x.ticker === ticker; })[0];
     if (!item) return;
     ATUAL = item;
+    marcarUrl(ticker, "Raio-X da Ação");
     var r = item.resumo, m = item.mercado, p = precos(r, m);
     var serie = fatiar(ticker, PERIODO);
     var varPct = serie.length > 1 ? (serie[serie.length - 1][1] / serie[0][1] - 1) * 100 : null;
@@ -1105,7 +1126,8 @@
     });
     $("corpo").innerHTML = itens.length ? itens.slice(0, 300).map(function (x) {
       var marg = x.ord.margem;
-      return '<tr data-t="' + x.ticker + '"><td>' + esc(x.ticker) + "</td><td>" + esc(x.nome) + "</td>" +
+      return '<tr data-t="' + x.ticker + '"><td><a class="lk" href="?t=' + encodeURIComponent(x.ticker) + '">' +
+        esc(x.ticker) + "</a></td><td>" + esc(x.nome) + "</td>" +
         "<td>" + num(x.mercado.preco) + "</td><td>" + num(x.mercado.p_l) + "</td>" +
         "<td>" + num(x.mercado.p_vp) + "</td><td>" + num(x.mercado.dy, 1, "%") + "</td>" +
         "<td>" + num(x.resumo.roe, 1, "%") + "</td><td>" + num(x.resumo.roic, 1, "%") + "</td>" +
@@ -1164,7 +1186,8 @@
       "ano usa o balanço daquele exercício — já reapresentado quando a empresa republicou — e o " +
       "fechamento do último pregão do ano.<br><br>" +
       "Conteúdo educacional, não é recomendação de investimento.";
-    abrir(LISTA[0].ticker);
+    var pedido = tickerDaUrl();
+    abrir(LISTA.some(function (x) { return x.ticker === pedido; }) ? pedido : LISTA[0].ticker);
     render();
   }).catch(function (e) {
     $("conteudo").innerHTML = '<div class="carregando">Não consegui carregar a base.</div>';
@@ -1190,7 +1213,14 @@
   });
   $("corpo").addEventListener("click", function (ev) {
     var tr = ev.target.closest("tr");
-    if (tr && tr.dataset.t) { abrir(tr.dataset.t); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    if (!tr || !tr.dataset.t || !cliqueSimples(ev)) return;
+    ev.preventDefault();
+    abrir(tr.dataset.t); window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  window.addEventListener("popstate", function () {
+    var t = tickerDaUrl();
+    if (!LISTA.some(function (x) { return x.ticker === t; })) return;
+    VOLTANDO = true; abrir(t); VOLTANDO = false;
   });
   Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"), function (th) {
     th.addEventListener("click", function () {
