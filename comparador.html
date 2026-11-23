@@ -21,7 +21,7 @@
   body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
        font-family:var(--font);padding:0 16px 70px;font-size:14px;
        -webkit-font-smoothing:antialiased}
-  .wrap{max-width:1120px;margin:0 auto}
+  .wrap{max-width:1120px;margin:0 auto;padding-top:16px}
   a{color:var(--gold-ink)}
   header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
     padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--line)}
@@ -57,6 +57,8 @@
   .ficha{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-forte);
     border-radius:999px;padding:5px 8px 5px 12px;font-size:.8rem;font-weight:600;max-width:100%}
   .ficha .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:300px}
+  .ficha a.lk{color:inherit;text-decoration:none}
+  .ficha a.lk:hover{color:var(--gold-ink);text-decoration:underline}
   .ficha button{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:1rem;
     line-height:1;padding:0 3px}
   .ficha button:hover{color:var(--vermelho)}
@@ -110,20 +112,9 @@
 </style>
 </head>
 <body>
+<script src="menu.js"></script>
 <div class="wrap">
 
-  <header class="topo">
-    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
-      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
-        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
-        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
-        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
-      </g>
-    </svg>
-    <span class="marca">Muita Ação <span>· comparador</span></span>
-  </header>
 
   <h1>Comparador de rentabilidade</h1>
   <p class="sub">Ações, FIIs, ETFs, títulos do Tesouro e fundos lado a lado, e contra CDI, IPCA+X, Ibovespa e S&amp;P 500.</p>
@@ -270,6 +261,13 @@
     return a.id;
   }
   function chaveAtivo(a) { return a.tipo + ":" + a.id; }
+  // o nome leva a ficha do papel; ETF e Tesouro nao tem ficha
+  function linkFicha(a) {
+    var d = B.dados[a.id], url = a.tipo === "FI" ? "fundos.html?c=" + encodeURIComponent(a.id) :
+      a.tipo === "A" && d && d.rotulo !== "ETF" ? (d.rotulo === "FII" ? "fiis.html?t=" : "acoes.html?t=") +
+      encodeURIComponent(a.id) : null;
+    return url ? '<a class="lk" href="' + url + '">' + esc(nomeAtivo(a)) + "</a>" : esc(nomeAtivo(a));
+  }
 
   // ---------- preco de fim de mes de cada ativo, na base de hoje ----------
   // {mes: preco}; o mes corrente leva a ultima cotacao conhecida
@@ -457,7 +455,7 @@
     $("fichas").innerHTML = EST.ativos.map(function (a, i) {
       return '<span class="ficha cmp"><span class="amostra" style="background:var(--s-a' +
         EST.slots[chaveAtivo(a)] + ')"></span><span class="nm" title="' + esc(nomeAtivo(a)) + '">' +
-        esc(nomeAtivo(a)) + '</span><button data-i="' + i + '" aria-label="Tirar ' +
+        linkFicha(a) + '</span><button data-i="' + i + '" aria-label="Tirar ' +
         esc(nomeAtivo(a)) + '">&times;</button></span>';
     }).join("");
   }

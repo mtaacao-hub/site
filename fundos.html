@@ -22,7 +22,7 @@
   body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
        font-family:var(--font);padding:0 16px 70px;font-size:14px;
        -webkit-font-smoothing:antialiased}
-  .wrap{max-width:1120px;margin:0 auto}
+  .wrap{max-width:1120px;margin:0 auto;padding-top:16px}
   a{color:var(--gold-ink)}
   header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
     padding:14px 0;margin-bottom:20px;border-bottom:1px solid var(--line)}
@@ -107,19 +107,8 @@
 </style>
 </head>
 <body>
+<script src="menu.js"></script>
 <div class="wrap">
-  <header class="topo">
-    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
-      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
-        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
-        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
-        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
-      </g>
-    </svg>
-    <span class="marca">Muita Ação <span>· fundos</span></span>
-  </header>
 
   <div class="busca">
     <input id="busca" autocomplete="off" spellcheck="false" placeholder="Nome ou CNPJ do fundo">
@@ -264,7 +253,9 @@
   // ---------- pagina ----------
   function abrir(k) {
     EST.chave = k;
-    try { history.replaceState(null, "", "#" + k); } catch (e) {}
+    // endereco canonico ?c=CHAVE (o mesmo esquema de acoes.html?t=); link
+    // interno "#CHAVE" cai no hashchange e e reescrito para ele aqui
+    try { history.replaceState(null, "", location.pathname + "?c=" + encodeURIComponent(k)); } catch (e) {}
     var f = B.idx[k];
     if (!f) { $("conteudo").innerHTML = '<div class="vazio">Fundo não encontrado na base.</div>'; return; }
     $("conteudo").innerHTML = '<div class="vazio">Carregando ' + esc(nomeCurto(f.nome)) + "…</div>";
@@ -392,7 +383,9 @@
       sig + "</div>";
     var top = '<div class="bloco"><h3>Maiores posições (' + c.top.length + " de " + c.n + ")</h3>" +
       '<div class="quadro" style="border:0"><table><tbody>' + c.top.map(function (x) {
-        var nm = x[3] && B.idx[x[3]] ? '<a href="#' + esc(x[3]) + '">' + esc(x[0]) + "</a>" : esc(x[0]);
+        var cod = x[2] === "Ações" && (/^([A-Z]{4}\d{1,2})\b/.exec(x[0]) || [])[1];
+        var nm = x[3] && B.idx[x[3]] ? '<a href="#' + esc(x[3]) + '">' + esc(x[0]) + "</a>" :
+          cod ? '<a href="acoes.html?t=' + cod + '">' + esc(x[0]) + "</a>" : esc(x[0]);
         return "<tr><td>" + nm + '<div class="mini">' + esc(x[2]) + "</div></td><td>" + num(x[1], 1, "%") + "</td></tr>";
       }).join("") + "</tbody></table></div></div>";
     return '<div class="duas">' + comp + top + "</div>";
@@ -554,7 +547,10 @@
     for (var k in cs) at[k] = typeof cs[k] === "number" ? [dt, cs[k]] : cs[k];
     B.atual = at; B.data = dt;
     B.bench = r[2] && r[2].series;
-    var h = decodeURIComponent((location.hash || "").slice(1));
+    // fundos.html?c=CNPJ (com ou sem pontuacao) ou #CNPJ
+    var q = (location.search.match(/[?&]c=([^&]+)/) || [])[1];
+    var h = q ? decodeURIComponent(q).replace(/[^\dA-Za-z-]/g, "") : decodeURIComponent((location.hash || "").slice(1));
+    if (h && !idx[h] && idx[h.replace(/\D/g, "")]) h = h.replace(/\D/g, "");
     if (h && idx[h]) abrir(h);
     else $("conteudo").innerHTML = '<div class="vazio">Busque um fundo pelo nome ou CNPJ. São ' +
       brl(B.lista.length, 0) + " fundos da CVM (os exclusivos, de um investidor só, ficam fora — menos os de previdência).</div>";

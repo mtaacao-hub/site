@@ -21,7 +21,7 @@
   body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
        font-family:var(--font);padding:0 16px 70px;font-size:14px;
        -webkit-font-smoothing:antialiased}
-  .wrap{max-width:1120px;margin:0 auto}
+  .wrap{max-width:1120px;margin:0 auto;padding-top:16px}
   a{color:var(--gold-ink)}
 
   header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
@@ -102,6 +102,8 @@
   tfoot td{font-weight:800;border-top:1px solid var(--line-forte);border-bottom:0}
   .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
   .mini{font-size:.7rem;color:var(--ink-3);font-weight:600}
+  a.ficha{color:inherit;text-decoration:none;border-bottom:1px dotted var(--ink-3)}
+  a.ficha:hover{color:var(--gold-ink);border-bottom-color:var(--gold-ink)}
   button.x{background:none;border:0;color:var(--ink-3);cursor:pointer;font-size:1rem;
     line-height:1;padding:0 4px}
   button.x:hover{color:var(--vermelho)}
@@ -156,20 +158,9 @@
 </style>
 </head>
 <body>
+<script src="menu.js"></script>
 <div class="wrap">
 
-  <header class="topo">
-    <svg width="30" height="19" viewBox="0 0 200 120" aria-hidden="true">
-      <g stroke="#C9A227" stroke-width="6" stroke-linecap="round">
-        <line x1="20" y1="95" x2="20" y2="55"/><rect x="12" y="60" width="16" height="35" fill="#C9A227" stroke="none"/>
-        <line x1="55" y1="80" x2="55" y2="25"/><rect x="47" y="35" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="90" y1="112" x2="90" y2="8"/><rect x="82" y="14" width="16" height="98" fill="#C9A227" stroke="none"/>
-        <line x1="125" y1="85" x2="125" y2="30"/><rect x="117" y="40" width="16" height="45" fill="#C9A227" stroke="none"/>
-        <line x1="160" y1="75" x2="160" y2="40"/><rect x="152" y="48" width="16" height="27" fill="#C9A227" stroke="none"/>
-      </g>
-    </svg>
-    <span class="marca">Muita Ação <span>· carteira</span></span>
-  </header>
 
   <dl class="resumo" id="resumo"></dl>
 
@@ -308,6 +299,14 @@
     return String(n || "").replace(/\s*[-–]?\s*(RESPONSABILIDADE|RESP\.?)\s+LIMITADA.*$/i, "")
       .replace(/\s+(FUNDO DE INVESTIMENTO|FIF|FI|FIC)\b.*$/i, function (m) {
         return m.length > 40 ? "" : m; }).slice(0, 60);
+  }
+  // link para a ficha do papel (acoes.html?t=, fiis.html?t=, fundos.html?c=);
+  // ETF, Tesouro e renda fixa nao tem ficha e ficam em texto
+  function linkFicha(t, classe, texto) {
+    var d = DADOS[t], url = null;
+    if (classe === "A" && d && !d.etf) url = (d.fii ? "fiis.html?t=" : "acoes.html?t=") + encodeURIComponent(t);
+    if (classe === "FI") url = "fundos.html?c=" + encodeURIComponent(t);
+    return url ? '<a class="ficha" href="' + url + '">' + esc(texto) + "</a>" : esc(texto);
   }
   // como a posicao aparece em tabela: o nome do fundo, nao a chave
   function rotulo(ticker, classe) {
@@ -764,7 +763,7 @@
                (p.fundo && p.fundo.saltos ? '<div class="mini">a cota variou mais de 50% num mês (' +
                  p.fundo.saltos.slice(-3).map(function (m) { return m.slice(5) + "/" + m.slice(0, 4); }).join(", ") +
                  ") — confira no extrato</div>" : "");
-      return "<tr><td>" + esc(rotulo(p.ticker, p.classe)) + nota + "</td>" +
+      return "<tr><td>" + linkFicha(p.ticker, p.classe, rotulo(p.ticker, p.classe)) + nota + "</td>" +
         (p.classe === "RF" ? '<td class="na">—</td><td class="na">—</td><td class="na">—</td>' :
         "<td>" + brl(p.qtd, p.casas) + "</td>" +
         "<td>" + num(p.pm) + "</td>" +
@@ -791,7 +790,7 @@
       "<th>Yield on cost</th><th>Yield na cotação</th></tr></thead><tbody>" +
       (comProv.length ? comProv.map(function (p) {
         var d = dadosDo(p.ticker);
-        return "<tr><td>" + esc(p.ticker) + "</td><td>" + num(p.dpa, 4) + "</td>" +
+        return "<tr><td>" + linkFicha(p.ticker, "A", p.ticker) + "</td><td>" + num(p.dpa, 4) + "</td>" +
           "<td>" + num(p.proventos) + "</td>" +
           "<td>" + num(p.yoc, 2, "%") + "</td>" +
           "<td>" + num(d && d.mercado.dy, 2, "%") + "</td></tr>";
@@ -805,7 +804,7 @@
       "<thead><tr><th>Ticker</th><th>Cotação</th><th>Teto médio</th>" +
       "<th>Margem</th><th>Seu preço médio</th><th>Margem sobre o seu custo</th></tr></thead><tbody>" +
       (comTeto.length ? comTeto.map(function (p) {
-        return "<tr><td>" + esc(p.ticker) + "</td><td>" + num(p.preco) + "</td>" +
+        return "<tr><td>" + linkFicha(p.ticker, "A", p.ticker) + "</td><td>" + num(p.preco) + "</td>" +
           "<td>" + num(p.teto) + "</td>" +
           "<td>" + sinal(p.margem, 1, "%") + "</td>" +
           "<td>" + num(p.pm) + "</td>" +
