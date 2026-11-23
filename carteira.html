@@ -69,6 +69,13 @@
     letter-spacing:.05em;color:var(--gold-ink);border:1px solid var(--line-forte);
     border-radius:4px;padding:0 4px;margin-left:5px;vertical-align:1px}
   .campo.num input{width:108px;text-align:right}
+  .campos[hidden],.campo[hidden]{display:none}
+  .campos.rf{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-forte)}
+  .campos.rf .campo.txt input{width:150px}
+  .campos.rf .campo.sel select{min-width:120px}
+  .campo.chk{flex-direction:row;align-items:center;gap:6px;align-self:flex-end;padding-bottom:9px}
+  .campo.chk label{font-size:.78rem;color:var(--ink-2)}
+  .fgc-alerta{color:var(--vermelho);font-weight:700}
   .campo.data input{width:142px}
   button.acao{background:var(--ink);color:#fff;border:0;border-radius:8px;
     padding:9px 18px;font-family:var(--font);font-weight:700;font-size:.85rem;
@@ -174,7 +181,8 @@
       <div class="campo"><label for="f-classe">Classe</label>
         <select id="f-classe"><option value="A">Ação</option>
         <option value="TD">Tesouro Direto</option>
-        <option value="FI">Fundo</option></select></div>
+        <option value="FI">Fundo</option>
+        <option value="RF">Renda fixa (CDB, LCI, LCA…)</option></select></div>
       <div class="campo ticker" id="c-ticker"><label for="f-ticker" id="l-ticker">Ticker</label>
         <input id="f-ticker" list="tickers" autocomplete="off" spellcheck="false"
                placeholder="VALE3"><datalist id="tickers"></datalist>
@@ -192,6 +200,36 @@
       <button class="acao leve" id="b-exportar">Exportar</button>
       <button class="acao leve" id="b-importar">Importar</button>
       <input type="file" id="f-arquivo" accept="application/json" hidden>
+    </div>
+    <!-- renda fixa bancaria: EMISSOR (quem deve, e quem o FGC cobre) e ONDE
+         ESTA (onde o cliente comprou e ve) sao campos separados de proposito:
+         a LCA do C6 comprada pelo app do Itau e risco do C6 -->
+    <div class="campos rf" id="rf-aplicar" hidden>
+      <div class="campo sel"><label for="rf-tipo">Tipo</label>
+        <select id="rf-tipo"><option>CDB</option><option>RDB</option><option>LCI</option>
+        <option>LCA</option><option>LC</option><option>LIG</option></select></div>
+      <div class="campo txt"><label for="rf-emissor">Emissor (quem deve)</label>
+        <input id="rf-emissor" placeholder="Banco C6" list="bancos" autocomplete="off"></div>
+      <div class="campo txt"><label for="rf-onde">Onde está (corretora/banco)</label>
+        <input id="rf-onde" placeholder="Itaú" list="bancos" autocomplete="off"></div>
+      <datalist id="bancos"></datalist>
+      <div class="campo sel"><label for="rf-idx">Indexador</label>
+        <select id="rf-idx"><option value="cdi">% do CDI</option><option value="cdi+">CDI + taxa</option>
+        <option value="ipca">IPCA + taxa</option><option value="pre">Prefixado</option></select></div>
+      <div class="campo num"><label for="rf-taxa" id="l-rf-taxa">% do CDI</label>
+        <input id="rf-taxa" type="number" min="0" step="any" placeholder="110"></div>
+      <div class="campo data"><label for="rf-venc">Vencimento</label>
+        <input type="date" id="rf-venc"></div>
+      <div class="campo num"><label for="rf-valor">Valor aplicado (R$)</label>
+        <input id="rf-valor" type="number" min="0" step="0.01" placeholder="10.000"></div>
+      <div class="campo chk"><input type="checkbox" id="rf-liq"><label for="rf-liq">Liquidez diária</label></div>
+    </div>
+    <div class="campos rf" id="rf-resgatar" hidden>
+      <div class="campo sel"><label for="rf-titulo">Título</label>
+        <select id="rf-titulo"></select></div>
+      <div class="campo num"><label for="rf-resg">Valor resgatado (R$, bruto)</label>
+        <input id="rf-resg" type="number" min="0" step="0.01" placeholder="5.000"></div>
+      <div class="campo chk"><input type="checkbox" id="rf-tudo"><label for="rf-tudo">Resgate total</label></div>
     </div>
     <div class="erro" id="erro" hidden></div>
   </div>
@@ -212,7 +250,7 @@
   // ---------- classe de ativo ----------
   // A operacao guarda `classe` desde a entrada do Tesouro; arquivo exportado
   // antes disso nao tem o campo, e ali tudo era acao.
-  var CLASSES = { A: "Ações", TD: "Tesouro Direto", FI: "Fundos" };
+  var CLASSES = { A: "Ações", TD: "Tesouro Direto", FI: "Fundos", RF: "Renda fixa" };
 
   // ---------- fundos (CVM) ----------
   // fundos/indice.json: um registro por classe/subclasse, para a busca por
@@ -273,12 +311,156 @@
   }
   // como a posicao aparece em tabela: o nome do fundo, nao a chave
   function rotulo(ticker, classe) {
+    if (classe === "RF") { var t = tituloRF(ticker); return t ? nomeRF(t.rf) : ticker; }
     if (classe !== "FI") return ticker;
     var f = fundoDe(ticker);
     return f ? nomeCurto(f.nome) : fmtCnpj(ticker);
   }
   function classeDe(o) { return o.classe || "A"; }
   var $ = function (id) { return document.getElementById(id); };
+
+  // ======================================================================
+  // ---------- renda fixa bancaria (CDB, RDB, LCI, LCA, LC, LIG) ----------
+  // ======================================================================
+  // Nao ha preco de mercado: o valor e o da CURVA, o que o banco mostra no
+  // extrato. A operacao grava o titulo inteiro em `rf` e, em `ticker`, um id
+  // proprio ("RF-..."): cada aplicacao e um titulo. A aplicacao e uma compra
+  // de `valor` unidades a R$ 1; o "preco" de hoje e o fator acumulado desde a
+  // aplicacao. Resgate = venda de valor/fator unidades ao fator da data -- o
+  // preco medio pela convencao da carteira continua valendo.
+  //
+  // FATOR, por dia util de [aplicacao, data) -- o dia da aplicacao conta, o
+  // final nao (convencao do DI, a mesma da Calculadora do Cidadao do BCB,
+  // conferida em 6 casos com diferenca zero na 8a casa):
+  //   % do CDI      1 + CDI_d/100 x pct/100   (SGS 12 ja e a taxa do dia)
+  //   CDI + taxa    (1 + CDI_d/100) x (1 + taxa)^(1/252)
+  //   prefixado     (1 + taxa)^(1/252)
+  //   IPCA + taxa   (1 + IPCA_mes)^(1/du_do_mes) x (1 + taxa)^(1/252) -- o
+  //                 IPCA pro rata por dia util do mes; mes sem IPCA divulgado
+  //                 usa o ultimo conhecido (ESTIMATIVA, a tela avisa)
+  // Dia util: as datas do proprio CDI (so existe CDI em dia util ANBIMA); do
+  // ultimo CDI ate hoje, dia de semana fora dos feriados nacionais (com
+  // Carnaval, Sexta-feira Santa, Corpus Christi e 20/11 desde 2024), com a
+  // ultima taxa conhecida -- tambem estimativa.
+  var RF = { bench: null, pedido: null, du: null, duSet: null, cdi: null, ateCdi: null,
+             ultCdi: null, ipca: null, ateIpca: null, ultIpca: null, cache: {} };
+  var RF_INDEX = { cdi: "% do CDI", "cdi+": "CDI +", ipca: "IPCA +", pre: "Prefixado" };
+  var RF_ISENTO = { LCI: true, LCA: true, LIG: true };
+  function carregarRF() {
+    if (RF.pedido) return RF.pedido;
+    RF.pedido = fetch("benchmarks.json").then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (b) {
+        var c = b.series.cdi.diario || [];
+        RF.cdi = {}; RF.du = [];
+        c.forEach(function (x) { RF.cdi[x[0]] = x[1]; RF.du.push(x[0]); });
+        RF.ateCdi = c.length ? c[c.length - 1][0] : null;
+        RF.ultCdi = c.length ? c[c.length - 1][1] : null;
+        RF.ipca = {};
+        b.series.ipca.mensal.forEach(function (x) { RF.ipca[x[0]] = x[1]; });
+        RF.ateIpca = b.series.ipca.ate;
+        RF.ultIpca = RF.ipca[RF.ateIpca];
+        // completa o calendario do ultimo CDI ate o fim do ano que vem
+        var d = new Date(RF.ateCdi + "T12:00:00Z"), lim = (new Date().getUTCFullYear() + 1) + "-12-31";
+        while (true) {
+          d.setUTCDate(d.getUTCDate() + 1);
+          var iso = d.toISOString().slice(0, 10);
+          if (iso > lim) break;
+          if (diaUtil(iso)) RF.du.push(iso);
+        }
+        RF.duSet = {};
+        RF.du.forEach(function (x, i) { RF.duSet[x] = i; });
+        RF.ok = true;
+        return true;
+      }).catch(function () { RF.erro = true; return false; });
+    return RF.pedido;
+  }
+  var FERIADOS = {};
+  function feriadosDo(ano) {
+    if (FERIADOS[ano]) return FERIADOS[ano];
+    // Pascoa (algoritmo de Meeus/Jones/Butcher)
+    var a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4,
+        f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+        i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7,
+        m = Math.floor((a + 11 * h + 22 * l) / 451), mes = Math.floor((h + l - 7 * m + 114) / 31),
+        dia = ((h + l - 7 * m + 114) % 31) + 1;
+    var pascoa = Date.UTC(ano, mes - 1, dia), um = 86400000, out = {};
+    function iso(t) { return new Date(t).toISOString().slice(0, 10); }
+    [-48, -47, -2, 60].forEach(function (n) { out[iso(pascoa + n * um)] = true; });
+    ["01-01", "04-21", "05-01", "09-07", "10-12", "11-02", "11-15", "12-25"]
+      .concat(ano >= 2024 ? ["11-20"] : []).forEach(function (md) { out[ano + "-" + md] = true; });
+    return (FERIADOS[ano] = out);
+  }
+  function diaUtil(iso) {
+    var w = new Date(iso + "T12:00:00Z").getUTCDay();
+    return w !== 0 && w !== 6 && !feriadosDo(+iso.slice(0, 4))[iso];
+  }
+  // indice do primeiro dia util >= data
+  function idxDU(iso) {
+    var lo = 0, hi = RF.du.length;
+    while (lo < hi) { var mid = (lo + hi) >> 1; if (RF.du[mid] < iso) lo = mid + 1; else hi = mid; }
+    return lo;
+  }
+  function duNoMes(mes) {
+    var k = "m" + mes;
+    if (RF.cache[k] === undefined) {
+      var a = idxDU(mes + "-01"), b = idxDU(mesSeguinte(mes) + "-01");
+      RF.cache[k] = Math.max(1, b - a);
+    }
+    return RF.cache[k];
+  }
+  function mesSeguinte(m) {
+    var y = +m.slice(0, 4), mm = +m.slice(5, 7) + 1;
+    if (mm > 12) { mm = 1; y++; }
+    return y + "-" + (mm < 10 ? "0" : "") + mm;
+  }
+  // fator de [ini, fim); devolve {f, est} (est = usou taxa estimada)
+  function fatorRF(rf, ini, fim) {
+    if (!RF.ok || !ini || fim <= ini) return { f: 1, est: false };
+    if (rf.venc && fim > rf.venc) fim = rf.venc;
+    var a = idxDU(ini), b = idxDU(fim), f = 1, est = false, t = (+rf.taxa || 0) / 100;
+    var diaFixo = Math.pow(1 + t, 1 / 252);
+    for (var i = a; i < b; i++) {
+      var d = RF.du[i];
+      if (rf.idx === "pre") { f *= diaFixo; continue; }
+      if (rf.idx === "ipca") {
+        var mes = d.slice(0, 7), ip = RF.ipca[mes];
+        if (ip === undefined) { ip = RF.ultIpca; est = true; }
+        f *= Math.pow(1 + ip / 100, 1 / duNoMes(mes)) * diaFixo;
+        continue;
+      }
+      var c = RF.cdi[d];
+      if (c === undefined) { c = RF.ultCdi; est = true; }
+      f *= rf.idx === "cdi" ? 1 + c / 100 * (+rf.taxa || 0) / 100 : (1 + c / 100) * diaFixo;
+    }
+    return { f: f, est: est };
+  }
+  // IR regressivo pelos dias CORRIDOS da aplicacao; IOF nos primeiros 30 dias
+  // sobre o rendimento (tabela da Receita), e o IR incide sobre o que sobra
+  var IOF = [96, 93, 90, 86, 83, 80, 76, 73, 70, 66, 63, 60, 56, 53, 50, 46, 43, 40, 36, 33,
+             30, 26, 23, 20, 16, 13, 10, 6, 3, 0];
+  function impostos(rf, aplicacao, data, rendimento) {
+    if (!(rendimento > 0)) return { ir: 0, iof: 0 };
+    var dias = Math.round((Date.parse(data) - Date.parse(aplicacao)) / 86400000);
+    var iof = dias < 30 ? rendimento * IOF[Math.max(0, dias - 1)] / 100 : 0;
+    if (RF_ISENTO[rf.tipo]) return { ir: 0, iof: iof, dias: dias };
+    var aliq = dias <= 180 ? 22.5 : dias <= 360 ? 20 : dias <= 720 ? 17.5 : 15;
+    return { ir: (rendimento - iof) * aliq / 100, iof: iof, aliq: aliq, dias: dias };
+  }
+  function descTaxa(rf) {
+    var t = brl(+rf.taxa, (+rf.taxa) % 1 ? 2 : 0);
+    return rf.idx === "cdi" ? t + "% do CDI" : rf.idx === "cdi+" ? "CDI + " + t + "% a.a." :
+           rf.idx === "ipca" ? "IPCA + " + t + "% a.a." : t + "% a.a. prefixado";
+  }
+  function nomeRF(rf) {
+    return rf.tipo + " " + rf.emissor + (rf.onde && semAcento(rf.onde).toLowerCase() !==
+      semAcento(rf.emissor).toLowerCase() ? " · custódia " + rf.onde : "");
+  }
+  // o titulo de um id: o `rf` da primeira aplicacao (a operacao de compra)
+  function tituloRF(id) {
+    for (var i = 0; i < OPS.length; i++)
+      if (OPS[i].ticker === id && OPS[i].rf) return { rf: OPS[i].rf, data: OPS[i].data };
+    return null;
+  }
 
   // ---------- armazenamento ----------
   // ISOLADO DE PROPOSITO. Hoje a carteira vive so no navegador de quem
@@ -482,6 +664,21 @@
     abertas.forEach(function (p) {
       p.pm = p.custo / p.qtd;
       p.casas = p.classe === "A" ? 0 : 2;
+      if (p.classe === "RF") {
+        var tr = tituloRF(p.ticker);
+        p.rf = tr && tr.rf; p.aplicacao = tr && tr.data;
+        var fx = tr ? fatorRF(tr.rf, tr.data, HOJE) : { f: null };
+        p.preco = fx.f; p.estimado = fx.est;
+        p.atual = p.preco ? p.preco * p.qtd : null;
+        p.lucro = p.atual === null ? null : p.atual - p.custo;
+        if (p.rf && p.atual !== null) p.imp = impostos(p.rf, p.aplicacao, HOJE, p.atual - p.custo);
+        p.dpa = p.proventos = p.yoc = p.teto = p.margem = null;
+        p.setor = null;
+        if (p.atual === null) semCotacao.push(rotulo(p.ticker, "RF"));
+        totalAtual += p.atual || 0;
+        totalCusto += p.custo;
+        return;
+      }
       if (p.classe === "FI") {
         // cota mais recente do informe diario da CVM (sai com 1 a 2 dias
         // uteis de atraso); a cota ja vem liquida de taxa, nao de IR
@@ -556,6 +753,11 @@
                " — lance o resgate como venda</div>";
       else if (p.titulo && p.titulo.cupom)
         nota = '<div class="mini">paga cupom semestral, que não entra aqui</div>';
+      else if (p.classe === "RF" && p.rf)
+        nota = '<div class="mini">' + esc(descTaxa(p.rf)) + " · aplicado em " + dmy(p.aplicacao) +
+               (p.rf.venc ? (p.rf.venc <= HOJE ? " · <b>venceu em " + dmy(p.rf.venc) +
+                 "</b> — lance o resgate" : " · vence em " + dmy(p.rf.venc)) : "") +
+               (p.estimado ? " · com estimativa" : "") + "</div>";
       else if (p.classe === "FI")
         nota = '<div class="mini">' + fmtCnpj(p.ticker) +
                (p.cotaData ? " · cota de " + dmy(p.cotaData) : " · sem cota recente") + "</div>" +
@@ -563,9 +765,10 @@
                  p.fundo.saltos.slice(-3).map(function (m) { return m.slice(5) + "/" + m.slice(0, 4); }).join(", ") +
                  ") — confira no extrato</div>" : "");
       return "<tr><td>" + esc(rotulo(p.ticker, p.classe)) + nota + "</td>" +
+        (p.classe === "RF" ? '<td class="na">—</td><td class="na">—</td><td class="na">—</td>' :
         "<td>" + brl(p.qtd, p.casas) + "</td>" +
         "<td>" + num(p.pm) + "</td>" +
-        "<td>" + num(p.preco) + "</td>" +
+        "<td>" + num(p.preco) + "</td>") +
         "<td>" + num(p.atual) + "</td>" +
         "<td>" + sinal(p.lucro) + "</td>" +
         "<td>" + (p.custo ? sinal((p.lucro || 0) / p.custo * 100, 1, "%") : "—") + "</td>" +
@@ -639,15 +842,20 @@
       "<th>Preço</th><th>Total</th><th></th></tr></thead><tbody>" +
       OPS.map(function (o, i) {
         return "<tr><td>" + esc(o.data || "—") + "</td><td>" + esc(rotulo(o.ticker, classeDe(o))) + "</td>" +
-          "<td>" + (o.op === "C" ? "Compra" : "Venda") + "</td>" +
+          "<td>" + (classeDe(o) === "RF" ? (o.op === "C" ? "Aplicação" : "Resgate") :
+                    o.op === "C" ? "Compra" : "Venda") + "</td>" +
+          (classeDe(o) === "RF" ? '<td class="na">—</td><td class="na">—</td>' :
           "<td>" + brl(o.qtd, classeDe(o) === "A" ? 0 : 2) + "</td><td>" +
-          brl(o.preco, classeDe(o) === "FI" ? 6 : 2) + "</td>" +
+          brl(o.preco, classeDe(o) === "FI" ? 6 : 2) + "</td>") +
           "<td>" + brl(o.qtd * o.preco) + "</td>" +
           '<td><button class="x" data-i="' + i + '" aria-label="Remover">&times;</button></td></tr>';
       }).join("") + "</tbody></table></div>";
 
     var temAcoes = abertas.some(function (p) { return p.classe === "A"; });
-    var temClasses = temAcoes && abertas.some(function (p) { return p.classe !== "A"; });
+    var classesVistas = {};
+    abertas.forEach(function (p) { classesVistas[p.classe] = true; });
+    var temClasses = Object.keys(classesVistas).length > 1;
+    var rfHtml = secaoRF(abertas);
     $("conteudo").innerHTML = tabela +
       '<h2 class="sec">Composição</h2><div class="duas">' +
       (temClasses ? composicao("Por classe", "classe") : "") +
@@ -656,10 +864,61 @@
       "</div>" +
       '<h2 class="sec">Rentabilidade contra os índices</h2>' +
       '<div class="bloco cmp" id="comparador"><div class="vazio">Carregando histórico…</div></div>' +
-      prov + val + lanc +
+      rfHtml + (temAcoes ? prov + val : "") + lanc +
       (semCotacao.length ? '<p class="mini" style="margin-top:10px">Sem cotação na base: ' +
         esc(semCotacao.join(", ")) + "</p>" : "");
     carregarComparador();
+  }
+
+  // ---- renda fixa: bruto, imposto, liquido; e o FGC por EMISSOR ----
+  function secaoRF(abertas) {
+    var rf = abertas.filter(function (p) { return p.classe === "RF" && p.rf; });
+    if (!rf.length) return "";
+    var tB = 0, tI = 0, tC = 0, est = false;
+    var linhas = rf.map(function (p) {
+      var im = p.imp || { ir: 0, iof: 0 };
+      tB += p.atual || 0; tI += im.ir + im.iof; tC += p.custo;
+      est = est || p.estimado;
+      return "<tr><td>" + esc(nomeRF(p.rf)) + '<div class="mini">' + esc(descTaxa(p.rf)) +
+        (p.rf.liq ? " · liquidez diária" : "") + "</div></td>" +
+        "<td>" + dmy(p.aplicacao) + "</td><td>" + (p.rf.venc ? dmy(p.rf.venc) : "—") + "</td>" +
+        "<td>" + brl(p.custo) + "</td><td>" + num(p.atual) + "</td>" +
+        "<td>" + (RF_ISENTO[p.rf.tipo] && !im.iof ? '<span class="mini">isento</span>' :
+          "-" + brl(im.ir + im.iof) + (im.aliq ? ' <span class="mini">(' + brl(im.aliq, 1) + "%)</span>" : "")) + "</td>" +
+        "<td>" + num(p.atual === null ? null : p.atual - im.ir - im.iof) + "</td></tr>";
+    }).join("");
+    // FGC: R$ 250 mil por CPF por EMISSOR (conglomerado), sobre principal +
+    // juros; teto global de R$ 1 milhao a cada 4 anos. LIG nao e coberta.
+    var por = {}, nomes = {}, cobertoTotal = 0;
+    rf.forEach(function (p) {
+      if (p.rf.tipo === "LIG") return;
+      var k = semAcento(p.rf.emissor).toLowerCase().replace(/\b(banco|bco|s\.?a\.?|sa)\b/g, "").replace(/\s+/g, " ").trim();
+      por[k] = (por[k] || 0) + (p.atual || 0); nomes[k] = nomes[k] || p.rf.emissor;
+    });
+    var fgc = Object.keys(por).sort(function (a, b) { return por[b] - por[a]; }).map(function (k) {
+      var v = por[k], acima = v > 250000;
+      cobertoTotal += Math.min(v, 250000);
+      return "<tr><td>" + esc(nomes[k]) + "</td><td>" + brl(v) + "</td><td>" + brl(Math.min(v, 250000)) + "</td><td>" +
+        (acima ? '<span class="fgc-alerta">R$ ' + brl(v - 250000) + " acima do limite</span>" : '<span class="pos">dentro</span>') +
+        "</td></tr>";
+    }).join("");
+    var temLIG = rf.some(function (p) { return p.rf.tipo === "LIG"; });
+    return '<h2 class="sec">Renda fixa bancária</h2><div class="quadro"><table>' +
+      "<thead><tr><th>Título</th><th>Aplicação</th><th>Vencimento</th><th>Aplicado</th>" +
+      "<th>Bruto hoje</th><th>IR + IOF</th><th>Líquido hoje</th></tr></thead><tbody>" + linhas +
+      "</tbody><tfoot><tr><td>Total</td><td></td><td></td><td>" + brl(tC) + "</td><td>" + brl(tB) +
+      "</td><td>" + (tI >= 0.005 ? "-" + brl(tI) : "0,00") + "</td><td>" + brl(tB - tI) + "</td></tr></tfoot></table></div>" +
+      '<p class="mini" style="margin:6px 0 0">Valor na curva, como no extrato do banco: CDI diário do Banco Central ' +
+      "por dia útil, da aplicação (inclusive) até hoje. IR regressivo (22,5% até 180 dias, 20% até 360, 17,5% até 720, " +
+      "15% depois) sobre o rendimento, e IOF nos primeiros 30 dias. LCI, LCA e LIG são isentas de IR para pessoa física." +
+      (est ? " <b>Com estimativa</b>: o CDI de hoje (ou o IPCA do mês) ainda não saiu, e entra o último conhecido." : "") + "</p>" +
+      (fgc ? '<div class="quadro" style="margin-top:12px"><table><thead><tr><th>FGC por emissor</th>' +
+        "<th>Na curva</th><th>Coberto</th><th></th></tr></thead><tbody>" + fgc + "</tbody></table></div>" +
+        '<p class="mini" style="margin:6px 0 0">O FGC cobre pelo <b>emissor</b> do título, não pela corretora ou banco ' +
+        "onde ele está: R$ 250 mil por CPF por instituição — e por <b>conglomerado</b>, então dois bancos do mesmo grupo " +
+        "somam no mesmo limite (confira se algum dos emissores acima é do mesmo grupo). Há ainda um teto de R$ 1 milhão " +
+        "por CPF a cada 4 anos" + (cobertoTotal > 1000000 ? ' — <span class="fgc-alerta">a soma coberta aqui passa disso</span>' : "") +
+        "." + (temLIG ? " A LIG não tem FGC: a garantia é a carteira de crédito imobiliário do emissor." : "") + "</p>" : "");
   }
 
   // ======================================================================
@@ -727,6 +986,17 @@
   // levado adiante (titulo vencido, papel que parou de negociar)
   function precosMensais(o, meses, mesAtual) {
     var cru = {}, i;
+    if (o.classe === "RF") {
+      // fator do fim de cada mes: [aplicacao, 1o dia do mes seguinte)
+      var tr = tituloRF(o.ticker);
+      if (!tr || !RF.ok) return null;
+      var outRF = {};
+      meses.forEach(function (k) {
+        outRF[k] = k < tr.data.slice(0, 7) ? 1 :
+          fatorRF(tr.rf, tr.data, k === mesAtual ? HOJE : mesSeguinte(k) + "-01").f;
+      });
+      return outRF;
+    }
     if (o.classe === "FI") {
       var lote = FUNDOS.lotes[o.ticker.slice(0, 3)], s = lote && lote[o.ticker];
       if (!s) return null;
@@ -1160,8 +1430,76 @@
     return Object.keys(TESOURO || {}).filter(function (n) {
       return n.toLowerCase() === alvo; })[0] || null;
   }
+  function erroForm(e) { $("erro").textContent = e || ""; $("erro").hidden = !e; return !e; }
+  function adicionarRF() {
+    if (!RF.ok) return erroForm(RF.erro ? "A base do CDI e do IPCA não carregou." : "Carregando CDI e IPCA…");
+    var data = $("f-data").value || HOJE;
+    if ($("f-op").value === "V") {
+      var id = $("rf-titulo").value, tr = id && tituloRF(id);
+      if (!tr) return erroForm("Escolha o título a resgatar.");
+      if (data < tr.data) return erroForm("O resgate é anterior à aplicação.");
+      var pos = consolidar(OPS).filter(function (x) { return x.ticker === id; })[0];
+      var fx = fatorRF(tr.rf, tr.data, data).f, disponivel = pos ? pos.qtd * fx : 0;
+      var v = $("rf-tudo").checked ? disponivel : parseFloat($("rf-resg").value);
+      if (!(v > 0)) return erroForm("Informe o valor resgatado.");
+      if (v > disponivel * 1.0001) return erroForm("Mais do que o título vale na curva nessa data (R$ " + brl(disponivel) + ").");
+      OPS.push({ data: data, ticker: id, classe: "RF", op: "V", qtd: Math.min(v / fx, pos.qtd), preco: fx });
+      $("rf-resg").value = ""; $("rf-tudo").checked = false;
+      erroForm(null); salvar(); ajustarRF();
+      return;
+    }
+    var rf = { tipo: $("rf-tipo").value, emissor: $("rf-emissor").value.trim(), onde: $("rf-onde").value.trim(),
+               idx: $("rf-idx").value, taxa: parseFloat($("rf-taxa").value), venc: $("rf-venc").value || null,
+               liq: $("rf-liq").checked };
+    var valor = parseFloat($("rf-valor").value);
+    if (!rf.emissor) return erroForm("Informe o emissor — o banco que emitiu o título (é ele que o FGC cobre).");
+    if (!(rf.taxa >= 0) || isNaN(rf.taxa)) return erroForm("Informe a taxa.");
+    if (rf.idx === "cdi" && !(rf.taxa > 0)) return erroForm("Informe o percentual do CDI, ex.: 110.");
+    if (!rf.venc) return erroForm("Informe o vencimento.");
+    if (rf.venc <= data) return erroForm("O vencimento tem que ser depois da aplicação.");
+    if (!(valor > 0)) return erroForm("Informe o valor aplicado.");
+    if (!rf.onde) rf.onde = rf.emissor;
+    var novo = "RF-" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36);
+    OPS.push({ data: data, ticker: novo, classe: "RF", op: "C", qtd: valor, preco: 1, rf: rf });
+    ["rf-emissor", "rf-onde", "rf-taxa", "rf-venc", "rf-valor"].forEach(function (k) { $(k).value = ""; });
+    $("rf-liq").checked = false;
+    erroForm(null); salvar(); ajustarRF();
+  }
+  // a parte do formulario que vale para a renda fixa: aplicacao (o titulo
+  // inteiro) ou resgate (escolhe entre os titulos abertos)
+  function ajustarRF() {
+    var rf = $("f-classe").value === "RF", resg = $("f-op").value === "V";
+    $("rf-aplicar").hidden = !rf || resg;
+    $("rf-resgatar").hidden = !rf || !resg;
+    [$("c-ticker"), $("f-qtd").parentNode, $("f-preco").parentNode].forEach(function (el) { el.hidden = rf; });
+    $("f-op").options[0].text = rf ? "Aplicação" : "Compra";
+    $("f-op").options[1].text = rf ? "Resgate" : "Venda";
+    var idx = $("rf-idx").value;
+    $("l-rf-taxa").textContent = idx === "cdi" ? "% do CDI" : idx === "pre" ? "Taxa (% a.a.)" : "Taxa acima (% a.a.)";
+    $("rf-taxa").placeholder = idx === "cdi" ? "110" : idx === "pre" ? "12,5" : "6,2";
+    if (rf && resg) {
+      var abertos = consolidar(OPS).filter(function (p) { return p.classe === "RF" && p.qtd > 1e-6; });
+      $("rf-titulo").innerHTML = abertos.length ? abertos.map(function (p) {
+        return '<option value="' + esc(p.ticker) + '">' + esc(rotulo(p.ticker, "RF")) + " — " +
+          esc(descTaxa(tituloRF(p.ticker).rf)) + "</option>"; }).join("") :
+        '<option value="">nenhum título aberto</option>';
+    }
+    if (rf) {
+      carregarRF();
+      // bancos ja usados, para nao digitar de novo
+      var vistos = {};
+      OPS.forEach(function (o) { if (o.rf) { vistos[o.rf.emissor] = 1; vistos[o.rf.onde] = 1; } });
+      $("bancos").innerHTML = Object.keys(vistos).filter(Boolean).sort().map(function (b) {
+        return '<option value="' + esc(b) + '"></option>'; }).join("");
+    }
+  }
+  $("f-op").addEventListener("change", ajustarRF);
+  $("rf-idx").addEventListener("change", ajustarRF);
+  $("rf-tudo").addEventListener("change", function () { $("rf-resg").disabled = $("rf-tudo").checked; });
+
   function adicionar() {
     var classe = $("f-classe").value;
+    if (classe === "RF") return adicionarRF();
     var bruto = ($("f-ticker").value || "").trim();
     var t = classe === "TD" ? tituloPorNome(bruto) :
             classe === "FI" ? fundoEscolhido(bruto) : bruto.toUpperCase();
@@ -1211,6 +1549,7 @@
     delete $("f-ticker").dataset.chave;
     $("sugestoes").hidden = true;
     if (fi) carregarFundos();
+    ajustarRF();
   }
 
   // ---------- busca de fundo ----------
@@ -1312,7 +1651,7 @@
   });
   $("f-classe").addEventListener("change", ajustarClasse);
   $("b-add").addEventListener("click", adicionar);
-  ["f-ticker", "f-qtd", "f-preco"].forEach(function (id) {
+  ["f-ticker", "f-qtd", "f-preco", "rf-valor", "rf-resg", "rf-taxa"].forEach(function (id) {
     $(id).addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") adicionar();
     });
@@ -1438,6 +1777,9 @@
       (TD_DATA ? ", de <b>" + esc(dmy(TD_DATA)) + "</b>" : " (base do Tesouro indisponível agora)") +
       ". Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR, e os " +
       "cupons dos títulos com juros semestrais não são somados.<br><br>" +
+      "<b>Renda fixa bancária</b> (CDB, RDB, LCI, LCA, LC, LIG) pelo valor na curva, com o CDI diário e o " +
+      "IPCA do Banco Central — o mesmo critério da Calculadora do Cidadão do BC. Não há preço de mercado: " +
+      "num resgate antes do vencimento sem liquidez diária, o banco pode pagar menos.<br><br>" +
       "<b>Fundos</b> pela cota do informe diário da CVM, que sai com um a dois " +
       "dias úteis de atraso. A cota já desconta as taxas de administração e de " +
       "performance, mas não o IR nem o come-cotas. Na previdência, a taxa de " +
@@ -1448,9 +1790,11 @@
     OPS = Armazem.ler();
     // com fundo na carteira, a base de fundos vem antes do primeiro desenho;
     // se ela falhar, a posicao aparece "sem cotacao" e o resto segue
+    var espera = [];
     if (OPS.some(function (o) { return classeDe(o) === "FI"; }))
-      carregarFundos().then(lotesDaCarteira).then(render);
-    else render();
+      espera.push(carregarFundos().then(lotesDaCarteira));
+    if (OPS.some(function (o) { return classeDe(o) === "RF"; })) espera.push(carregarRF());
+    Promise.all(espera).then(render);
   }).catch(function () {
     $("conteudo").innerHTML = '<div class="vazio">Não consegui carregar a base de cotações.</div>';
   });
