@@ -63,7 +63,7 @@
     font-weight:600;transition:.15s}
   .periodos button:hover{border-color:var(--gold);color:var(--ink)}
   .periodos button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
-  canvas{width:100%;height:260px;display:block}
+  canvas{width:100%;height:260px;display:block;touch-action:pan-y}
   .resumo-grafico{display:flex;gap:20px;flex-wrap:wrap;font-size:.78rem;color:var(--ink-3);
     padding:10px 2px 2px}
   .resumo-grafico b{color:var(--ink);font-variant-numeric:tabular-nums}
@@ -171,7 +171,7 @@
   .sumario dt{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);
     font-weight:700}
   .sumario dd{margin:3px 0 0;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums}
-  .sumario .obs{font-size:.72rem;font-weight:600;color:var(--ink-2)}
+  .sumario .obs{font-size:.72rem;font-weight:600;color:var(--ink-2);padding:0;background:none}
   /* .pos/.neg sozinhas perdem pra .sumario .obs na especificidade */
   .sumario .obs.pos{color:var(--verde)} .sumario .obs.neg{color:var(--vermelho)}
   #modal-chart{height:300px;padding:6px 10px 0}
@@ -250,6 +250,16 @@
   <div class="rodape" id="rodape"></div>
 </div>
 
+<div class="modal" id="modal" hidden>
+  <div class="caixa" role="dialog" aria-modal="true" aria-labelledby="modal-tit">
+    <header><h3 id="modal-tit"></h3>
+      <button class="fechar" id="modal-fechar" aria-label="Fechar">&times;</button></header>
+    <div class="sumario" id="modal-sumario"></div>
+    <canvas id="modal-chart"></canvas>
+    <p class="nota" id="modal-nota"></p>
+  </div>
+</div>
+
 <script>
 (function () {
   "use strict";
@@ -295,7 +305,8 @@
   function inteiro(v) { return v === null || v === undefined ? '<span class="na">—</span>' : brl(v, 0); }
 
   // ---------- grafico de linha (o mesmo da ficha da acao) ----------
-  function desenhar(canvas, serie, cor, casas) {
+  function desenhar(canvas, serie, cor, opt) {
+    opt = opt || {};
     var dpr = window.devicePixelRatio || 1;
     var L = canvas.clientWidth, A = canvas.clientHeight;
     canvas.width = L * dpr; canvas.height = A * dpr;
@@ -305,6 +316,7 @@
     if (!serie || serie.length < 2) {
       ctx.fillStyle = "rgba(16,35,59,.42)"; ctx.font = "13px Poppins, Arial";
       ctx.fillText("Sem histórico para este período.", 12, A / 2);
+      canvas._linha = null;
       return;
     }
     var mg = { e: 52, d: 10, t: 14, b: 22 };
@@ -312,6 +324,7 @@
     var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
     if (max === min) { max += 1; min -= 1; }
     var folga = (max - min) * 0.08; min -= folga; max += folga;
+    if (opt.ref !== undefined && opt.ref !== null) { min = Math.min(min, opt.ref); max = Math.max(max, opt.ref); }
     if (min < 0 && Math.min.apply(null, vs) >= 0) min = 0;   // preco nao e negativo (HDEL11: eixo ia a -4,88)
     var px = function (i) { return mg.e + (L - mg.e - mg.d) * (i / (serie.length - 1)); };
     var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
@@ -320,7 +333,7 @@
     for (var k = 0; k <= 4; k++) {
       var v = min + (max - min) * k / 4, y = Math.round(py(v)) + .5;
       ctx.beginPath(); ctx.moveTo(mg.e, y); ctx.lineTo(L - mg.d, y); ctx.stroke();
-      ctx.textAlign = "right"; ctx.fillText(brl(v, casas === undefined ? 2 : casas), mg.e - 7, y + 3);
+      ctx.textAlign = "right"; ctx.fillText(brl(v, opt.casas === undefined ? 2 : opt.casas), mg.e - 7, y + 3);
     }
     ctx.textAlign = "left"; ctx.fillText(dataBR(serie[0][0]), mg.e, A - 6);
     ctx.textAlign = "right"; ctx.fillText(dataBR(serie[serie.length - 1][0]), L - mg.d, A - 6);
@@ -335,12 +348,27 @@
     ctx.strokeStyle = cor; ctx.lineWidth = 2; ctx.lineJoin = "round"; ctx.stroke();
     ctx.beginPath(); ctx.arc(px(serie.length - 1), py(serie[serie.length - 1][1]), 3.5, 0, 7);
     ctx.fillStyle = cor; ctx.fill();
+    // linha de referencia tracejada (a media, no historico do multiplo)
+    if (opt.ref !== undefined && opt.ref !== null) {
+      var yr = Math.round(py(opt.ref)) + .5;
+      ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = "rgba(16,35,59,.38)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(mg.e, yr); ctx.lineTo(L - mg.d, yr); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = "rgba(16,35,59,.62)"; ctx.font = "600 10px Poppins, Arial"; ctx.textAlign = "right";
+      ctx.fillText((opt.refNome || "") + " " + brl(opt.ref, 2), L - mg.d - 4, yr - 5);
+    }
+    // para o rotulo flutuante: a FOTO do grafico pronto e a geometria
+    canvas._hit = null;
+    canvas._linha = { serie: serie, L: L, A: A, e: mg.e, d: mg.d, t: mg.t, b: mg.b, py: py, cor: cor,
+                      dpr: dpr, moeda: opt.moeda !== false, casas: opt.casas === undefined ? 2 : opt.casas,
+                      data: opt.data || dataCurta,
+                      foto: ctx.getImageData(0, 0, canvas.width, canvas.height) };
   }
 
   // ---------- barras (o mesmo da ficha da acao: partem do zero) ----------
   function barras(canvas, rotulos, series, opt) {
     opt = opt || {};
     canvas._hit = [];
+    canvas._linha = null;
     var dpr = window.devicePixelRatio || 1;
     var L = canvas.clientWidth, A = canvas.clientHeight;
     canvas.width = L * dpr; canvas.height = A * dpr;
@@ -423,13 +451,79 @@
     DICA.style.left = Math.max(4, x) + "px";
     DICA.style.top = Math.max(4, y) + "px";
   }
+
+  // ---------- rotulo flutuante do grafico de linha (como no Status) ----------
+  // desenhar() guarda no canvas a FOTO do grafico pronto e a geometria
+  // (_linha). Com o cursor ou o dedo em cima, repoe a foto e desenha a mira
+  // no ponto mais perto: redesenhar a serie inteira a cada movimento, com
+  // 4 mil pregoes no "Max", travaria o celular.
+  var MIRA = null;
+  function dataCurta(iso) { var p = String(iso).split("-"); return p[2] + "/" + p[1] + "/" + p[0].slice(2); }
+  function tirarMira() {
+    if (MIRA && MIRA._linha) {
+      var cx = MIRA.getContext("2d");
+      cx.setTransform(1, 0, 0, 1, 0, 0);
+      cx.putImageData(MIRA._linha.foto, 0, 0);
+    }
+    MIRA = null;
+  }
+  function mira(c, clientX) {
+    var g = c._linha, s = g.serie;
+    if (MIRA && MIRA !== c) tirarMira();
+    // o desenho tem a largura do clientWidth e o navegador o estica na caixa
+    // de conteudo (o canvas do modal tem padding): converter nas duas pontas
+    var r = c.getBoundingClientRect(), cs = getComputedStyle(c);
+    var pe = parseFloat(cs.paddingLeft) || 0, pd = parseFloat(cs.paddingRight) || 0;
+    var pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
+    var cw = Math.max(1, r.width - pe - pd), ch = Math.max(1, r.height - pt - pb);
+    var mx = (clientX - r.left - pe) * g.L / cw;
+    var n = s.length, larg = g.L - g.e - g.d;
+    var i = Math.max(0, Math.min(n - 1, Math.round((mx - g.e) / larg * (n - 1))));
+    var x = g.e + larg * i / (n - 1), y = g.py(s[i][1]);
+    var ctx = c.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.putImageData(g.foto, 0, 0);
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+    ctx.save();
+    ctx.strokeStyle = "rgba(16,35,59,.38)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, g.t); ctx.lineTo(Math.round(x) + .5, g.A - g.b); ctx.stroke();
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(g.e, Math.round(y) + .5); ctx.lineTo(g.L - g.d, Math.round(y) + .5); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7);
+    ctx.fillStyle = "#fff"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = g.cor; ctx.stroke();
+    MIRA = c;
+
+    if (!DICA) { DICA = document.createElement("div"); DICA.className = "dica"; document.body.appendChild(DICA); }
+    DICA.innerHTML = "<b>" + (g.moeda ? "R$ " : "") + brl(s[i][1], g.casas) + "</b>" + esc(g.data(s[i][0]));
+    DICA.style.display = "block";
+    var sx = r.left + pe + x * cw / g.L, sy = r.top + pt + y * ch / g.A;
+    var lx = sx + 12, ly = sy - DICA.offsetHeight - 12;
+    if (lx + DICA.offsetWidth > window.innerWidth - 8) lx = sx - DICA.offsetWidth - 12;
+    if (ly < 4) ly = sy + 14;
+    DICA.style.left = Math.max(4, lx) + "px";
+    DICA.style.top = ly + "px";
+  }
+
   ["mousemove", "click"].forEach(function (tipo) {
     document.addEventListener(tipo, function (ev) {
-      if (ev.target && ev.target.tagName === "CANVAS" && ev.target._hit) mostrarDica(ev);
+      var c = ev.target;
+      if (c && c.tagName === "CANVAS" && c._linha) { mira(c, ev.clientX); return; }
+      tirarMira();
+      if (c && c.tagName === "CANVAS" && c._hit) mostrarDica(ev);
       else esconderDica();
     });
   });
-  window.addEventListener("scroll", esconderDica, { passive: true });
+  // no celular, arrastar o dedo pelo grafico (o canvas tem touch-action:pan-y,
+  // entao rolar a pagina na vertical continua funcionando)
+  ["touchstart", "touchmove"].forEach(function (tipo) {
+    document.addEventListener(tipo, function (ev) {
+      var c = ev.target;
+      if (c && c.tagName === "CANVAS" && c._linha && ev.touches.length === 1) mira(c, ev.touches[0].clientX);
+    }, { passive: true });
+  });
+  document.documentElement.addEventListener("mouseleave", function () { tirarMira(); esconderDica(); });
+  window.addEventListener("scroll", function () { tirarMira(); esconderDica(); }, { passive: true });
 
   // ---------- dados ----------
   // TUDO NA COTA DE HOJE. historico.json, proventos.json e o VP da CVM estao
@@ -522,6 +616,7 @@
     if (f.vacancia_inconsistente) alertas.push("vacância declarada à CVM não confiável");
     var r12 = f.rendimento_12m, ult = f.ultimo_rendimento;
     var nImo = (f.imoveis || []).length;
+    var temHist = seriesPatrimonio(t).pvp.length >= 2;
 
     var h = '<section class="ficha"><div class="linha1">' +
       '<span class="papel">' + esc(t) + '</span><span class="empresa">' + esc(f.nome) + '</span>' +
@@ -539,8 +634,8 @@
 
     h += '<div class="paineis">' +
       painel("Valuation", [
-        ["P/VP", num(f.p_vp, 2)],
-        ["Valor patrimonial por cota", f.vp_cota ? "R$ " + brl(f.vp_cota) : num(null)],
+        ["P/VP" + (temHist ? botaoHist("P/VP") : ""), num(f.p_vp, 2)],
+        ["Valor patrimonial por cota" + (temHist ? botaoHist("VP por cota") : ""), f.vp_cota ? "R$ " + brl(f.vp_cota) : num(null)],
         ["Dividend yield 12m", num(f.dy_12m, 2, "%")],
         ["Rendimento 12m por cota", r12 ? "R$ " + brl(r12, 2) : num(null)],
         ["Último rendimento", ult ? "R$ " + brl(ult[1], 2) + ' <span class="na">(' + dataBR(ult[0]) + ")</span>" : num(null)],
@@ -566,7 +661,7 @@
 
     h += '<div class="abas" role="tablist">' +
       aba("ren", "Rendimentos") + aba("imo", "Imóveis" + (nImo ? " (" + nImo + ")" : "")) +
-      aba("com", "Composição") + aba("his", "P/VP no tempo") + '</div><div id="aba"></div>';
+      aba("com", "Composição") + '</div><div id="aba"></div>';
     $("conteudo").innerHTML = h;
 
     $("periodos").addEventListener("click", function (ev) {
@@ -605,7 +700,7 @@
     Array.prototype.forEach.call(document.querySelectorAll(".abas button"), function (b) {
       b.setAttribute("aria-selected", b.dataset.aba === ABA);
     });
-    ({ ren: abaRendimentos, imo: abaImoveis, com: abaComposicao, his: abaHistorico })[ABA]();
+    ({ ren: abaRendimentos, imo: abaImoveis, com: abaComposicao })[ABA]();
   }
 
   // ---------- aba: rendimentos (como o grafico do Status Invest) ----------
@@ -756,28 +851,73 @@
     $("aba").innerHTML = h;
   }
 
-  // ---------- aba: P/VP e VP por cota no tempo ----------
-  function abaHistorico() {
-    var t = ATUAL, f = BASE.fiis[t];
+  // ---------- historico do P/VP e do VP por cota (o botao ao lado do nome) ----------
+  // Igual a ficha da acao (pedido do Ricardo: padronizar): um botaozinho de
+  // grafico depois do nome do multiplo abre o historico num modal, com media,
+  // ultimo, menor e maior. Aqui o ponto e MENSAL (informe da CVM), entao os
+  // valores saem no rotulo flutuante, nao escritos em cada ponto.
+  function botaoHist(chave) {
+    return '<button class="hist" data-ind="' + esc(chave) + '" aria-label="Histórico de ' +
+      esc(chave) + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" ' +
+      'stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' +
+      '<polyline points="3,17 9,11 13,15 21,6"/></svg></button>';
+  }
+  function mesAno(iso) { return iso.slice(5, 7) + "/" + iso.slice(0, 4); }
+  var PATRI = {};
+  function seriesPatrimonio(t) {
+    if (PATRI[t]) return PATRI[t];
+    var f = BASE.fiis[t];
     var vp = (f.historico || []).filter(function (x) { return x[1] > 0; })
       .map(function (x) { var d = fimDoMes(x[0]); return [d, x[1] / fatorDepois(t, d)]; });
     var pvp = vp.map(function (x) { var p = precoEm(t, x[0]); return p ? [x[0], p / x[1]] : null; })
       .filter(Boolean);
-    // a mediana do periodo e a referencia do "P/VP de costume", como o P/VP
-    // historico das acoes (mediana de 10 exercicios)
-    var ord = pvp.map(function (x) { return x[1]; }).sort(function (a, b) { return a - b; });
-    var med = ord.length ? (ord.length % 2 ? ord[(ord.length - 1) / 2]
-                                           : (ord[ord.length / 2 - 1] + ord[ord.length / 2]) / 2) : null;
-    $("aba").innerHTML = '<div class="graficos">' +
-      '<div class="bloco"><h3>P/VP</h3><div class="sub">cotação do fim do mês ÷ valor patrimonial do informe do mês' +
-      (med ? ' · mediana desde ' + pvp[0][0].slice(0, 4) + ': <b>' + brl(med, 2) + '</b>, hoje ' +
-             brl(pvp[pvp.length - 1][1], 2) : '') + '</div>' +
-      '<canvas id="c-pvp"></canvas></div>' +
-      '<div class="bloco"><h3>Valor patrimonial por cota</h3><div class="sub">R$, informe mensal da CVM, na cota de hoje</div>' +
-      '<canvas id="c-vp"></canvas></div></div>';
-    desenhar($("c-pvp"), pvp, COR.ouro);
-    desenhar($("c-vp"), vp, COR_LINHA);
+    return (PATRI[t] = { vp: vp, pvp: pvp });
   }
+  var HIST_ABERTO = null;
+  function abrirHist(chave) {
+    var s = seriesPatrimonio(ATUAL), pvp = chave === "P/VP";
+    var pontos = pvp ? s.pvp : s.vp;
+    if (!pontos || pontos.length < 2) return;
+    HIST_ABERTO = chave;
+    var vals = pontos.map(function (p) { return p[1]; });
+    var media = vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+    var ord = vals.slice().sort(function (a, b) { return a - b; });
+    var med = ord.length % 2 ? ord[(ord.length - 1) / 2] : (ord[ord.length / 2 - 1] + ord[ord.length / 2]) / 2;
+    var atual = pontos[pontos.length - 1];
+    var menor = pontos.reduce(function (a, b) { return b[1] < a[1] ? b : a; });
+    var maior = pontos.reduce(function (a, b) { return b[1] > a[1] ? b : a; });
+    var v = function (x) { return (pvp ? "" : "R$ ") + brl(x, 2); };
+    var dif = media ? brl(Math.abs(atual[1] / media - 1) * 100, 2) + "%" : "—";
+    $("modal-tit").textContent = ATUAL + " · " + chave + " — histórico";
+    $("modal-sumario").innerHTML =
+      "<div><dt>Média</dt><dd>" + v(media) + "</dd>" +
+        '<div class="obs">mediana ' + v(med) + "</div></div>" +
+      "<div><dt>" + mesAno(atual[0]) + "</dt><dd>" + v(atual[1]) + "</dd>" +
+        '<div class="obs ' + (atual[1] >= media ? "pos" : "neg") + '">' +
+        dif + " " + (atual[1] >= media ? "acima" : "abaixo") + " da média</div></div>" +
+      "<div><dt>Menor</dt><dd>" + v(menor[1]) + "</dd>" +
+        '<div class="obs">' + mesAno(menor[0]) + "</div></div>" +
+      "<div><dt>Maior</dt><dd>" + v(maior[1]) + "</dd>" +
+        '<div class="obs">' + mesAno(maior[0]) + "</div></div>";
+    $("modal-nota").textContent = pvp
+      ? "Cotação do último pregão de cada mês dividida pelo valor patrimonial por cota do informe mensal da " +
+        "CVM do mesmo mês, desde " + pontos[0][0].slice(0, 4) + ". Os dois estão na cota de hoje " +
+        "(desdobramentos e grupamentos aplicados). Passe o mouse ou o dedo no gráfico para ver cada mês."
+      : "Valor patrimonial por cota do informe mensal da CVM, na cota de hoje (desdobramentos e grupamentos " +
+        "aplicados). Muda com a reavaliação dos imóveis e cai quando o fundo amortiza. Passe o mouse ou o " +
+        "dedo no gráfico para ver cada mês.";
+    $("modal").hidden = false;
+    desenharHist();
+    $("modal-fechar").focus();
+  }
+  function desenharHist() {
+    var s = seriesPatrimonio(ATUAL), pvp = HIST_ABERTO === "P/VP";
+    var pontos = pvp ? s.pvp : s.vp;
+    var media = pontos.reduce(function (a, b) { return a + b[1]; }, 0) / pontos.length;
+    desenhar($("modal-chart"), pontos, pvp ? COR.ouro : COR_LINHA,
+             { moeda: !pvp, casas: 2, ref: media, refNome: "média", data: mesAno });
+  }
+  function fecharHist() { $("modal").hidden = true; HIST_ABERTO = null; tirarMira(); esconderDica(); }
 
   // ---------- lista ----------
   function render() {
@@ -905,7 +1045,18 @@
   window.addEventListener("resize", function () {
     if (!ATUAL) return;
     grafPreco();
-    if (ABA === "ren" || ABA === "his") abaAtual();
+    if (ABA === "ren") abaAtual();
+    if (HIST_ABERTO) desenharHist();
+  });
+  $("modal-fechar").addEventListener("click", fecharHist);
+  $("modal").addEventListener("click", function (ev) { if (ev.target === $("modal")) fecharHist(); });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && HIST_ABERTO) fecharHist();
+  });
+  // delegado: a ficha e reescrita a cada troca de fundo
+  $("conteudo").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".hist");
+    if (b && ATUAL) abrirHist(b.dataset.ind);
   });
 })();
 </script>
