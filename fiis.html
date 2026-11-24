@@ -457,7 +457,9 @@
   // (_linha). Com o cursor ou o dedo em cima, repoe a foto e desenha a mira
   // no ponto mais perto: redesenhar a serie inteira a cada movimento, com
   // 4 mil pregoes no "Max", travaria o celular.
-  var MIRA = null;
+  // Clicar e arrastar (ou dois dedos, no celular) mede a variacao entre dois
+  // pontos, como no grafico do Google (pedido do Ricardo).
+  var MIRA = null, ANCORA = null, SEGURA = false;
   function dataCurta(iso) { var p = String(iso).split("-"); return p[2] + "/" + p[1] + "/" + p[0].slice(2); }
   function tirarMira() {
     if (MIRA && MIRA._linha) {
@@ -467,46 +469,106 @@
     }
     MIRA = null;
   }
-  function mira(c, clientX) {
-    var g = c._linha, s = g.serie;
-    if (MIRA && MIRA !== c) tirarMira();
-    // o desenho tem a largura do clientWidth e o navegador o estica na caixa
-    // de conteudo (o canvas do modal tem padding): converter nas duas pontas
-    var r = c.getBoundingClientRect(), cs = getComputedStyle(c);
+  // o desenho tem a largura do clientWidth e o navegador o estica na caixa
+  // de conteudo (o canvas do modal tem padding): converter nas duas pontas
+  function geo(c, clientX) {
+    var g = c._linha, r = c.getBoundingClientRect(), cs = getComputedStyle(c);
     var pe = parseFloat(cs.paddingLeft) || 0, pd = parseFloat(cs.paddingRight) || 0;
     var pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0;
     var cw = Math.max(1, r.width - pe - pd), ch = Math.max(1, r.height - pt - pb);
+    var n = g.serie.length, larg = g.L - g.e - g.d;
     var mx = (clientX - r.left - pe) * g.L / cw;
-    var n = s.length, larg = g.L - g.e - g.d;
-    var i = Math.max(0, Math.min(n - 1, Math.round((mx - g.e) / larg * (n - 1))));
-    var x = g.e + larg * i / (n - 1), y = g.py(s[i][1]);
-    var ctx = c.getContext("2d");
+    return { c: c, g: g, r: r, pe: pe, pt: pt, cw: cw, ch: ch,
+             i: Math.max(0, Math.min(n - 1, Math.round((mx - g.e) / larg * (n - 1)))),
+             x: function (k) { return g.e + larg * k / (n - 1); } };
+  }
+  function limpo(o) {
+    if (MIRA && MIRA !== o.c) tirarMira();
+    var ctx = o.c.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.putImageData(g.foto, 0, 0);
-    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
-    ctx.save();
-    ctx.strokeStyle = "rgba(16,35,59,.38)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, g.t); ctx.lineTo(Math.round(x) + .5, g.A - g.b); ctx.stroke();
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath(); ctx.moveTo(g.e, Math.round(y) + .5); ctx.lineTo(g.L - g.d, Math.round(y) + .5); ctx.stroke();
-    ctx.restore();
+    ctx.putImageData(o.g.foto, 0, 0);
+    ctx.setTransform(o.g.dpr, 0, 0, o.g.dpr, 0, 0);
+    MIRA = o.c;
+    return ctx;
+  }
+  function bolinha(ctx, x, y, cor) {
     ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7);
-    ctx.fillStyle = "#fff"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = g.cor; ctx.stroke();
-    MIRA = c;
-
+    ctx.fillStyle = "#fff"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = cor; ctx.stroke();
+  }
+  function vertical(ctx, x, g, tracejada) {
+    ctx.save(); ctx.strokeStyle = "rgba(16,35,59,.38)"; ctx.lineWidth = 1;
+    if (tracejada) ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, g.t); ctx.lineTo(Math.round(x) + .5, g.A - g.b); ctx.stroke();
+    ctx.restore();
+  }
+  function dicaEm(html, sx, sy, centro) {
     if (!DICA) { DICA = document.createElement("div"); DICA.className = "dica"; document.body.appendChild(DICA); }
-    DICA.innerHTML = "<b>" + (g.moeda ? "R$ " : "") + brl(s[i][1], g.casas) + "</b>" + esc(g.data(s[i][0]));
+    DICA.innerHTML = html;
     DICA.style.display = "block";
-    var sx = r.left + pe + x * cw / g.L, sy = r.top + pt + y * ch / g.A;
-    var lx = sx + 12, ly = sy - DICA.offsetHeight - 12;
-    if (lx + DICA.offsetWidth > window.innerWidth - 8) lx = sx - DICA.offsetWidth - 12;
+    var w = DICA.offsetWidth, lx, ly;
+    if (centro) { lx = sx - w / 2; ly = sy - DICA.offsetHeight - 6; }
+    else {
+      lx = sx + 12; ly = sy - DICA.offsetHeight - 12;
+      if (lx + w > window.innerWidth - 8) lx = sx - w - 12;
+    }
     if (ly < 4) ly = sy + 14;
-    DICA.style.left = Math.max(4, lx) + "px";
+    DICA.style.left = Math.max(4, Math.min(lx, window.innerWidth - w - 4)) + "px";
     DICA.style.top = ly + "px";
   }
+  function mira(c, clientX) {
+    var o = geo(c, clientX), g = o.g, s = g.serie;
+    if (ANCORA && ANCORA.c === c) return faixa(o, ANCORA.i);
+    var x = o.x(o.i), y = g.py(s[o.i][1]);
+    var ctx = limpo(o);
+    vertical(ctx, x, g, false);
+    ctx.save(); ctx.strokeStyle = "rgba(16,35,59,.38)"; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.moveTo(g.e, Math.round(y) + .5); ctx.lineTo(g.L - g.d, Math.round(y) + .5); ctx.stroke();
+    ctx.restore();
+    bolinha(ctx, x, y, g.cor);
+    dicaEm("<b>" + (g.moeda ? "R$ " : "") + brl(s[o.i][1], g.casas) + "</b>" + esc(g.data(s[o.i][0])),
+           o.r.left + o.pe + x * o.cw / g.L, o.r.top + o.pt + y * o.ch / g.A);
+  }
+  // variacao entre dois pontos, sempre do mais antigo para o mais novo
+  function faixa(o, outro) {
+    var g = o.g, s = g.serie, a = Math.min(outro, o.i), b = Math.max(outro, o.i);
+    var va = s[a][1], vb = s[b][1], dif = vb - va, pct = va ? (vb / va - 1) * 100 : 0;
+    var sobe = dif >= 0, cor = sobe ? "#1C7F4D" : "#B5392B";
+    var xa = o.x(a), xb = o.x(b);
+    var ctx = limpo(o);
+    ctx.fillStyle = sobe ? "rgba(28,127,77,.10)" : "rgba(181,57,43,.10)";
+    ctx.fillRect(xa, g.t, Math.max(1, xb - xa), g.A - g.b - g.t);
+    ctx.beginPath();
+    for (var k = a; k <= b; k++) { var yk = g.py(s[k][1]); k === a ? ctx.moveTo(o.x(k), yk) : ctx.lineTo(o.x(k), yk); }
+    ctx.strokeStyle = cor; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; ctx.stroke();
+    vertical(ctx, xa, g, true); vertical(ctx, xb, g, true);
+    bolinha(ctx, xa, g.py(va), cor); bolinha(ctx, xb, g.py(vb), cor);
+    var sinal = sobe ? "+" : "−";
+    dicaEm('<b style="color:' + (sobe ? "#8FE0B0" : "#F5A99C") + '">' + sinal + (g.moeda ? "R$ " : "") +
+           brl(Math.abs(dif), g.casas) + " (" + sinal + brl(Math.abs(pct), 2) + "%)</b>" +
+           esc(g.data(s[a][0])) + " → " + esc(g.data(s[b][0])),
+           o.r.left + o.pe + (xa + xb) / 2 * o.cw / g.L, o.r.top + o.pt + g.t * o.ch / g.A, true);
+  }
 
+  document.addEventListener("mousedown", function (ev) {
+    var c = ev.target;
+    if (ev.button !== 0 || !c || c.tagName !== "CANVAS" || !c._linha) return;
+    ev.preventDefault();               // sem selecionar texto enquanto arrasta
+    ANCORA = { c: c, i: geo(c, ev.clientX).i };
+    mira(c, ev.clientX);
+  });
+  document.addEventListener("mouseup", function (ev) {
+    if (!ANCORA) return;
+    // soltou depois de arrastar: a faixa fica na tela ate o mouse mexer
+    SEGURA = geo(ANCORA.c, ev.clientX).i !== ANCORA.i;
+    ANCORA = null;
+  });
   ["mousemove", "click"].forEach(function (tipo) {
     document.addEventListener(tipo, function (ev) {
+      if (tipo === "click" && SEGURA) { SEGURA = false; return; }
+      if (ANCORA) {
+        if (ev.buttons & 1) { mira(ANCORA.c, ev.clientX); return; }   // arrastando, mesmo fora do grafico
+        ANCORA = null;                                               // soltou fora da janela
+      }
       var c = ev.target;
       if (c && c.tagName === "CANVAS" && c._linha) { mira(c, ev.clientX); return; }
       tirarMira();
@@ -514,15 +576,18 @@
       else esconderDica();
     });
   });
-  // no celular, arrastar o dedo pelo grafico (o canvas tem touch-action:pan-y,
-  // entao rolar a pagina na vertical continua funcionando)
+  // no celular: um dedo arrastando mostra o rotulo; dois dedos medem a
+  // variacao entre eles. O canvas tem touch-action:pan-y, entao rolar a
+  // pagina na vertical continua funcionando.
   ["touchstart", "touchmove"].forEach(function (tipo) {
     document.addEventListener(tipo, function (ev) {
       var c = ev.target;
-      if (c && c.tagName === "CANVAS" && c._linha && ev.touches.length === 1) mira(c, ev.touches[0].clientX);
+      if (!c || c.tagName !== "CANVAS" || !c._linha) return;
+      if (ev.touches.length === 1) mira(c, ev.touches[0].clientX);
+      else if (ev.touches.length === 2) faixa(geo(c, ev.touches[1].clientX), geo(c, ev.touches[0].clientX).i);
     }, { passive: true });
   });
-  document.documentElement.addEventListener("mouseleave", function () { tirarMira(); esconderDica(); });
+  document.documentElement.addEventListener("mouseleave", function () { if (!ANCORA) { tirarMira(); esconderDica(); } });
   window.addEventListener("scroll", function () { tirarMira(); esconderDica(); }, { passive: true });
 
   // ---------- dados ----------
@@ -755,10 +820,8 @@
     if (!v) h += '<div class="vazio">Sem rendimento registrado para este fundo.</div>';
     else h += '<canvas id="c-ren"></canvas><div class="legenda">' + v.series.map(function (s) {
       return '<span><i style="background:' + s.cor + '"></i>' + esc(s.nome) + '</span>';
-    }).join("") + '<label class="agrupa' + (MODO_REN === "mes" ? " off" : "") + '"' +
-      (MODO_REN === "mes" ? ' title="O mês a mês já compara com o ano anterior"' : "") +
-      '><input type="checkbox" id="agrupa"' + (AGRUPA ? " checked" : "") +
-      (MODO_REN === "mes" ? " disabled" : "") + '> Agrupar por ano</label></div>';
+    }).join("") + '<label class="agrupa"><input type="checkbox" id="agrupa"' +
+      (AGRUPA && MODO_REN !== "mes" ? " checked" : "") + '> Agrupar por ano</label></div>';
     h += '</div></div>';
     // tabela dos ultimos 12, com o yield sobre a cotacao da data-com
     var r = (PROV[t] || []).filter(function (x) { return x[1] > 0; })
@@ -777,7 +840,13 @@
     $("aba").innerHTML = h;
     if (v) barras($("c-ren"), v.rotulos, v.series, { casas: 4, moeda: true });
     var ag = $("agrupa");
-    if (ag) ag.addEventListener("change", function () { AGRUPA = ag.checked; abaRendimentos(); });
+    // no "Mes a mes" a caixa nao tinha efeito e ficava desligada -- o Ricardo
+    // clicou e "nao agrupa". Agora marcar ali leva ao Max agrupado por ano.
+    if (ag) ag.addEventListener("change", function () {
+      AGRUPA = ag.checked;
+      if (AGRUPA && MODO_REN === "mes") MODO_REN = "max";
+      abaRendimentos();
+    });
     var mr = $("modo-ren");
     if (mr) mr.addEventListener("click", function (ev) {
       var b = ev.target.closest("button"); if (!b) return;
