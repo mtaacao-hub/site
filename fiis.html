@@ -132,10 +132,14 @@
   .carregando{padding:50px;text-align:center;color:var(--ink-3)}
 
   /* ---------- abas ---------- */
-  .abas{display:flex;gap:4px;margin:28px 0 14px;border-bottom:1px solid var(--line)}
+  /* no celular as abas nao cabem: rolam dentro da faixa, sem empurrar a pagina para o lado */
+  .abas{display:flex;gap:4px;margin:28px 0 14px;box-shadow:inset 0 -1px 0 var(--line);
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .abas::-webkit-scrollbar{display:none}
+  .abas button{white-space:nowrap;flex:none}
   .abas button{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink-3);
     padding:9px 15px;cursor:pointer;font-family:var(--font);font-size:.82rem;font-weight:700;
-    letter-spacing:.02em;transition:.15s;margin-bottom:-1px}
+    letter-spacing:.02em;transition:.15s}
   .abas button:hover{color:var(--ink)}
   .abas button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--gold)}
   .aba-sub{color:var(--ink-2);font-size:.82rem;margin:0 0 12px}
