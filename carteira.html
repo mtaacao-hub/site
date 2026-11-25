@@ -315,6 +315,60 @@
     var f = fundoDe(ticker);
     return f ? nomeCurto(f.nome) : fmtCnpj(ticker);
   }
+  // Educa+ e Renda+: o app e o site do Tesouro Direto chamam o titulo pelo ano
+  // em que os PAGAMENTOS comecam; a base (Tesouro Transparente) pelo
+  // VENCIMENTO final, que e o nome gravado na operacao. "Educa+ 2030" no app
+  // vence em 2034 e e o nosso "Tesouro Educa+ 2034". Conferido em 25/11/2026
+  // contra o site, titulo a titulo: Educa+ paga 5 anos (vencimento - 4),
+  // Renda+ paga 20 (vencimento - 19).
+  function nomeApp(n) {
+    var t = TESOURO && TESOURO[n];
+    if (!t || !t.vencimento) return null;
+    var a = +t.vencimento.slice(0, 4);
+    if (t.tipo === "Tesouro Educa+") return "Tesouro Educa+ " + (a - 4);
+    if (t.tipo === "Tesouro Renda+ Aposentadoria Extra") return "Tesouro Renda+ Aposentadoria Extra " + (a - 19);
+    return null;
+  }
+
+  // ---------- Tesouro de hoje, direto do Tesouro Direto ----------
+  // O mesmo endpoint que o site do Tesouro Direto usa, sem chave e com CORS
+  // aberto: quem busca e o navegador de quem abriu a carteira. Traz so os
+  // titulos A VENDA (36 de 58 vivos em 25/11/2026); o resto fica com o PU do
+  // tesouro.json. Casado por VENCIMENTO + tipo, nunca pelo nome (ver nomeApp).
+  // O Tesouro reprecifica poucas vezes ao dia: buscar a cada 15 min basta.
+  // Falha silenciosa: sem resposta, vale o tesouro.json.
+  var TD_URL = "https://www.tesourodireto.com.br/o/rentabilidade/investir";
+  function tesouroDoDia() {
+    return fetch(TD_URL, { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) {
+        if (!j || !TESOURO || !Array.isArray(j.TesouroLegado)) return false;
+        var mudou = false;
+        j.TesouroLegado.forEach(function (x) {
+          var venc = String(x.maturityDate || "").slice(0, 10);
+          var tipo = String(x.treasuryBondName || "").replace(/\s+\d{4}$/, "");
+          var quando = String(x.lastMarketPricingDate || ""), pu = Number(x.unitaryRedemptionValue);
+          if (!(pu > 0) || !/^\d{4}-\d\d-\d\dT\d\d:\d\d/.test(quando)) return;
+          var achou = Object.keys(TESOURO).filter(function (n) {
+            var t = TESOURO[n]; return t.vivo && t.vencimento === venc && t.tipo === tipo; });
+          if (achou.length !== 1) return;
+          var t = TESOURO[achou[0]], d = quando.slice(0, 10);
+          if (!t.pu_base) { t.pu_base = t.pu_venda; t.data_base = t.data; }
+          if (d < t.data_base) return;                        // nunca volta no tempo
+          if (Math.abs(pu / t.pu_base - 1) > 0.25) return;      // mesma trava do pipeline
+          if (t.pu_venda !== pu) mudou = true;
+          t.pu_venda = pu; t.data = d; t.hora = quando.slice(11, 16);
+        });
+        return mudou;
+      });
+  }
+  function seguirTesouro() {
+    if (!OPS.some(function (o) { return classeDe(o) === "TD"; })) return;
+    tesouroDoDia().then(function (m) { if (m) render(); });
+  }
+  setInterval(function () { if (!document.hidden) seguirTesouro(); }, 15 * 60 * 1000);
+
   function classeDe(o) { return o.classe || "A"; }
   var $ = function (id) { return document.getElementById(id); };
 
@@ -757,6 +811,13 @@
                (p.rf.venc ? (p.rf.venc <= HOJE ? " · <b>venceu em " + dmy(p.rf.venc) +
                  "</b> — lance o resgate" : " · vence em " + dmy(p.rf.venc)) : "") +
                (p.estimado ? " · com estimativa" : "") + "</div>";
+      else if (p.classe === "TD" && p.titulo) {
+        var app = nomeApp(p.ticker);
+        nota = '<div class="mini">vence em ' + dmy(p.titulo.vencimento) +
+               (app ? " · no app do Tesouro Direto: <b>" + esc(app.replace(/^Tesouro /, "")) + "</b>" : "") +
+               " · preço " + (p.titulo.hora && p.titulo.data === HOJE ? "de hoje, " + esc(p.titulo.hora) :
+                              "de " + dmy(p.titulo.data)) + "</div>";
+      }
       else if (p.classe === "FI")
         nota = '<div class="mini">' + fmtCnpj(p.ticker) +
                (p.cotaData ? " · cota de " + dmy(p.cotaData) : " · sem cota recente") + "</div>" +
@@ -1724,7 +1785,9 @@
       // so os vivos na lista; um vencido ainda e reconhecido se vier de arquivo
       $("titulos").innerHTML = Object.keys(TESOURO).filter(function (n) {
         return TESOURO[n].vivo; }).map(function (n) {
-        return '<option value="' + esc(n) + '"></option>'; }).join("");
+        var app = nomeApp(n);
+        return '<option value="' + esc(n) + '">vence em ' + dmy(TESOURO[n].vencimento) +
+          (app ? " — no app do Tesouro Direto: " + esc(app) : "") + "</option>"; }).join("");
     }
     Object.keys(b.empresas).forEach(function (cnpj) {
       var e = b.empresas[cnpj];
@@ -1774,7 +1837,10 @@
       "<b>Tesouro Direto</b> marcado pelo preço unitário de venda do Tesouro — o " +
       "valor de resgate antecipado, o mesmo do extrato" +
       (TD_DATA ? ", de <b>" + esc(dmy(TD_DATA)) + "</b>" : " (base do Tesouro indisponível agora)") +
-      ". Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR, e os " +
+      "; os títulos à venda ganham o preço do dia direto do site do Tesouro Direto, que " +
+      "reprecifica poucas vezes ao dia (a data e a hora ficam embaixo do nome). " +
+      "No Educa+ e no Renda+ o app do Tesouro Direto usa o ano em que os pagamentos " +
+      "começam e aqui vale o ano do vencimento: o Educa+ 2030 do app é o Tesouro Educa+ 2034 daqui. Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR, e os " +
       "cupons dos títulos com juros semestrais não são somados.<br><br>" +
       "<b>Renda fixa bancária</b> (CDB, RDB, LCI, LCA, LC, LIG) pelo valor na curva, com o CDI diário e o " +
       "IPCA do Banco Central — o mesmo critério da Calculadora do Cidadão do BC. Não há preço de mercado: " +
@@ -1793,7 +1859,7 @@
     if (OPS.some(function (o) { return classeDe(o) === "FI"; }))
       espera.push(carregarFundos().then(lotesDaCarteira));
     if (OPS.some(function (o) { return classeDe(o) === "RF"; })) espera.push(carregarRF());
-    Promise.all(espera).then(render);
+    Promise.all(espera).then(render).then(seguirTesouro);
   }).catch(function () {
     $("conteudo").innerHTML = '<div class="vazio">Não consegui carregar a base de cotações.</div>';
   });
