@@ -85,6 +85,8 @@
         });
       })();
     },
+    // a lista (sem papel aberto) nao precisa buscar nada
+    parar: function () { seguindo = null; clearTimeout(timer); },
     comHoje: function (serie, d) {
       if (!d || !serie.length || d.data <= serie[serie.length - 1][0]) return serie;
       return serie.concat([[d.data, d.preco]]);

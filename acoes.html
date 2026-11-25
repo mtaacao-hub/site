@@ -33,6 +33,13 @@
     background:var(--ground);border-bottom:1px solid var(--line)}
   .marca{font-weight:800;color:var(--ink);font-size:.95rem;letter-spacing:.01em}
   .busca{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .voltar{font-size:.82rem;font-weight:700;color:var(--ink-2);text-decoration:none}
+  .voltar:hover{color:var(--gold-ink)}
+  .voltar[hidden],#conteudo[hidden],#vista-lista[hidden]{display:none}
+  /* a lista e a pagina principal: o subsetor sai a esquerda, como o nome */
+  #vista-lista th:nth-child(3),#vista-lista td:nth-child(3){text-align:left;max-width:170px;
+    overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+  .lista-conta{font-size:.78rem;color:var(--ink-3);margin:10px 2px 0}
   input[type=search]{min-width:230px;padding:10px 14px;border-radius:9px;font-family:var(--font);
     font-size:.95rem;background:var(--card);border:1px solid var(--line-forte);color:var(--ink)}
   input[type=search]::placeholder{color:var(--ink-3)}
@@ -192,9 +199,11 @@
 <body>
 <script src="menu.js"></script>
 <script src="aovivo.js"></script>
+<script src="filtros.js"></script>
 <div class="wrap">
 
   <header class="topo">
+    <a class="voltar" id="voltar" href="acoes.html" hidden>&larr; Todas as ações</a>
     <div class="busca">
       <input type="search" id="busca" placeholder="Ticker, empresa ou setor…" list="tickers" autocomplete="off" spellcheck="false">
       <datalist id="tickers"></datalist>
@@ -203,18 +212,17 @@
 
   <div id="conteudo"><div class="carregando">Carregando a base…</div></div>
 
-  <h2 class="sec" id="tit-lista">Todas as empresas</h2>
+  <section id="vista-lista" hidden>
+  <h2 class="sec" id="tit-lista">Ações</h2>
+  <div id="filtros"></div>
+  <p class="lista-conta" id="lista-conta"></p>
   <div class="lista">
     <table>
-      <thead><tr>
-        <th data-col="ticker">Ticker</th><th data-col="nome">Empresa</th>
-        <th data-col="preco">Preço</th><th data-col="p_l">P/L</th><th data-col="p_vp">P/VP</th>
-        <th data-col="dy">DY</th><th data-col="roe">ROE</th><th data-col="roic">ROIC</th>
-        <th data-col="margem">Teto médio</th>
-      </tr></thead>
-      <tbody id="corpo"><tr><td colspan="9" class="carregando">…</td></tr></tbody>
+      <thead><tr id="cabeca"></tr></thead>
+      <tbody id="corpo"><tr><td colspan="14" class="carregando">…</td></tr></tbody>
     </table>
   </div>
+  </section>
 
   <div class="rodape" id="rodape"></div>
 </div>
@@ -239,7 +247,7 @@
   // dispara resize. A variacao continua colorida no texto embaixo do
   // grafico, que e onde ela e um numero e nao um grafismo.
   var COR_LINHA = "#10233B";
-  var ordem = { col: "preco", asc: false };
+  var ordem = { col: "volume", asc: false };
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- formatacao ----------
@@ -458,6 +466,7 @@
     if (!item) return;
     ATUAL = item;
     marcarUrl(ticker, "Raio-X da Ação");
+    $("vista-lista").hidden = true; $("conteudo").hidden = false; $("voltar").hidden = false;
     var r = item.resumo, m = item.mercado, p = precos(r, m);
     var serie = fatiar(ticker, PERIODO);
     var varPct = serie.length > 1 ? (serie[serie.length - 1][1] / serie[0][1] - 1) * 100 : null;
@@ -610,7 +619,6 @@
       Array.prototype.forEach.call($("periodos").children, function (x) { x.setAttribute("aria-pressed", x === b); });
       grafPreco();
     });
-    $("tit-lista").textContent = "Todas as empresas";
   }
 
   // ---------- graficos anuais ----------
@@ -1299,10 +1307,87 @@
     return NOTA[nome];
   }
 
-  // ---------- lista ----------
+  // ---------- lista: a pagina principal, com filtros (filtros.js) ----------
+  // Pedido do Ricardo (25/11/2026): sem ?t= a pagina abre na lista; com ?t=,
+  // so a ficha. Os filtros vao no endereco (?dy_min=4&p_l_max=7).
+  var FILTROS = null;
+  var COLUNAS = [
+    ["ticker", "Ticker"], ["nome", "Empresa"], ["subsetor", "Subsetor"], ["preco", "Preço"],
+    ["p_l", "P/L"], ["p_vp", "P/VP"], ["ev_ebit", "EV/EBIT"], ["dy", "DY"], ["roe", "ROE"],
+    ["roic", "ROIC"], ["margem_liq", "Marg. líq."], ["div_pl", "Dív. líq./PL"],
+    ["volume", "Volume"], ["margem", "Teto médio"]
+  ];
+  // os nomes dos metodos como a funcao precos() devolve, e a chave no `ord`
+  var METODOS = [["Bazin", "m_bazin"], ["Graham", "m_graham"], ["Lynch", "m_lynch"], ["DCF", "m_dcf"],
+                 ["P/L histórico", "m_plh"], ["P/VP histórico", "m_pvph"], ["Média", "margem"]];
+  function grupoFiltros() {
+    return [
+      { nome: "Valuation", campos: [
+        { k: "p_l", nome: "P/L", unid: "×" }, { k: "p_vp", nome: "P/VP", unid: "×" },
+        { k: "psr", nome: "PSR", unid: "×" }, { k: "ev_ebit", nome: "EV/EBIT", unid: "×" },
+        { k: "ev_ebitda", nome: "EV/EBITDA", unid: "×" }, { k: "dy", nome: "Dividend yield", unid: "%" }] },
+      { nome: "Rentabilidade", campos: [
+        { k: "roe", nome: "ROE", unid: "%" }, { k: "roic", nome: "ROIC", unid: "%" },
+        { k: "margem_liq", nome: "Margem líquida", unid: "%" }, { k: "margem_ebit", nome: "Margem EBIT", unid: "%" },
+        { k: "cagr", nome: "Cresc. lucro 5a", unid: "%" }] },
+      { nome: "Endividamento", nota: "Banco não tem dívida nem EV no sentido de empresa: com esses filtros, sai da lista.",
+        campos: [
+        { k: "div_pl", nome: "Dív. líquida/PL", unid: "×" }, { k: "div_ebitda", nome: "Dív. líquida/EBITDA", unid: "×" },
+        { k: "liq_corr", nome: "Liquidez corrente", unid: "×" }] },
+      { nome: "Tamanho e liquidez", campos: [
+        { k: "valor_mercado", nome: "Valor de mercado", unid: "bi", mult: 1e9 },
+        { k: "volume", nome: "Volume no pregão", unid: "mi", mult: 1e6 }] },
+      { nome: "Preço por método · prévia para assinantes",
+        nota: "Distância da cotação até o preço de cada método, em %. Mínimo 0 = cotação abaixo do preço do método; " +
+              "20 = pelo menos 20% abaixo. Premissas da aba “Preço por método”.",
+        campos: METODOS.map(function (x) { return { k: x[1], nome: x[0], unid: "%" }; }) }
+    ];
+  }
+  function criarFiltros() {
+    var setores = {};
+    LISTA.forEach(function (x) { if (x.setor) (setores[x.setor] = setores[x.setor] || {})[x.subsetor || ""] = 1; });
+    FILTROS = Filtros({
+      el: $("filtros"),
+      grupos: grupoFiltros(),
+      selecoes: [
+        { k: "setor", nome: "Setor", opcoes: function () { return Object.keys(setores).sort(); } },
+        { k: "subsetor", nome: "Subsetor", opcoes: function (e) {
+          var s = {};
+          Object.keys(setores).forEach(function (k) {
+            if (!e.setor || e.setor === k) Object.keys(setores[k]).forEach(function (x) { if (x) s[x] = 1; });
+          });
+          return Object.keys(s).sort();
+        } }
+      ],
+      aoMudar: function () {
+        render();
+        try { history.replaceState({}, "", urlLista()); } catch (e) { /* file:// */ }
+      }
+    });
+  }
+  function urlLista() {
+    var q = FILTROS ? FILTROS.consulta() : "";
+    return location.pathname + (q ? "?" + q : "");
+  }
+  function mostrarLista(empurrar) {
+    ATUAL = null;
+    if (window.AoVivo && window.AoVivo.parar) window.AoVivo.parar();
+    $("conteudo").hidden = true; $("vista-lista").hidden = false; $("voltar").hidden = true;
+    document.title = "Ações — Muita Ação";
+    if (empurrar) { try { history.pushState({}, "", urlLista()); } catch (e) { /* file:// */ } }
+    render();
+  }
+  function cabecalho() {
+    $("cabeca").innerHTML = COLUNAS.map(function (c) {
+      return '<th data-col="' + c[0] + '"' + (ordem.col === c[0] ? ' aria-sort="' + (ordem.asc ? "ascending" : "descending") + '"' : "") +
+        ">" + c[1] + (ordem.col === c[0] ? (ordem.asc ? " ↑" : " ↓") : "") + "</th>";
+    }).join("");
+  }
   function render() {
+    if (!FILTROS) return;
     var termo = $("busca").value.trim().toLowerCase();
     var itens = LISTA.filter(function (x) {
+      if (!FILTROS.passa(x.ord)) return false;
       if (!termo) return true;
       return (x.ticker + " " + x.nome + " " + (x.setor || "") + " " + (x.subsetor || ""))
         .toLowerCase().indexOf(termo) >= 0;
@@ -1314,17 +1399,25 @@
       if (typeof va === "string") return ordem.asc ? va.localeCompare(vb) : vb.localeCompare(va);
       return ordem.asc ? va - vb : vb - va;
     });
-    $("corpo").innerHTML = itens.length ? itens.slice(0, 300).map(function (x) {
-      var marg = x.ord.margem;
+    cabecalho();
+    var n = FILTROS.ativos() + (termo ? 1 : 0);
+    $("lista-conta").textContent = n
+      ? itens.length + " de " + LISTA.length + " ações passam no filtro"
+      : LISTA.length + " ações · clique no título de uma coluna para ordenar";
+    $("corpo").innerHTML = itens.length ? itens.map(function (x) {
+      var marg = x.ord.margem, o = x.ord;
       return '<tr data-t="' + x.ticker + '"><td><a class="lk" href="?t=' + encodeURIComponent(x.ticker) + '">' +
-        esc(x.ticker) + "</a></td><td>" + esc(x.nome) + "</td>" +
-        "<td>" + num(x.mercado.preco) + "</td><td>" + num(x.mercado.p_l) + "</td>" +
-        "<td>" + num(x.mercado.p_vp) + "</td><td>" + num(x.mercado.dy, 1, "%") + "</td>" +
-        "<td>" + num(x.resumo.roe, 1, "%") + "</td><td>" + num(x.resumo.roic, 1, "%") + "</td>" +
+        esc(x.ticker) + "</a></td><td>" + esc(x.nome) + '</td><td title="' + esc(x.setor || "") + '">' +
+        esc(x.subsetor || "—") + "</td>" +
+        "<td>" + num(x.mercado.preco) + "</td><td>" + num(o.p_l) + "</td>" +
+        "<td>" + num(o.p_vp) + "</td><td>" + num(o.ev_ebit) + "</td><td>" + num(o.dy, 1, "%") + "</td>" +
+        "<td>" + num(o.roe, 1, "%") + "</td><td>" + num(o.roic, 1, "%") + "</td>" +
+        "<td>" + num(o.margem_liq, 1, "%") + "</td><td>" + num(o.div_pl) + "</td>" +
+        "<td>" + (o.volume ? brl(o.volume / 1e6, 1) + " mi" : '<span class="na">—</span>') + "</td>" +
         '<td class="' + (marg === null ? "" : marg >= 0 ? "pos" : "neg") + '">' +
           (marg === null ? '<span class="na">—</span>' : (marg >= 0 ? "+" : "") + brl(marg, 0) + "%") +
         "</td></tr>";
-    }).join("") : '<tr><td colspan="9" class="carregando">Nada encontrado.</td></tr>';
+    }).join("") : '<tr><td colspan="14" class="carregando">Nenhuma ação passa nesses filtros.</td></tr>';
   }
 
   // ---------- carga ----------
@@ -1338,16 +1431,29 @@
       var e = BASE.empresas[cnpj], r = e.resumo || {};
       Object.keys(e.mercado || {}).forEach(function (t) {
         var m = e.mercado[t], p = precos(r, m);
-        var media = p["Média"];
+        var ord = {
+          ticker: t, nome: e.nome, setor: e.setor_b3 || e.setor, subsetor: e.subsetor,
+          preco: m.preco, p_l: m.p_l, p_vp: m.p_vp, psr: m.psr,
+          ev_ebit: m.ev_ebit_contabil, ev_ebitda: m.ev_ebitda, dy: m.dy,
+          roe: r.roe, roic: r.roic, margem_liq: r.margem_liquida, margem_ebit: r.margem_ebit_contabil,
+          // divida e liquidez nao dizem nada num banco (a captacao e a materia-prima):
+          // somem da coluna e do filtro, como na regra do pipeline
+          cagr: r.cagr_60m, div_pl: r.financeira ? null : r.div_liq_patrimonio,
+          div_ebitda: (!r.financeira && r.divida_liquida_atual !== undefined && r.divida_liquida_atual !== null && r.ebitda_ttm > 0)
+            ? r.divida_liquida_atual / r.ebitda_ttm : null,
+          liq_corr: r.financeira ? null : r.liquidez_corrente, volume: m.volume,
+          // por acao ON-equivalente x contagem: numa unit o preco e de n acoes
+          valor_mercado: (m.preco && r.acoes_atual) ? m.preco / (m.acoes_por_unit || 1) * r.acoes_atual : null
+        };
+        // distancia da cotacao ate cada metodo (a "Media" e a coluna Teto medio)
+        METODOS.forEach(function (x) {
+          var v = p[x[0]];
+          ord[x[1]] = (v && isFinite(v) && v > 0 && m.preco) ? (v / m.preco - 1) * 100 : null;
+        });
         LISTA.push({
           ticker: t, cnpj: cnpj, nome: e.nome,
           setor: e.setor_b3 || e.setor, subsetor: e.subsetor,
-          resumo: r, mercado: m,
-          ord: {
-            ticker: t, nome: e.nome, preco: m.preco, p_l: m.p_l, p_vp: m.p_vp,
-            dy: m.dy, roe: r.roe, roic: r.roic,
-            margem: (media && m.preco) ? (media / m.preco - 1) * 100 : null
-          }
+          resumo: r, mercado: m, ord: ord
         });
       });
     });
@@ -1376,9 +1482,10 @@
       "ano usa o balanço daquele exercício — já reapresentado quando a empresa republicou — e o " +
       "fechamento do último pregão do ano.<br><br>" +
       "Conteúdo educacional, não é recomendação de investimento.";
+    criarFiltros();
     var pedido = tickerDaUrl();
-    abrir(LISTA.some(function (x) { return x.ticker === pedido; }) ? pedido : LISTA[0].ticker);
-    render();
+    if (LISTA.some(function (x) { return x.ticker === pedido; })) abrir(pedido);
+    else { PRIMEIRA = false; mostrarLista(false); }
   }).catch(function (e) {
     $("conteudo").innerHTML = '<div class="carregando">Não consegui carregar a base.</div>';
   });
@@ -1398,8 +1505,16 @@
 
   $("busca").addEventListener("input", function () {
     var t = $("busca").value.trim().toUpperCase();
-    if (LISTA.some(function (x) { return x.ticker === t; })) abrir(t);
-    render();
+    if (LISTA.some(function (x) { return x.ticker === t; })) { abrir(t); return; }
+    // texto que nao e ticker: procura na lista
+    if (t && $("vista-lista").hidden) mostrarLista(true);
+    else render();
+  });
+  $("voltar").addEventListener("click", function (ev) {
+    if (!cliqueSimples(ev)) return;
+    ev.preventDefault();
+    mostrarLista(true);
+    window.scrollTo({ top: 0 });
   });
   $("corpo").addEventListener("click", function (ev) {
     var tr = ev.target.closest("tr");
@@ -1408,20 +1523,22 @@
     abrir(tr.dataset.t); window.scrollTo({ top: 0, behavior: "smooth" });
   });
   window.addEventListener("popstate", function () {
+    if (!LISTA.length) return;
     var t = tickerDaUrl();
-    if (!LISTA.some(function (x) { return x.ticker === t; })) return;
-    VOLTANDO = true; abrir(t); VOLTANDO = false;
+    if (LISTA.some(function (x) { return x.ticker === t; })) { VOLTANDO = true; abrir(t); VOLTANDO = false; return; }
+    if (FILTROS) FILTROS.lerUrl();
+    mostrarLista(false);
   });
-  Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"), function (th) {
-    th.addEventListener("click", function () {
-      var c = th.dataset.col;
-      ordem = (ordem.col === c) ? { col: c, asc: !ordem.asc } : { col: c, asc: c === "ticker" || c === "nome" };
-      render();
-    });
+  $("cabeca").addEventListener("click", function (ev) {
+    var th = ev.target.closest("th[data-col]");
+    if (!th) return;
+    var c = th.dataset.col, texto = c === "ticker" || c === "nome" || c === "subsetor";
+    ordem = (ordem.col === c) ? { col: c, asc: !ordem.asc } : { col: c, asc: texto };
+    render();
   });
   window.addEventListener("resize", function () {
     grafPreco();
-    if (!$("aba-gra").hidden) redesenharGraficos();
+    if ($("aba-gra") && !$("aba-gra").hidden) redesenharGraficos();
     var tit = $("modal-tit").textContent.split(" — ")[0];
     if (ATUAL && !$("modal").hidden && (SERIES[ATUAL.ticker] || {})[tit])
       desenharSerie($("modal-chart"), SERIES[ATUAL.ticker][tit], tit);

@@ -33,6 +33,13 @@
     background:var(--ground);border-bottom:1px solid var(--line)}
   .marca{font-weight:800;color:var(--ink);font-size:.95rem;letter-spacing:.01em}
   .busca{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .voltar{font-size:.82rem;font-weight:700;color:var(--ink-2);text-decoration:none}
+  .voltar:hover{color:var(--gold-ink)}
+  .voltar[hidden],#conteudo[hidden],#vista-lista[hidden]{display:none}
+  #vista-lista th:nth-child(3),#vista-lista td:nth-child(3),
+  #vista-lista th:nth-child(4),#vista-lista td:nth-child(4){text-align:left}
+  #vista-lista td:nth-child(4){max-width:170px;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+  .lista-conta{font-size:.78rem;color:var(--ink-3);margin:10px 2px 0}
   input[type=search]{min-width:230px;padding:10px 14px;border-radius:9px;font-family:var(--font);
     font-size:.95rem;background:var(--card);border:1px solid var(--line-forte);color:var(--ink)}
   input[type=search]::placeholder{color:var(--ink-3)}
@@ -222,9 +229,11 @@
 <body>
 <script src="menu.js"></script>
 <script src="aovivo.js"></script>
+<script src="filtros.js"></script>
 <div class="wrap">
 
   <header class="topo">
+    <a class="voltar" id="voltar" href="fiis.html" hidden>&larr; Todos os FIIs</a>
     <div class="busca">
       <input type="search" id="busca" placeholder="Ticker, fundo ou segmento…" list="tickers" autocomplete="off" spellcheck="false">
       <datalist id="tickers"></datalist>
@@ -233,20 +242,18 @@
 
   <div id="conteudo"><div class="carregando">Carregando a base…</div></div>
 
-  <h2 class="sec" id="tit-lista">Todos os FIIs</h2>
+  <section id="vista-lista" hidden>
+  <h2 class="sec" id="tit-lista">Fundos imobiliários</h2>
   <div class="filtros" id="filtros"></div>
+  <div id="filtros-num"></div>
+  <p class="lista-conta" id="lista-conta"></p>
   <div class="lista">
     <table>
-      <thead><tr>
-        <th data-col="ticker">Ticker</th><th data-col="nome">Fundo</th>
-        <th data-col="tipo" style="text-align:left">Tipo</th><th data-col="segmento" style="text-align:left">Segmento</th>
-        <th data-col="preco">Preço</th><th data-col="p_vp">P/VP</th><th data-col="dy_12m">DY 12m</th>
-        <th data-col="ult">Últ. rend.</th><th data-col="valor_mercado">Valor de mercado</th>
-        <th data-col="volume">Volume</th><th data-col="cotistas">Cotistas</th>
-      </tr></thead>
-      <tbody id="corpo"><tr><td colspan="11" class="carregando">…</td></tr></tbody>
+      <thead><tr id="cabeca"></tr></thead>
+      <tbody id="corpo"><tr><td colspan="12" class="carregando">…</td></tr></tbody>
     </table>
   </div>
+  </section>
 
   <div class="rodape" id="rodape"></div>
 </div>
@@ -671,6 +678,7 @@
     if (!f) return;
     ATUAL = t;
     marcarUrl(t, "Raio-X do FII");
+    $("vista-lista").hidden = true; $("conteudo").hidden = false; $("voltar").hidden = false;
     var tags = [];
     if (f.informe) tags.push("informe da CVM de " + f.informe.slice(5, 7) + "/" + f.informe.slice(0, 4));
     if (f.gestao) tags.push("gestão " + f.gestao.toLowerCase());
@@ -1017,12 +1025,71 @@
   }
   function fecharHist() { $("modal").hidden = true; HIST_ABERTO = null; tirarMira(); esconderDica(); }
 
-  // ---------- lista ----------
+  // ---------- lista: a pagina principal, com filtros (filtros.js) ----------
+  // Como na acoes.html (pedido do Ricardo, 25/11/2026): sem ?t= abre na
+  // lista. Tipo e segmento seguem nos botoes de cima; os numeros no filtros.js.
+  // Tudo vai no endereco (?tipo=Tijolo&p_vp_max=0.9&dy_12m_min=10).
+  var FILTROS = null;
+  var COLUNAS = [
+    ["ticker", "Ticker"], ["nome", "Fundo"], ["tipo", "Tipo"], ["segmento", "Segmento"], ["preco", "Preço"],
+    ["p_vp", "P/VP"], ["dy_12m", "DY 12m"], ["ult", "Últ. rend."], ["vacancia", "Vacância"],
+    ["valor_mercado", "Valor de mercado"], ["volume", "Volume"], ["cotistas", "Cotistas"]
+  ];
+  function criarFiltros() {
+    var q = new URLSearchParams(location.search);
+    if (q.get("tipo") && TIPOS.indexOf(q.get("tipo")) >= 0) FILTRO = q.get("tipo");
+    if (q.get("segmento")) SEGMENTO = q.get("segmento");
+    FILTROS = Filtros({
+      el: $("filtros-num"),
+      grupos: [
+        { nome: "Valuation", campos: [
+          { k: "p_vp", nome: "P/VP", unid: "×" }, { k: "dy_12m", nome: "DY 12 meses", unid: "%" },
+          { k: "yield_ult", nome: "Yield do último rend.", unid: "%" }] },
+        { nome: "Tamanho e liquidez", campos: [
+          { k: "valor_mercado", nome: "Valor de mercado", unid: "mi", mult: 1e6 },
+          { k: "pl", nome: "Patrimônio líquido", unid: "mi", mult: 1e6 },
+          { k: "volume", nome: "Volume no pregão", unid: "mi", mult: 1e6 },
+          { k: "cotistas", nome: "Cotistas", unid: "mil", mult: 1e3 }] },
+        { nome: "Imóveis e custo", nota: "Vacância só de quem declara imóveis à CVM e com o dado confiável.",
+          campos: [
+          { k: "vacancia", nome: "Vacância física", unid: "%" }, { k: "n_imoveis", nome: "Nº de imóveis", unid: "" },
+          { k: "pct_imoveis", nome: "Em imóveis (do ativo)", unid: "%" },
+          { k: "taxa_adm", nome: "Taxa de adm. ao mês", unid: "%" }] }
+      ],
+      aoMudar: function () {
+        render();
+        try { history.replaceState({}, "", urlLista()); } catch (e) { /* file:// */ }
+      }
+    });
+  }
+  function urlLista() {
+    var q = new URLSearchParams(FILTROS ? FILTROS.consulta() : "");
+    if (FILTRO !== "Todos") q.set("tipo", FILTRO);
+    if (SEGMENTO) q.set("segmento", SEGMENTO);
+    var s = q.toString();
+    return location.pathname + (s ? "?" + s : "");
+  }
+  function mostrarLista(empurrar) {
+    ATUAL = null;
+    if (window.AoVivo && window.AoVivo.parar) window.AoVivo.parar();
+    $("conteudo").hidden = true; $("vista-lista").hidden = false; $("voltar").hidden = true;
+    document.title = "FIIs — Muita Ação";
+    if (empurrar) { try { history.pushState({}, "", urlLista()); } catch (e) { /* file:// */ } }
+    render();
+  }
+  function cabecalho() {
+    $("cabeca").innerHTML = COLUNAS.map(function (c) {
+      return '<th data-col="' + c[0] + '"' + (ordem.col === c[0] ? ' aria-sort="' + (ordem.asc ? "ascending" : "descending") + '"' : "") +
+        ">" + c[1] + (ordem.col === c[0] ? (ordem.asc ? " ↑" : " ↓") : "") + "</th>";
+    }).join("");
+  }
   function render() {
+    if (!FILTROS) return;
     var q = $("busca").value.trim().toUpperCase();
     var linhas = LISTA.filter(function (x) {
       if (FILTRO !== "Todos" && x.tipo !== FILTRO) return false;
       if (SEGMENTO && (x.segmento || "Sem segmento") !== SEGMENTO) return false;
+      if (!FILTROS.passa(x.ord)) return false;
       if (!q) return true;
       return (x.ticker + " " + x.nome + " " + (x.segmento || "") + " " + (x.tipo || "")).toUpperCase().indexOf(q) >= 0;
     });
@@ -1033,16 +1100,19 @@
       if (vb === null || vb === undefined) return -1;
       return (typeof va === "string" ? va.localeCompare(vb) : va - vb) * s;
     });
-    $("tit-lista").textContent = linhas.length === LISTA.length ? "Todos os FIIs (" + LISTA.length + ")"
-                                                                  : linhas.length + " de " + LISTA.length + " FIIs";
+    cabecalho();
+    $("lista-conta").textContent = linhas.length === LISTA.length
+      ? LISTA.length + " FIIs · clique no título de uma coluna para ordenar"
+      : linhas.length + " de " + LISTA.length + " FIIs passam no filtro";
     $("corpo").innerHTML = linhas.map(function (x) {
       return '<tr data-t="' + x.ticker + '"><td><a class="lk" href="?t=' + encodeURIComponent(x.ticker) + '">' +
         x.ticker + '</a></td><td>' + esc(x.nome) + '</td>' +
-        '<td style="text-align:left">' + esc(x.tipo || "—") + '</td><td style="text-align:left">' + esc(x.segmento || "—") + '</td>' +
+        '<td>' + esc(x.tipo || "—") + '</td><td>' + esc(x.segmento || "—") + '</td>' +
         '<td>' + num(x.preco) + '</td><td>' + num(x.p_vp) + '</td><td>' + num(x.dy_12m, 2, "%") + '</td>' +
-        '<td>' + num(x.ord.ult) + '</td><td>' + grande(x.valor_mercado) + '</td><td>' + grande(x.volume) + '</td>' +
+        '<td>' + num(x.ord.ult) + '</td><td>' + num(x.ord.vacancia, 1, "%") + '</td>' +
+        '<td>' + grande(x.valor_mercado) + '</td><td>' + grande(x.volume) + '</td>' +
         '<td>' + inteiro(x.cotistas) + '</td></tr>';
-    }).join("") || '<tr><td colspan="11" class="carregando">Nenhum FII com esse filtro.</td></tr>';
+    }).join("") || '<tr><td colspan="12" class="carregando">Nenhum FII passa nesses filtros.</td></tr>';
   }
   // Tipo na primeira linha; na segunda, os SEGMENTOS do tipo escolhido, com a
   // contagem (pedido do Ricardo: dentro de tijolo, ver shoppings, lajes,
@@ -1068,6 +1138,7 @@
       else SEGMENTO = b.dataset.s;
       montarFiltros();
       render();
+      try { history.replaceState({}, "", urlLista()); } catch (e) { /* file:// */ }
     });
   }
 
@@ -1082,7 +1153,11 @@
       var x = Object.assign({ ticker: t }, f);
       x.ord = { ticker: t, nome: f.nome, tipo: f.tipo, segmento: f.segmento, preco: f.preco, p_vp: f.p_vp,
                 dy_12m: f.dy_12m, ult: f.ultimo_rendimento ? f.ultimo_rendimento[1] : null,
-                valor_mercado: f.valor_mercado, volume: f.volume, cotistas: f.cotistas };
+                valor_mercado: f.valor_mercado, volume: f.volume, cotistas: f.cotistas, pl: f.pl,
+                yield_ult: f.ultimo_rendimento && f.preco ? f.ultimo_rendimento[1] / f.preco * 100 : null,
+                vacancia: f.vacancia_inconsistente || !(f.imoveis || []).length ? null : f.vacancia_fisica,
+                n_imoveis: (f.imoveis || []).length, pct_imoveis: f.composicao ? f.composicao.imoveis : null,
+                taxa_adm: f.taxa_adm_mes !== null && f.taxa_adm_mes !== undefined ? f.taxa_adm_mes * 100 : null };
       LISTA.push(x);
     });
     LISTA.sort(function (a, b) { return (b.volume || 0) - (a.volume || 0); });
@@ -1107,19 +1182,27 @@
       "<b>DY</b> é a soma dos rendimentos com data-com nos últimos 12 meses sobre a cotação de hoje. " +
       "Volume é o do último pregão.<br><br>" +
       "Conteúdo educacional, não é recomendação de investimento.";
+    criarFiltros();
     montarFiltros();
     ligarFiltros();
     var pedido = tickerDaUrl();
-    abrir(BASE.fiis[pedido] ? pedido : LISTA[0].ticker);
-    render();
+    if (BASE.fiis[pedido]) abrir(pedido);
+    else { PRIMEIRA = false; mostrarLista(false); }
   }).catch(function () {
     $("conteudo").innerHTML = '<div class="carregando">Não consegui carregar a base de FIIs.</div>';
   });
 
   $("busca").addEventListener("input", function () {
     var t = $("busca").value.trim().toUpperCase();
-    if (BASE && BASE.fiis[t]) abrir(t);
-    render();
+    if (BASE && BASE.fiis[t]) { abrir(t); return; }
+    if (t && $("vista-lista").hidden) mostrarLista(true);
+    else render();
+  });
+  $("voltar").addEventListener("click", function (ev) {
+    if (!cliqueSimples(ev)) return;
+    ev.preventDefault();
+    mostrarLista(true);
+    window.scrollTo({ top: 0 });
   });
   $("corpo").addEventListener("click", function (ev) {
     var tr = ev.target.closest("tr");
@@ -1128,17 +1211,23 @@
     abrir(tr.dataset.t); window.scrollTo({ top: 0, behavior: "smooth" });
   });
   window.addEventListener("popstate", function () {
+    if (!BASE) return;
     var t = tickerDaUrl();
-    if (!BASE || !BASE.fiis[t]) return;
-    VOLTANDO = true; abrir(t); VOLTANDO = false;
+    if (BASE.fiis[t]) { VOLTANDO = true; abrir(t); VOLTANDO = false; return; }
+    var q = new URLSearchParams(location.search);
+    FILTRO = TIPOS.indexOf(q.get("tipo")) >= 0 ? q.get("tipo") : "Todos";
+    SEGMENTO = q.get("segmento") || "";
+    montarFiltros();
+    if (FILTROS) FILTROS.lerUrl();
+    mostrarLista(false);
   });
-  Array.prototype.forEach.call(document.querySelectorAll("th[data-col]"), function (th) {
-    th.addEventListener("click", function () {
-      var c = th.dataset.col;
-      var texto = c === "ticker" || c === "nome" || c === "tipo" || c === "segmento";
-      ordem = (ordem.col === c) ? { col: c, asc: !ordem.asc } : { col: c, asc: texto };
-      render();
-    });
+  $("cabeca").addEventListener("click", function (ev) {
+    var th = ev.target.closest("th[data-col]");
+    if (!th) return;
+    var c = th.dataset.col;
+    var texto = c === "ticker" || c === "nome" || c === "tipo" || c === "segmento";
+    ordem = (ordem.col === c) ? { col: c, asc: !ordem.asc } : { col: c, asc: texto };
+    render();
   });
   window.addEventListener("resize", function () {
     if (!ATUAL) return;
