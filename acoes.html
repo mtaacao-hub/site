@@ -191,6 +191,7 @@
 </head>
 <body>
 <script src="menu.js"></script>
+<script src="aovivo.js"></script>
 <div class="wrap">
 
   <header class="topo">
@@ -371,6 +372,49 @@
                       foto: ctx.getImageData(0, 0, canvas.width, canvas.height) };
   }
 
+
+  // ---------- cotacao do dia (aovivo.js: direto da B3, com atraso) ----------
+  // So do papel aberto, buscado pelo navegador de quem le. Sem ela (B3 fora,
+  // papel sem negocio hoje) a ficha fica como era: fechamento do pipeline.
+  var VIVO = null;                   // {t, d}
+  function vivoDe(t) { return VIVO && VIVO.t === t ? VIVO.d : null; }
+  function seguirVivo(t) {
+    if (!window.AoVivo) return;
+    window.AoVivo.seguir(t, function (d) {
+      if ((ATUAL && ATUAL.ticker) !== t) return;
+      VIVO = { t: t, d: d };
+      var b = document.querySelector('#periodos [data-dias="1"], #periodos [data-d="1"]');
+      if (b) b.hidden = false;
+      var el = $("vivo");
+      if (el) el.innerHTML = window.AoVivo.linha(d, ATUAL.mercado.data);
+      grafPreco();
+    });
+  }
+  // a serie do grafico: o dia minuto a minuto no "1d"; nos outros periodos,
+  // a diaria com o preco de hoje no fim
+  function serieComVivo(t, diaria) {
+    var v = vivoDe(t);
+    if (PERIODO === 1 && v) return { s: v.serie, opt: { data: window.AoVivo.rotulo(v) }, dia: v };
+    return { s: v ? window.AoVivo.comHoje(diaria, v) : diaria, opt: undefined, dia: null };
+  }
+
+  function grafPreco() {
+    if (!ATUAL || !$("chart")) return;
+    var t = ATUAL.ticker, m = ATUAL.mercado;
+    var g = serieComVivo(t, fatiar(t, PERIODO === 1 ? 7 : PERIODO)), serie = g.s;
+    desenhar($("chart"), serie, COR_LINHA, g.opt);
+    if (serie.length < 2) { $("resumo-grafico").innerHTML = ""; return; }
+    var vs = serie.map(function (x) { return x[1]; });
+    var varPct = g.dia ? g.dia["var"] : (serie[serie.length - 1][1] / serie[0][1] - 1) * 100;
+    $("resumo-grafico").innerHTML =
+      '<span>' + (g.dia ? "No dia" : "No período") + ': <b class="' + (varPct >= 0 ? "pos" : "neg") + '">' +
+        (varPct >= 0 ? "+" : "") + brl(varPct, g.dia ? 2 : 1) + "%</b></span>" +
+      '<span>Mínima: <b>R$ ' + brl(Math.min.apply(null, vs)) + "</b></span>" +
+      '<span>Máxima: <b>R$ ' + brl(Math.max.apply(null, vs)) + "</b></span>" +
+      (g.dia ? '<span>Pregão de ' + dataBR(g.dia.data) + ", B3 com cerca de 15 min de atraso</span>"
+             : '<span>Volume: <b>R$ ' + brl((m.volume || 0) / 1e6, 1) + " mi/dia</b></span>");
+  }
+
   function fatiar(ticker, dias) {
     var s = HIST[ticker] || [];
     if (!s.length) return [];
@@ -467,24 +511,20 @@
         '<span class="empresa">' + esc(item.nome) + '</span>' +
         '<span class="setor">' + esc(item.setor || "") + (item.subsetor ? " · " + esc(item.subsetor) : "") + '</span>' +
         '<span class="cotacao"><span class="v">R$ ' + brl(m.preco) + '</span>' +
-          '<span class="d">fechamento de ' + dataBR(m.data) + '</span></span>' +
+          '<span class="d">fechamento de ' + dataBR(m.data) + '</span><span class="d" id="vivo"></span></span>' +
       '</div>' + (avisos.length ? '<div class="avisos">' + avisos.join("") + "</div>" : "") + "</div>" +
 
       '<div class="grafico"><div class="periodos" id="periodos">' +
         // DIAS CORRIDOS: o fatiar() subtrai do calendario. Com os pregoes
         // (252 = 12m) o "12m" mostrava 8 meses e o "60m", 3 anos e meio.
-        [[7, "5d"], [31, "1m"], [92, "3m"], [183, "6m"], [365, "12m"], [1826, "60m"],
+        // "1d" (o pregao de hoje, da B3) nasce escondido: aparece quando o dado chega
+        [[1, "1d"], [7, "5d"], [31, "1m"], [92, "3m"], [183, "6m"], [365, "12m"], [1826, "60m"],
          [99999, "Máx"]].map(function (x) {
-          return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '">' + x[1] + "</button>";
+          return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '"' +
+                 (x[0] === 1 && !vivoDe(ticker) ? " hidden" : "") + ">" + x[1] + "</button>";
         }).join("") +
       '</div><canvas id="chart"></canvas>' +
-      '<div class="resumo-grafico">' +
-        (varPct === null ? "" : '<span>No período: <b class="' + (varPct >= 0 ? "pos" : "neg") + '">' +
-          (varPct >= 0 ? "+" : "") + brl(varPct, 1) + "%</b></span>") +
-        '<span>Mínima: <b>R$ ' + brl(Math.min.apply(null, serie.map(function (x) { return x[1]; }))) + "</b></span>" +
-        '<span>Máxima: <b>R$ ' + brl(Math.max.apply(null, serie.map(function (x) { return x[1]; }))) + "</b></span>" +
-        '<span>Volume: <b>R$ ' + brl((m.volume || 0) / 1e6, 1) + " mi/dia</b></span>" +
-      "</div></div>" +
+      '<div class="resumo-grafico" id="resumo-grafico"></div></div>' +
 
       '<div class="abas" id="abas">' +
         '<button data-aba="ind" aria-selected="true">Indicadores</button>' +
@@ -561,13 +601,14 @@
       }
     });
 
-    desenhar($("chart"), serie, cor);
+    grafPreco();
+    seguirVivo(ticker);
     $("periodos").addEventListener("click", function (ev) {
       var b = ev.target.closest("button");
       if (!b) return;
       PERIODO = parseInt(b.dataset.dias, 10);
-      abrir(ticker);
-      document.querySelector(".grafico").scrollIntoView({ block: "nearest" });
+      Array.prototype.forEach.call($("periodos").children, function (x) { x.setAttribute("aria-pressed", x === b); });
+      grafPreco();
     });
     $("tit-lista").textContent = "Todas as empresas";
   }
@@ -1379,7 +1420,7 @@
     });
   });
   window.addEventListener("resize", function () {
-    if (ATUAL && $("chart")) desenhar($("chart"), fatiar(ATUAL.ticker, PERIODO), COR_LINHA);
+    grafPreco();
     if (!$("aba-gra").hidden) redesenharGraficos();
     var tit = $("modal-tit").textContent.split(" — ")[0];
     if (ATUAL && !$("modal").hidden && (SERIES[ATUAL.ticker] || {})[tit])

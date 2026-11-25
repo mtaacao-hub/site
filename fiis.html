@@ -221,6 +221,7 @@
 </head>
 <body>
 <script src="menu.js"></script>
+<script src="aovivo.js"></script>
 <div class="wrap">
 
   <header class="topo">
@@ -687,14 +688,15 @@
       '<span class="papel">' + esc(t) + '</span><span class="empresa">' + esc(f.nome) + '</span>' +
       '<span class="setor">' + esc([f.tipo, f.segmento].filter(Boolean).join(" · ")) + '</span>' +
       '<span class="cotacao"><span class="v">R$ ' + brl(f.preco) + '</span>' +
-      '<span class="d">fechamento de ' + dataBR(f.data) + '</span></span></div>' +
+      '<span class="d">fechamento de ' + dataBR(f.data) + '</span><span class="d" id="vivo"></span></span></div>' +
       '<div class="avisos">' + alertas.map(function (x) { return '<span class="tag alerta">' + esc(x) + '</span>'; }).join("") +
       tags.map(function (x) { return '<span class="tag">' + esc(x) + '</span>'; }).join("") +
       '</div></section>';
 
     h += '<section class="grafico"><div class="periodos" id="periodos">' +
-      [["5d", 7], ["1m", 31], ["3m", 92], ["6m", 183], ["12m", 365], ["60m", 1826], ["Máx", 99999]].map(function (p) {
-        return '<button data-d="' + p[1] + '" aria-pressed="' + (p[1] === PERIODO) + '">' + p[0] + '</button>';
+      [["1d", 1], ["5d", 7], ["1m", 31], ["3m", 92], ["6m", 183], ["12m", 365], ["60m", 1826], ["Máx", 99999]].map(function (p) {
+        return '<button data-d="' + p[1] + '" aria-pressed="' + (p[1] === PERIODO) + '"' +
+               (p[1] === 1 && !vivoDe(t) ? " hidden" : "") + '>' + p[0] + '</button>';
       }).join("") + '</div><canvas id="chart"></canvas><div class="resumo-grafico" id="resumo-grafico"></div></section>';
 
     h += '<div class="paineis">' +
@@ -740,6 +742,7 @@
       ABA = b.dataset.aba; abaAtual();
     });
     grafPreco();
+    seguirVivo(t);
     abaAtual();
   }
   function painel(tit, linhas) {
@@ -750,13 +753,39 @@
   function aba(k, nome) {
     return '<button role="tab" data-aba="' + k + '" aria-selected="' + (ABA === k) + '">' + nome + '</button>';
   }
+
+  // ---------- cotacao do dia (aovivo.js: direto da B3, com atraso) ----------
+  // So do papel aberto, buscado pelo navegador de quem le. Sem ela (B3 fora,
+  // papel sem negocio hoje) a ficha fica como era: fechamento do pipeline.
+  var VIVO = null;                   // {t, d}
+  function vivoDe(t) { return VIVO && VIVO.t === t ? VIVO.d : null; }
+  function seguirVivo(t) {
+    if (!window.AoVivo) return;
+    window.AoVivo.seguir(t, function (d) {
+      if (ATUAL !== t) return;
+      VIVO = { t: t, d: d };
+      var b = document.querySelector('#periodos [data-dias="1"], #periodos [data-d="1"]');
+      if (b) b.hidden = false;
+      var el = $("vivo");
+      if (el) el.innerHTML = window.AoVivo.linha(d, BASE.fiis[ATUAL].data);
+      grafPreco();
+    });
+  }
+  // a serie do grafico: o dia minuto a minuto no "1d"; nos outros periodos,
+  // a diaria com o preco de hoje no fim
+  function serieComVivo(t, diaria) {
+    var v = vivoDe(t);
+    if (PERIODO === 1 && v) return { s: v.serie, opt: { data: window.AoVivo.rotulo(v) }, dia: v };
+    return { s: v ? window.AoVivo.comHoje(diaria, v) : diaria, opt: undefined, dia: null };
+  }
   function grafPreco() {
-    var s = fatiar(ATUAL, PERIODO);
-    desenhar($("chart"), s, COR_LINHA);
+    var g = serieComVivo(ATUAL, fatiar(ATUAL, PERIODO === 1 ? 7 : PERIODO)), s = g.s;
+    desenhar($("chart"), s, COR_LINHA, g.opt);
     if (s.length >= 2) {
-      var vs = s.map(function (p) { return p[1]; }), v = (s[s.length - 1][1] / s[0][1] - 1) * 100;
-      $("resumo-grafico").innerHTML = 'No período: <b class="' + (v >= 0 ? "pos" : "neg") + '">' +
-        (v >= 0 ? "+" : "") + brl(v, 1) + '%</b> <span>Mínima: <b>R$ ' + brl(Math.min.apply(null, vs)) +
+      var vs = s.map(function (p) { return p[1]; });
+      var v = g.dia ? g.dia["var"] : (s[s.length - 1][1] / s[0][1] - 1) * 100;
+      $("resumo-grafico").innerHTML = (g.dia ? "No dia" : "No período") + ': <b class="' + (v >= 0 ? "pos" : "neg") + '">' +
+        (v >= 0 ? "+" : "") + brl(v, g.dia ? 2 : 1) + '%</b> <span>Mínima: <b>R$ ' + brl(Math.min.apply(null, vs)) +
         '</b></span> <span>Máxima: <b>R$ ' + brl(Math.max.apply(null, vs)) + '</b></span>' +
         ' <span>Cotação sem os rendimentos, que nos FIIs são a maior parte do retorno.</span>';
     } else $("resumo-grafico").innerHTML = "";
