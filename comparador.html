@@ -296,6 +296,15 @@
   // provento por mes (data-ex; FII pela data-com), na base de hoje
   function proventosMensais(a) {
     var out = {};
+    if (a.tipo === "TD") {
+      // parcela do Educa+/Renda+ e cupom dos com juros, no mes do pagamento
+      var t = B.tesouro && B.tesouro[a.id];
+      ((t && t.fluxos) || []).forEach(function (f) {
+        var k = f[0].slice(0, 7);
+        out[k] = (out[k] || 0) + f[1];
+      });
+      return out;
+    }
     if (a.tipo !== "A") return out;
     ((B.prov && B.prov[a.id]) || []).forEach(function (x) {
       // SUBSCRICAO e preco do direito de subscrever, nao dinheiro recebido
@@ -359,7 +368,7 @@
           var x = B.tesouro[n];
           out.push({ g: "Tesouro Direto", a: { tipo: "TD", id: n }, t: n,
                      d: (x.vivo ? "vence em " : "venceu em ") + x.vencimento.split("-").reverse().join("/") +
-                        (x.cupom ? " · paga cupom semestral, que não entra na conta" : "") });
+                        (x.fluxos ? (x.cupom ? " · paga cupom semestral" : " · paga parcelas mensais") : "") });
         });
     }
     if (B.fundosLista) {
@@ -762,7 +771,9 @@
         : "<b>Sem os proventos</b>: só a variação de preço. O Ibovespa e o S&amp;P daqui reinvestem os " +
           "deles, então nesse modo a comparação favorece os índices."));
     if (tipos.TD) a.push("<b>Tesouro:</b> preço de venda (resgate antecipado) do último dia útil do mês. " +
-      "Nos títulos com juros semestrais o cupom não entra — o preço cai no pagamento e o retorno sai subestimado.");
+      (EST.reinvestir ? "Os cupons dos títulos com juros semestrais e as parcelas do Educa+ e do Renda+ " +
+        "entram reinvestidos no mês do pagamento." : "<b>Sem os cupons e as parcelas</b>: o preço cai no " +
+        "pagamento, então nesse modo o retorno do título com juros ou em fase de pagamento sai subestimado."));
     if (tipos.FI) a.push("<b>Fundos:</b> cota do último informe do mês à CVM, já líquida das taxas de " +
       "administração e performance; antes de IR e come-cotas. Na previdência, a taxa de carregamento do " +
       "plano fica fora.");

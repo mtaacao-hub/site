@@ -330,6 +330,26 @@
     return null;
   }
 
+  // Pagamentos antes do vencimento (`fluxos` do tesouro.json: parcela do
+  // Educa+/Renda+, cupom dos com juros): o PU cai no dia em que o titulo paga,
+  // entao sem eles a posicao mostra um prejuizo que nao existe. Recebe quem
+  // tinha o titulo ANTES do dia do pagamento (o PU do proprio dia ja vem sem).
+  function pagamentosTD(ticker) {
+    var t = TESOURO && TESOURO[ticker];
+    if (!t || !t.fluxos || !t.fluxos.length) return null;
+    var ops = OPS.filter(function (o) { return classeDe(o) === "TD" && o.ticker === ticker; });
+    var umAno = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    var r = { total: 0, n: 0, ano: 0, tipo: t.fluxos[0][2] };
+    t.fluxos.forEach(function (f) {
+      var q = 0;
+      ops.forEach(function (o) { if (o.data < f[0]) q += o.op === "C" ? o.qtd : -o.qtd; });
+      if (q <= 1e-9) return;
+      r.total += q * f[1]; r.n++;
+      if (f[0] > umAno) r.ano += q * f[1];
+    });
+    return r;
+  }
+
   // ---------- Tesouro de hoje, direto do Tesouro Direto ----------
   // O mesmo endpoint que o site do Tesouro Direto usa, sem chave e com CORS
   // aberto: quem busca e o navegador de quem abriu a carteira. Traz so os
@@ -757,6 +777,10 @@
         p.atual = p.preco ? p.preco * p.qtd : null;
         p.lucro = p.atual === null ? null : p.atual - p.custo;
         p.dpa = p.proventos = p.yoc = p.teto = p.margem = null;
+        p.pagos = pagamentosTD(p.ticker);
+        // cupom e parcela de 12 meses entram no card de proventos, como o
+        // dividendo; a tabela de proventos segue so das acoes
+        if (p.pagos && p.pagos.ano) { p.proventos = p.pagos.ano; provAno += p.pagos.ano; }
         p.setor = null;
         if (p.atual === null) semCotacao.push(p.ticker);
         totalAtual += p.atual || 0;
@@ -804,8 +828,6 @@
       if (p.titulo && !p.titulo.vivo)
         nota = '<div class="mini">vencido em ' + dmy(p.titulo.vencimento) +
                " — lance o resgate como venda</div>";
-      else if (p.titulo && p.titulo.cupom)
-        nota = '<div class="mini">paga cupom semestral, que não entra aqui</div>';
       else if (p.classe === "RF" && p.rf)
         nota = '<div class="mini">' + esc(descTaxa(p.rf)) + " · aplicado em " + dmy(p.aplicacao) +
                (p.rf.venc ? (p.rf.venc <= HOJE ? " · <b>venceu em " + dmy(p.rf.venc) +
@@ -816,7 +838,10 @@
         nota = '<div class="mini">vence em ' + dmy(p.titulo.vencimento) +
                (app ? " · no app do Tesouro Direto: <b>" + esc(app.replace(/^Tesouro /, "")) + "</b>" : "") +
                " · preço " + (p.titulo.hora && p.titulo.data === HOJE ? "de hoje, " + esc(p.titulo.hora) :
-                              "de " + dmy(p.titulo.data)) + "</div>";
+                              "de " + dmy(p.titulo.data)) + "</div>" +
+               (p.pagos && p.pagos.n ? '<div class="mini">recebeu R$ ' + brl(p.pagos.total) + " em " + p.pagos.n +
+                 (p.pagos.tipo === "JUROS" ? (p.pagos.n > 1 ? " cupons" : " cupom") : (p.pagos.n > 1 ? " parcelas" : " parcela")) +
+                 " desde a compra · resultado contando os pagamentos: <b>" + sinal(p.lucro + p.pagos.total, 2) + "</b></div>" : "");
       }
       else if (p.classe === "FI")
         nota = '<div class="mini">' + fmtCnpj(p.ticker) +
@@ -1146,6 +1171,19 @@
         var com = /RENDIMENTO|AMORTIZA/i.test(x[2] || "");
         (eventos[k] = eventos[k] || []).push({ d: x[0], ord: com ? 2 : 0, t: t,
                                                prov: x[1] / fatorAte(t, x[0]) });
+      });
+    });
+
+    // Tesouro: parcela e cupom pagos, no dia do pagamento e ANTES das
+    // operacoes do dia (o PU do dia ja vem sem o pagamento)
+    var tickersTD = {};
+    ops.forEach(function (o) { if (classeDe(o) === "TD") tickersTD[o.ticker] = true; });
+    Object.keys(tickersTD).forEach(function (t) {
+      var x = TESOURO && TESOURO[t];
+      ((x && x.fluxos) || []).forEach(function (f) {
+        if (f[0] < ops[0].data) return;
+        var k = f[0].slice(0, 7);
+        (eventos[k] = eventos[k] || []).push({ d: f[0], ord: 0, t: t, prov: f[1] });
       });
     });
 
@@ -1840,8 +1878,10 @@
       "; os títulos à venda ganham o preço do dia direto do site do Tesouro Direto, que " +
       "reprecifica poucas vezes ao dia (a data e a hora ficam embaixo do nome). " +
       "No Educa+ e no Renda+ o app do Tesouro Direto usa o ano em que os pagamentos " +
-      "começam e aqui vale o ano do vencimento: o Educa+ 2030 do app é o Tesouro Educa+ 2034 daqui. Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR, e os " +
-      "cupons dos títulos com juros semestrais não são somados.<br><br>" +
+      "começam e aqui vale o ano do vencimento: o Educa+ 2030 do app é o Tesouro Educa+ 2034 daqui. Não estão descontados a custódia da B3 (0,20% a.a.) nem o IR. " +
+      "As parcelas do Educa+ e do Renda+ e os cupons dos títulos com juros semestrais " +
+      "aparecem embaixo do título e entram como provento: o preço cai no dia do pagamento, " +
+      "e sem eles o título pareceria dar prejuízo.<br><br>" +
       "<b>Renda fixa bancária</b> (CDB, RDB, LCI, LCA, LC, LIG) pelo valor na curva, com o CDI diário e o " +
       "IPCA do Banco Central — o mesmo critério da Calculadora do Cidadão do BC. Não há preço de mercado: " +
       "num resgate antes do vencimento sem liquidez diária, o banco pode pagar menos.<br><br>" +
