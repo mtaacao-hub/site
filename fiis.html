@@ -230,6 +230,7 @@
 <script src="menu.js"></script>
 <script src="aovivo.js"></script>
 <script src="filtros.js"></script>
+<script src="documentos.js"></script>
 <div class="wrap">
 
   <header class="topo">
@@ -736,7 +737,7 @@
 
     h += '<div class="abas" role="tablist">' +
       aba("ren", "Rendimentos") + aba("imo", "Imóveis" + (nImo ? " (" + nImo + ")" : "")) +
-      aba("com", "Composição") + '</div><div id="aba"></div>';
+      aba("com", "Composição") + aba("doc", "Documentos") + '</div><div id="aba"></div>';
     $("conteudo").innerHTML = h;
 
     $("periodos").addEventListener("click", function (ev) {
@@ -802,7 +803,9 @@
     Array.prototype.forEach.call(document.querySelectorAll(".abas button"), function (b) {
       b.setAttribute("aria-selected", b.dataset.aba === ABA);
     });
-    ({ ren: abaRendimentos, imo: abaImoveis, com: abaComposicao })[ABA]();
+    // #aba e compartilhado: o documentos.js nao pode escrever nele depois da troca
+    delete $("aba").dataset.chave; $("aba").onclick = null;
+    ({ ren: abaRendimentos, imo: abaImoveis, com: abaComposicao, doc: abaDocumentos })[ABA]();
   }
 
   // ---------- aba: rendimentos (como o grafico do Status Invest) ----------
@@ -933,6 +936,12 @@
         }).join("") + '</div></div>';
     }
     $("aba").innerHTML = h;
+  }
+
+  // ---------- aba: documentos (documentos.js; o arquivo so vem quando a aba abre) ----------
+  function abaDocumentos() {
+    if (window.Documentos) window.Documentos.abrir($("aba"), "fiis", ATUAL);
+    else $("aba").innerHTML = '<div class="vazio">Documentos indisponíveis.</div>';
   }
 
   // ---------- aba: composicao ----------

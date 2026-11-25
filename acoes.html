@@ -200,6 +200,7 @@
 <script src="menu.js"></script>
 <script src="aovivo.js"></script>
 <script src="filtros.js"></script>
+<script src="documentos.js"></script>
 <div class="wrap">
 
   <header class="topo">
@@ -539,11 +540,13 @@
         '<button data-aba="ind" aria-selected="true">Indicadores</button>' +
         '<button data-aba="pre" aria-selected="false">Preço por método</button>' +
         '<button data-aba="gra" aria-selected="false">Gráficos</button>' +
+        '<button data-aba="doc" aria-selected="false">Documentos</button>' +
       '</div>' +
       '<div id="aba-pre" hidden>' +
         '<p class="aba-sub">Quanto a ação valeria por cada método, com os números de hoje.</p>' +
         '<div class="valuation">' + cartoes + "</div></div>" +
       '<div id="aba-gra" hidden></div>' +
+      '<div id="aba-doc" hidden></div>' +
       '<div id="aba-ind"><div class="paineis">' +
         '<div class="painel"><h3>Preço sobre…</h3><dl>' + dl([
           ["P/L", num(m.p_l)], ["P/VP", num(m.p_vp)], ["PSR", num(m.psr)],
@@ -604,6 +607,9 @@
       $("aba-ind").hidden = b.dataset.aba !== "ind";
       $("aba-pre").hidden = b.dataset.aba !== "pre";
       $("aba-gra").hidden = b.dataset.aba !== "gra";
+      $("aba-doc").hidden = b.dataset.aba !== "doc";
+      // documentos do RI (documentos.js): o arquivo so vem quando a aba abre
+      if (b.dataset.aba === "doc" && window.Documentos) window.Documentos.abrir($("aba-doc"), "acoes", item.cnpj);
       if (b.dataset.aba === "gra") {
         redesenharGraficos();
         if (!TRIM && !TRIM_FALHOU) carregarTrim().then(function () { montarGraficos(ITEM_GRA); });
