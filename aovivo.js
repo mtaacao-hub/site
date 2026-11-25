@@ -17,7 +17,8 @@
  * nao aceita chamada do navegador.
  *
  * Uso (acoes.html e fiis.html):
- *   AoVivo.seguir(ticker, function (d) { ... })   d = {data, hora, preco, var, serie}
+ *   AoVivo.seguir(ticker, function (d) { ... }, semDado)   d = {data, hora, preco, var, serie}
+ *   AoVivo.falta(ticker) / AoVivo.explica(motivo)   o 1d sem dado (o botao fica sempre a mostra)
  *   AoVivo.comHoje(serieDiaria, d)   acrescenta o preco do dia ao fim da serie
  *   AoVivo.linha(d, dataFechamento)  HTML da linha "agora" do cabecalho
  */
@@ -27,7 +28,7 @@
   var URL_ATUAL = "https://cotacao.b3.com.br/mds/api/v1/instrumentQuotation/";
   var ATUAL = "atual";           // rotulo do ultimo ponto (a cotacao atual, sem minuto exato)
   var A_CADA = 60000;            // a B3 fecha o minuto; mais que isso nao traz nada novo
-  var guardado = {}, timer = null, seguindo = null;
+  var guardado = {}, falta = {}, timer = null, seguindo = null;
 
   function json(url) {
     return fetch(url, { cache: "no-store" })
@@ -38,7 +39,10 @@
     return Promise.all([json(URL + encodeURIComponent(t)), json(URL_ATUAL + encodeURIComponent(t))])
       .then(function (r) {
         var j = r[0], tf = j && j.TradgFlr, l = tf && tf.scty && tf.scty.lstQtn;
-        if (!l || !l.length || !tf.date) return null;
+        // "falhou": a B3 nao respondeu (fora do ar, rede, bloqueador de anuncio);
+        // "vazio": respondeu sem negocio (antes da abertura, papel sem negocio)
+        if (!j) return { falta: "falhou" };
+        if (!l || !l.length || !tf.date) return { falta: "vazio" };
         var u = l[l.length - 1];
         var serie = l.map(function (p) { return [String(p.dtTm).slice(0, 5), p.closPric]; });
         var d = { data: tf.date, preco: u.closPric, "var": Number(u.prcFlcn),
@@ -65,12 +69,28 @@
     return dia > 0 && dia < 6 && h >= 9 && h < 18;
   }
 
+  // o mesmo, pelo relogio do visitante levado para Sao Paulo: e o que decide
+  // tentar de novo quando a B3 ainda nao deu nada (sem isso, quem abria a
+  // ficha antes das 10h ficava sem o 1d o dia inteiro)
+  function abertoPeloRelogio() {
+    try {
+      var p = {};
+      new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short",
+                                         hour: "numeric", hourCycle: "h23" })
+        .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+      var h = Number(p.hour);
+      return p.weekday !== "Sat" && p.weekday !== "Sun" && h >= 9 && h < 18;
+    } catch (e) { return true; }
+  }
+
   function fmt(v) {
     return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   window.AoVivo = {
-    seguir: function (t, cb) {
+    // semDado(motivo), opcional: chamada quando ainda nao ha nada do dia para
+    // o papel ("falhou" ou "vazio"); a pagina explica no lugar do grafico
+    seguir: function (t, cb, semDado) {
       seguindo = t;
       clearTimeout(timer);
       var g = guardado[t];
@@ -80,10 +100,27 @@
         if (document.hidden) { timer = setTimeout(rodada, A_CADA); return; }
         ler(t).then(function (d) {
           if (seguindo !== t) return;
-          if (d) { guardado[t] = d; cb(d); }
-          if (d && aberto(d.servidor)) timer = setTimeout(rodada, A_CADA);
+          if (d.falta) {
+            // uma falha no meio do dia nao apaga o que ja veio
+            if (!guardado[t]) { falta[t] = d.falta; if (semDado) semDado(d.falta); }
+            if (abertoPeloRelogio()) timer = setTimeout(rodada, A_CADA);
+            return;
+          }
+          delete falta[t];
+          guardado[t] = d; cb(d);
+          if (aberto(d.servidor)) timer = setTimeout(rodada, A_CADA);
         });
       })();
+    },
+    // por que nao ha o dia deste papel: "falhou", "vazio", ou null (ha, ou ainda buscando)
+    falta: function (t) { return guardado[t] ? null : (falta[t] || null); },
+    // o texto para o lugar do 1d sem dado
+    explica: function (motivo) {
+      return motivo === "falhou"
+        ? "Não consegui buscar a cotação do dia na B3. Um bloqueador de anúncios ou de rastreadores pode impedir a consulta (ela vai direto ao site da B3). Mostrando os últimos 5 pregões."
+        : motivo === "vazio"
+          ? "A B3 ainda não tem negócio deste papel hoje (o pregão abre às 10h). Mostrando os últimos 5 pregões."
+          : "Buscando a cotação do dia na B3… Mostrando os últimos 5 pregões.";
     },
     // a lista (sem papel aberto) nao precisa buscar nada
     parar: function () { seguindo = null; clearTimeout(timer); },

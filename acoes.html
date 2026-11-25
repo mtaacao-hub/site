@@ -93,14 +93,19 @@
   .pos{color:var(--verde)} .neg{color:var(--vermelho)} .na{color:var(--ink-3)}
 
   /* ---------- paineis de indicadores ---------- */
-  .paineis{display:grid;grid-template-columns:repeat(auto-fit,minmax(252px,1fr));gap:14px}
-  .painel{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 17px}
+  /* 300px: o rotulo mais longo ("Margem EBIT recorrente" + icone, ~200px) cabe numa linha
+     ao lado do valor mais largo do painel; min() para nao estourar celular estreito */
+  .paineis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:14px}
+  .painel{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:15px 14px}
   .painel h3{margin:0 0 12px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;
     color:var(--gold-ink);font-weight:700}
-  .painel dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:0 10px;align-items:baseline}
+  .painel dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:0 8px;align-items:baseline}
   .painel dt,.painel dd{padding:6px 0;border-top:1px solid var(--line)}
   .painel dt:first-of-type,.painel dd:first-of-type{border-top:0;padding-top:0}
-  .painel dt{color:var(--ink-2);font-size:.82rem}
+  /* flex: o icone do historico fica sempre ao lado do rotulo, nunca sozinho na 2a linha */
+  .painel dt{color:var(--ink-2);font-size:.8rem;display:flex;align-items:center}
+  .painel dt .hist{flex:none}
+  .painel dd .sob{display:block;font-size:.66rem;font-weight:500;line-height:1.2;margin-top:1px}
   .painel dd{margin:0;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;font-size:.88rem}
 
   /* ---------- lista ---------- */
@@ -392,12 +397,10 @@
     window.AoVivo.seguir(t, function (d) {
       if ((ATUAL && ATUAL.ticker) !== t) return;
       VIVO = { t: t, d: d };
-      var b = document.querySelector('#periodos [data-dias="1"], #periodos [data-d="1"]');
-      if (b) b.hidden = false;
       var el = $("vivo");
       if (el) el.innerHTML = window.AoVivo.linha(d, ATUAL.mercado.data);
       grafPreco();
-    });
+    }, function () { if ((ATUAL && ATUAL.ticker) === t && PERIODO === 1) grafPreco(); });
   }
   // a serie do grafico: o dia minuto a minuto no "1d"; nos outros periodos,
   // a diaria com o preco de hoje no fim
@@ -413,6 +416,10 @@
     var g = serieComVivo(t, fatiar(t, PERIODO === 1 ? 7 : PERIODO)), serie = g.s;
     desenhar($("chart"), serie, COR_LINHA, g.opt);
     if (serie.length < 2) { $("resumo-grafico").innerHTML = ""; return; }
+    if (PERIODO === 1 && !g.dia && window.AoVivo) {
+      $("resumo-grafico").innerHTML = '<span>' + window.AoVivo.explica(window.AoVivo.falta(t)) + "</span>";
+      return;
+    }
     var vs = serie.map(function (x) { return x[1]; });
     var varPct = g.dia ? g.dia["var"] : (serie[serie.length - 1][1] / serie[0][1] - 1) * 100;
     $("resumo-grafico").innerHTML =
@@ -527,11 +534,11 @@
       '<div class="grafico"><div class="periodos" id="periodos">' +
         // DIAS CORRIDOS: o fatiar() subtrai do calendario. Com os pregoes
         // (252 = 12m) o "12m" mostrava 8 meses e o "60m", 3 anos e meio.
-        // "1d" (o pregao de hoje, da B3) nasce escondido: aparece quando o dado chega
+        // "1d" (o pregao de hoje, da B3) fica sempre a mostra: sem o dado (antes
+        // das 10h, B3 fora, bloqueador) ele explica e mostra os ultimos 5 pregoes
         [[1, "1d"], [7, "5d"], [31, "1m"], [92, "3m"], [183, "6m"], [365, "12m"], [1826, "60m"],
          [99999, "Máx"]].map(function (x) {
-          return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '"' +
-                 (x[0] === 1 && !vivoDe(ticker) ? " hidden" : "") + ">" + x[1] + "</button>";
+          return '<button data-dias="' + x[0] + '" aria-pressed="' + (x[0] === PERIODO) + '">' + x[1] + "</button>";
         }).join("") +
       '</div><canvas id="chart"></canvas>' +
       '<div class="resumo-grafico" id="resumo-grafico"></div></div>' +
@@ -569,7 +576,7 @@
           ["Margem líquida", num(r.margem_liquida, 1, "%")],
           // 60 meses de verdade (12m contra 12m de 5 anos antes), com a janela
           ["Cresc. lucro 5a", num(r.cagr_60m, 1, "%") + (r.cagr_60m_janela
-            ? ' <span class="na">' + esc(r.cagr_60m_janela.replace("-", "–")) + "</span>" : "")]
+            ? ' <span class="na sob">' + esc(r.cagr_60m_janela.replace("-", "–")) + "</span>" : "")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Por ação</h3><dl>' + dl([
           ["LPA 12 meses", num(r.lpa_ttm_calc, 2), "LPA"], ["VPA", num(r.vpa_atual, 2)],
@@ -582,7 +589,7 @@
           ["Patrimônio líquido", num((r.vpa_atual * r.acoes_atual) / 1e6, 0) + " mi"],
           ["Dívida bruta", num((r.divida_bruta_atual || 0) / 1e6, 0) + " mi"],
           ["Dívida líquida", num((r.divida_liquida_atual || 0) / 1e6, 0) + " mi"],
-          ["Dív. líquida/Patrim.", num(r.div_liq_patrimonio)],
+          ["Dív. líquida/PL", num(r.div_liq_patrimonio), "Dív. líquida/Patrim."],
           ["Liquidez corrente", num(r.liquidez_corrente)],
           ["Ações", num(r.acoes_atual, 0)]
         ]) + "</dl></div>" +
