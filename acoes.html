@@ -414,6 +414,11 @@
     return { s: v ? window.AoVivo.comHoje(diaria, v) : diaria, opt: undefined, dia: null };
   }
 
+  // R$ em milhoes; sem dado e "—", nao "0 mi" (ficha vazia dizia "Receita 0 mi")
+  function mi(v) {
+    return v === null || v === undefined || !isFinite(v) ? '<span class="na">—</span>' : num(v / 1e6, 0) + " mi";
+  }
+
   function grafPreco() {
     if (!ATUAL || !$("chart")) return;
     var t = ATUAL.ticker, m = ATUAL.mercado;
@@ -435,8 +440,28 @@
              : '<span>Volume: <b>R$ ' + brl((m.volume || 0) / 1e6, 1) + " mi/dia</b></span>");
   }
 
-  function fatiar(ticker, dias) {
+  // COTACAO NAS ACOES DE HOJE. O historico.json e CRU: a BBAS3 caia de 56,46
+  // para 27,39 no desdobramento 1:2 de 15/04/2024, e 162 papeis tinham degrau
+  // assim no "Max" (auditoria de 26/11/2026). Divide pelo produto dos eventos
+  // com data >= a do ponto -- a regra da carteira, da fiis.html e do
+  // proventosHoje() logo abaixo (o evento usa o "ultimo dia com").
+  var HIST_AJ = {};
+  function histHoje(ticker) {
+    if (HIST_AJ[ticker]) return HIST_AJ[ticker];
     var s = HIST[ticker] || [];
+    var it = LISTA.filter(function (x) { return x.ticker === ticker; })[0];
+    var emp = it && BASE && BASE.empresas[it.cnpj];
+    var ev = emp ? ((emp.eventos_por_ticker || {})[ticker] || emp.eventos_acionarios || []) : [];
+    if (!ev.length) return s;
+    HIST_AJ[ticker] = s.map(function (p) {
+      var f = 1;
+      ev.forEach(function (e) { if (e[0] >= p[0] && e[1]) f *= e[1]; });
+      return f === 1 ? p : [p[0], p[1] / f];
+    });
+    return HIST_AJ[ticker];
+  }
+  function fatiar(ticker, dias) {
+    var s = histHoje(ticker);
     if (!s.length) return [];
     var limite = new Date(s[s.length - 1][0]);
     limite.setDate(limite.getDate() - dias);
@@ -567,7 +592,8 @@
           ["EV/EBIT", num(m.ev_ebit_contabil), "EV/EBIT contábil"],
           ["EV/EBIT recorrente", num(m.ev_ebit), "EV/EBIT"],
           ["EV/EBITDA", num(m.ev_ebitda), "EV/EBITDA"],
-          ["Dividend yield", num(m.dy, 2, "%")]
+          ["Dividend yield", num(m.dy, 2, "%")],
+          ["Payout", num(m.payout, 1, "%")]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Rentabilidade</h3><dl>' + dl([
           ["ROE", num(r.roe, 1, "%")],
@@ -590,17 +616,20 @@
           ["Fluxo de caixa livre", num(r.fcl_acao, 2)]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Balanço</h3><dl>' + dl([
-          ["Patrimônio líquido", num((r.vpa_atual * r.acoes_atual) / 1e6, 0) + " mi"],
-          ["Dívida bruta", num((r.divida_bruta_atual || 0) / 1e6, 0) + " mi"],
-          ["Dívida líquida", num((r.divida_liquida_atual || 0) / 1e6, 0) + " mi"],
-          ["Dív. líquida/PL", num(r.div_liq_patrimonio), "Dív. líquida/Patrim."],
-          ["Liquidez corrente", num(r.liquidez_corrente)],
+          ["Patrimônio líquido", mi(r.vpa_atual * r.acoes_atual)],
+          // banco: a "divida" e a captacao, materia-prima da operacao -- a
+          // lista ja tirava esses tres dos filtros; a ficha mostrava BBAS3
+          // com Div. liq./PL 4,88 e BRSR com liquidez corrente 4.130
+          r.financeira ? null : ["Dívida bruta", mi(r.divida_bruta_atual)],
+          r.financeira ? null : ["Dívida líquida", mi(r.divida_liquida_atual)],
+          r.financeira ? null : ["Dív. líquida/PL", num(r.div_liq_patrimonio), "Dív. líquida/Patrim."],
+          r.financeira ? null : ["Liquidez corrente", num(r.liquidez_corrente)],
           ["Ações", num(r.acoes_atual, 0)]
         ]) + "</dl></div>" +
         '<div class="painel"><h3>Resultado (12 meses)</h3><dl>' + dl([
-          ["Receita", num((r.receita_ttm || 0) / 1e6, 0) + " mi"],
-          ["EBIT", num((r.ebit_ttm || 0) / 1e6, 0) + " mi"],
-          ["Lucro", num((r.lucro_ttm || 0) / 1e6, 0) + " mi"],
+          [r.financeira ? "Receita de intermediação" : "Receita", mi(r.receita_ttm)],
+          ["EBIT", mi(r.ebit_ttm)],
+          ["Lucro", mi(r.lucro_ttm)],
           // A Magic Formula (ranking de Greenblatt) saiu daqui em 18/11/2026: nao e
           // preco justo, e uma lista ordenada de compra -- o que o CLAUDE.md
           // manda nao pôr em tela sem o OK do Ricardo. O dado segue no JSON.
@@ -1209,7 +1238,7 @@
   // Indicador em porcentagem: a diferenca vira "pp" e o valor leva "%".
   var EM_PCT = { "ROE": 1, "ROIC": 1, "Margem bruta": 1, "Margem EBIT": 1,
                  "Margem EBIT contábil": 1, "Margem EBITDA": 1,
-                 "Margem líquida": 1, "Dividend yield": 1 };
+                 "Margem líquida": 1, "Dividend yield": 1, "Payout": 1 };
 
   function botaoHist(chave) {
     return '<button class="hist" data-ind="' + esc(chave) + '" aria-label="Histórico de ' +
@@ -1364,7 +1393,8 @@
       { nome: "Valuation", campos: [
         { k: "p_l", nome: "P/L", unid: "×" }, { k: "p_vp", nome: "P/VP", unid: "×" },
         { k: "psr", nome: "PSR", unid: "×" }, { k: "ev_ebit", nome: "EV/EBIT", unid: "×" },
-        { k: "ev_ebitda", nome: "EV/EBITDA", unid: "×" }, { k: "dy", nome: "Dividend yield", unid: "%" }] },
+        { k: "ev_ebitda", nome: "EV/EBITDA", unid: "×" }, { k: "dy", nome: "Dividend yield", unid: "%" },
+        { k: "payout", nome: "Payout", unid: "%" }] },
       { nome: "Rentabilidade", campos: [
         { k: "roe", nome: "ROE", unid: "%" }, { k: "roic", nome: "ROIC", unid: "%" },
         { k: "margem_liq", nome: "Margem líquida", unid: "%" }, { k: "margem_ebit", nome: "Margem EBIT", unid: "%" },
@@ -1473,7 +1503,7 @@
         var ord = {
           ticker: t, nome: e.nome, setor: e.setor_b3 || e.setor, subsetor: e.subsetor,
           preco: m.preco, p_l: m.p_l, p_vp: m.p_vp, psr: m.psr,
-          ev_ebit: m.ev_ebit_contabil, ev_ebitda: m.ev_ebitda, dy: m.dy,
+          ev_ebit: m.ev_ebit_contabil, ev_ebitda: m.ev_ebitda, dy: m.dy, payout: m.payout,
           roe: r.roe, roic: r.roic, margem_liq: r.margem_liquida, margem_ebit: r.margem_ebit_contabil,
           // divida e liquidez nao dizem nada num banco (a captacao e a materia-prima):
           // somem da coluna e do filtro, como na regra do pipeline
