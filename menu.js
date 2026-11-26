@@ -20,6 +20,7 @@
   var ITENS = [
     ["acoes.html", "Ações"],
     ["fiis.html", "FIIs"],
+    ["opcoes.html", "Opções"],
     ["fundos.html", "Fundos"],
     ["bolsa.html", "Bolsa"],
     ["comparador.html", "Comparador"],

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Opções — Muita Ação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Tema claro das ferramentas (o mesmo da acoes.html e da fiis.html) */
+  :root{
+    --ground:#FAF8F4; --card:#FFFFFF;
+    --ink:#10233B; --ink-2:#4F6179; --ink-3:#8795A6;
+    --gold:#C9A227; --gold-ink:#8A6D12;     /* o dourado nao tem contraste pra texto pequeno no branco */
+    --line:#E8E3D9; --line-forte:#D8D2C4;
+    --verde:#1C7F4D; --vermelho:#B5392B;
+    --font:"Poppins",Arial,Helvetica,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--ground);color:var(--ink);
+       font-family:var(--font);padding:0 16px 70px;font-size:14px;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto}
+  a{color:var(--gold-ink)}
+
+  header.topo{display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:5;padding:14px 0;margin-bottom:22px;
+    background:var(--ground);border-bottom:1px solid var(--line)}
+  .busca{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .voltar{font-size:.82rem;font-weight:700;color:var(--ink-2);text-decoration:none}
+  .voltar:hover{color:var(--gold-ink)}
+  .voltar[hidden],#vista-ativo[hidden],#vista-lista[hidden]{display:none}
+  input[type=search]{min-width:230px;padding:10px 14px;border-radius:9px;font-family:var(--font);
+    font-size:.95rem;background:var(--card);border:1px solid var(--line-forte);color:var(--ink)}
+  input[type=search]::placeholder{color:var(--ink-3)}
+  input[type=search]:focus{outline:2px solid var(--gold);outline-offset:1px}
+  @media (max-width:520px){.busca,input[type=search]{width:100%;min-width:0}}
+
+  h2.sec{font-size:.78rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);
+    margin:28px 0 11px;font-weight:700}
+  h2.sec:first-child{margin-top:0}
+  .sub{color:var(--ink-2);font-size:.82rem;margin:0 0 12px;line-height:1.6}
+  .carregando{padding:50px;text-align:center;color:var(--ink-3)}
+  .na{color:var(--ink-3)}
+
+  /* ---------- chips ---------- */
+  .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chips button{background:var(--card);border:1px solid var(--line-forte);color:var(--ink-2);
+    padding:5px 12px;border-radius:20px;cursor:pointer;font-family:var(--font);font-size:.75rem;font-weight:600}
+  .chips button:hover{border-color:var(--gold);color:var(--ink)}
+  .chips button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .chips button small{font-weight:500;opacity:.75;margin-left:3px}
+
+  /* ---------- tabelas ---------- */
+  .lista{border:1px solid var(--line);border-radius:12px;background:var(--card);
+    overflow-x:auto;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:.84rem}
+  th{text-align:right;padding:11px 10px;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--ink-2);background:var(--card);border-bottom:1px solid var(--line-forte);
+    white-space:nowrap;user-select:none}
+  th[data-col]{cursor:pointer}
+  th[data-col]:hover{color:var(--gold-ink)}
+  td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line);
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  .esq{text-align:left}
+  .tab-ativos{min-width:880px;font-size:.8rem}
+  .tab-ativos td,.tab-ativos th{padding-left:8px;padding-right:8px}
+  .tab-ativos td:first-child{font-weight:700}
+  .tab-ativos td:nth-child(2){color:var(--ink-2);max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  .tab-ativos tbody tr:hover{background:#FFFBEF;cursor:pointer}
+  td a.lk{color:inherit;text-decoration:none}
+  td a.lk:hover{text-decoration:underline}
+  .lista-conta{font-size:.78rem;color:var(--ink-3);margin:10px 2px 0}
+  /* barrinha do IV rank: so a posicao na faixa de 12 meses, sem cor de "bom/ruim" */
+  .rk{display:inline-flex;align-items:center;gap:7px}
+  .rk i{display:inline-block;width:44px;height:6px;border-radius:3px;background:#F0ECE3;position:relative;overflow:hidden}
+  .rk i b{position:absolute;left:0;top:0;bottom:0;background:var(--ink);border-radius:3px}
+
+  /* ---------- ficha do ativo ---------- */
+  .ficha{padding:4px 2px 16px;margin-bottom:20px;border-bottom:1px solid var(--line)}
+  .ficha .linha1{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .papel{font-size:2rem;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .empresa{font-size:1rem;color:var(--ink-2)}
+  .cotacao{margin-left:auto;text-align:right}
+  .cotacao .v{font-size:2rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+  .cotacao .d{font-size:.78rem;color:var(--ink-3);display:block}
+  .ficha .links{margin-top:8px;font-size:.8rem}
+
+  .cartoes{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .cartao{border:1px solid var(--line);border-radius:12px;padding:13px 15px;background:var(--card)}
+  .cartao .n{font-size:.68rem;text-transform:uppercase;letter-spacing:.07em;color:var(--gold-ink);font-weight:700}
+  .cartao .v{font-size:1.35rem;font-weight:800;margin-top:5px;font-variant-numeric:tabular-nums}
+  .cartao .o{font-size:.7rem;color:var(--ink-3);margin-top:4px;line-height:1.45}
+
+  .grafico{border:1px solid var(--line);border-radius:14px;padding:16px 18px 10px;background:var(--card);margin-bottom:8px}
+  .grafico h3{margin:0 0 2px;font-size:.84rem;font-weight:700}
+  .grafico .o{font-size:.72rem;color:var(--ink-3);margin-bottom:8px}
+  canvas{width:100%;height:240px;display:block;touch-action:pan-y}
+
+  .tab-termo{min-width:0}
+  .tab-termo td,.tab-termo th{padding:7px 10px}
+  .tab-termo tbody tr{cursor:pointer}
+  .tab-termo tbody tr:hover td{background:#FFFBEF}
+  .tab-termo tr.marca td{background:#FFF6DA;font-weight:700}
+  .tab-termo td.esq b{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;
+    border:1.5px solid var(--line-forte);vertical-align:middle}
+  .tab-termo tr.marca td.esq b{background:var(--gold);border-color:var(--gold)}
+  .mais{display:block;margin:8px auto 0;font:inherit;font-size:.76rem;border:0;background:none;
+    color:var(--ink-2);text-decoration:underline;cursor:pointer}
+
+  .controles{display:flex;gap:10px 18px;flex-wrap:wrap;align-items:center;margin-top:4px}
+  .tab-grade{min-width:900px}
+  .tab-grade td:first-child{font-weight:700}
+  .tab-grade tr.itm td{background:#FBF8F1}
+  .tab-grade tr.objeto td{background:var(--ink);color:#fff;font-weight:700;font-size:.74rem;
+    text-align:center;padding:5px 10px;letter-spacing:.03em}
+  .tag{display:inline-block;font-size:.62rem;font-weight:700;padding:1px 6px;border-radius:10px;
+    border:1px solid var(--line-forte);color:var(--ink-2);letter-spacing:.03em}
+  .tag.c{border-color:rgba(28,127,77,.35);color:var(--verde)}
+  .tag.p{border-color:rgba(181,57,43,.35);color:var(--vermelho)}
+
+  .rodape{margin-top:26px;padding:16px 18px;border-radius:11px;background:var(--card);
+    border:1px solid var(--line);font-size:.76rem;line-height:1.7;color:var(--ink-2)}
+  .rodape b{color:var(--ink)}
+  .rodape p{margin:0 0 8px}
+  .rodape p:last-child{margin:0}
+
+  .dica{position:fixed;z-index:40;pointer-events:none;background:rgba(16,35,59,.94);color:#fff;
+    font-size:.72rem;padding:6px 10px;border-radius:7px;white-space:nowrap;display:none;
+    box-shadow:0 2px 8px rgba(16,35,59,.25)}
+  .dica b{display:block;font-size:.9rem;font-weight:700;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<script src="menu.js"></script>
+<script src="filtros.js"></script>
+<div class="wrap">
+
+  <header class="topo">
+    <a class="voltar" id="voltar" href="opcoes.html" hidden>&larr; Todos os ativos com opções</a>
+    <div class="busca">
+      <input type="search" id="busca" placeholder="Ticker ou empresa…" list="tickers" autocomplete="off" spellcheck="false">
+      <datalist id="tickers"></datalist>
+    </div>
+  </header>
+
+  <section id="vista-lista">
+    <h2 class="sec">Opções</h2>
+    <p class="sub" id="sub-lista">Carregando…</p>
+    <div class="chips" id="tipos"></div>
+    <div id="filtros-num"></div>
+    <p class="lista-conta" id="lista-conta"></p>
+    <div class="lista">
+      <table class="tab-ativos">
+        <thead><tr id="cabeca"></tr></thead>
+        <tbody id="corpo"><tr><td colspan="11" class="carregando">…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="vista-ativo" hidden></section>
+
+  <div class="rodape" id="rodape"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = null, GRADE = null, pedidoGrade = null, LISTA = [], FILTROS = null;
+  var TIPO = "todos", ATUAL = null, VENC = null, LADO = "ambas", FAIXA = "perto", TODOS_VENC = false;
+  var ordem = { col: "volume_med21", asc: false };
+  var $ = function (id) { return document.getElementById(id); };
+  var TIPOS = [["todos", "Todos"], ["acao", "Ações"], ["etf", "ETFs"], ["bdr", "BDRs"]];
+  var COLUNAS = [
+    ["ticker", "Ativo", "esq"], ["nome", "Nome", "esq"], ["preco", "Preço"], ["iv", "IV 1m"],
+    ["iv_rank", "IV rank"], ["iv_percentil", "IV percentil"], ["hv21", "Vol. hist. 21d"],
+    ["volume", "Volume (dia)"], ["negocios", "Negócios (dia)"], ["volume_med21", "Volume méd. 21d"],
+    ["pct_calls", "% calls"]
+  ];
+
+  // ---------- formatacao ----------
+  function brl(v, casas) {
+    if (v === null || v === undefined || !isFinite(v)) return null;
+    return v.toLocaleString("pt-BR", { minimumFractionDigits: casas === undefined ? 2 : casas,
+                                       maximumFractionDigits: casas === undefined ? 2 : casas });
+  }
+  function num(v, casas, suf) { var s = brl(v, casas); return s === null ? '<span class="na">—</span>' : s + (suf || ""); }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/[&<>"']/g, function (m) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m];
+    });
+  }
+  function dataBR(iso) { var p = String(iso || "").split("-"); return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : "—"; }
+  function dataCurta(iso) { var p = String(iso).split("-"); return p[2] + "/" + p[1] + "/" + p[0].slice(2); }
+  function grande(v) {
+    if (v === null || v === undefined || !isFinite(v)) return '<span class="na">—</span>';
+    if (Math.abs(v) >= 1e9) return "R$ " + brl(v / 1e9, 2) + " bi";
+    if (Math.abs(v) >= 1e6) return "R$ " + brl(v / 1e6, 1) + " mi";
+    if (Math.abs(v) >= 1e3) return "R$ " + brl(v / 1e3, 0) + " mil";
+    return "R$ " + brl(v, 0);
+  }
+  function inteiro(v) { return v === null || v === undefined ? '<span class="na">—</span>' : brl(v, 0); }
+  function rank(v) {
+    if (v === null || v === undefined) return '<span class="na">—</span>';
+    return '<span class="rk"><i><b style="width:' + Math.max(2, Math.min(100, v)) + '%"></b></i>' + brl(v, 0) + "</span>";
+  }
+
+  // ---------- lista ----------
+  function montarLista() {
+    LISTA = Object.keys(BASE.ativos).map(function (t) {
+      var a = BASE.ativos[t];
+      var o = {
+        ticker: t, nome: a.nome || "", preco: a.preco, iv: a.iv, iv_rank: a.iv_rank,
+        iv_percentil: a.iv_percentil, hv21: a.hv21, volume: a.volume, negocios: a.negocios,
+        volume_med21: a.volume_med21, negocios_med21: a.negocios_med21,
+        pct_calls: a.volume ? a.volume_calls / a.volume * 100 : null,
+        iv_hv: a.iv && a.hv21 ? a.iv / a.hv21 : null
+      };
+      return { t: t, a: a, ord: o };
+    });
+    $("tickers").innerHTML = LISTA.map(function (x) {
+      return '<option value="' + x.t + '">' + esc(x.a.nome || "") + "</option>";
+    }).join("");
+  }
+  function criarFiltros() {
+    var q = new URLSearchParams(location.search);
+    if (q.get("tipo") && TIPOS.some(function (x) { return x[0] === q.get("tipo"); })) TIPO = q.get("tipo");
+    FILTROS = Filtros({
+      el: $("filtros-num"),
+      grupos: [
+        { nome: "Volatilidade", nota: "IV 1m: vol implícita no dinheiro, interpolada para 21 pregões.", campos: [
+          { k: "iv", nome: "IV 1m", unid: "%" }, { k: "iv_rank", nome: "IV rank", unid: "" },
+          { k: "iv_percentil", nome: "IV percentil", unid: "" }, { k: "hv21", nome: "Vol. histórica 21d", unid: "%" },
+          { k: "iv_hv", nome: "IV ÷ vol. histórica", unid: "×" }] },
+        { nome: "Liquidez das opções", campos: [
+          { k: "volume_med21", nome: "Volume médio 21d", unid: "mi", mult: 1e6 },
+          { k: "negocios_med21", nome: "Negócios médios 21d", unid: "" },
+          { k: "volume", nome: "Volume no pregão", unid: "mi", mult: 1e6 },
+          { k: "negocios", nome: "Negócios no pregão", unid: "" }] }
+      ],
+      aoMudar: function () { render(); try { history.replaceState({}, "", urlLista()); } catch (e) {} }
+    });
+  }
+  function urlLista() {
+    var q = new URLSearchParams(FILTROS ? FILTROS.consulta() : "");
+    if (TIPO !== "todos") q.set("tipo", TIPO);
+    var s = q.toString();
+    return location.pathname + (s ? "?" + s : "");
+  }
+  function chipsTipo() {
+    var cont = {};
+    LISTA.forEach(function (x) { cont[x.a.tipo || "outro"] = (cont[x.a.tipo || "outro"] || 0) + 1; });
+    $("tipos").innerHTML = TIPOS.filter(function (t) { return t[0] === "todos" || cont[t[0]]; }).map(function (t) {
+      var n = t[0] === "todos" ? LISTA.length : cont[t[0]];
+      return '<button data-tipo="' + t[0] + '" aria-pressed="' + (TIPO === t[0]) + '">' + t[1] + "<small>" + n + "</small></button>";
+    }).join("");
+  }
+  function render() {
+    if (!FILTROS) return;
+    var q = $("busca").value.trim().toUpperCase();
+    var linhas = LISTA.filter(function (x) {
+      if (TIPO !== "todos" && x.a.tipo !== TIPO) return false;
+      if (!FILTROS.passa(x.ord)) return false;
+      return !q || (x.t + " " + (x.a.nome || "")).toUpperCase().indexOf(q) >= 0;
+    });
+    var c = ordem.col, s = ordem.asc ? 1 : -1;
+    linhas.sort(function (a, b) {
+      var va = c === "ticker" ? a.t : a.ord[c], vb = c === "ticker" ? b.t : b.ord[c];
+      if (va === null || va === undefined || va === "") return 1;
+      if (vb === null || vb === undefined || vb === "") return -1;
+      return (typeof va === "string" ? va.localeCompare(vb) : va - vb) * s;
+    });
+    $("cabeca").innerHTML = COLUNAS.map(function (k) {
+      var on = ordem.col === k[0];
+      return '<th data-col="' + k[0] + '"' + (k[2] ? ' class="' + k[2] + '"' : "") +
+        (on ? ' aria-sort="' + (ordem.asc ? "ascending" : "descending") + '"' : "") + ">" + k[1] +
+        (on ? (ordem.asc ? " ↑" : " ↓") : "") + "</th>";
+    }).join("");
+    $("lista-conta").textContent = linhas.length === LISTA.length
+      ? LISTA.length + " ativos com opção negociada no pregão · clique no título de uma coluna para ordenar"
+      : linhas.length + " de " + LISTA.length + " ativos passam no filtro";
+    $("corpo").innerHTML = linhas.map(function (x) {
+      var o = x.ord;
+      return '<tr data-t="' + x.t + '"><td class="esq"><a class="lk" href="?t=' + encodeURIComponent(x.t) + '">' + x.t +
+        '</a></td><td class="esq">' + esc(o.nome || "—") + "</td><td>" + num(o.preco) + "</td><td>" + num(o.iv, 1, "%") +
+        "</td><td>" + rank(o.iv_rank) + "</td><td>" + rank(o.iv_percentil) + "</td><td>" + num(o.hv21, 1, "%") +
+        "</td><td>" + grande(o.volume) + "</td><td>" + inteiro(o.negocios) + "</td><td>" + grande(o.volume_med21) +
+        "</td><td>" + num(o.pct_calls, 0, "%") + "</td></tr>";
+    }).join("") || '<tr><td colspan="11" class="carregando">Nenhum ativo passa nesses filtros.</td></tr>';
+  }
+  function mostrarLista(empurrar) {
+    ATUAL = null;
+    $("vista-ativo").hidden = true; $("vista-lista").hidden = false; $("voltar").hidden = true;
+    document.title = "Opções — Muita Ação";
+    if (empurrar) { try { history.pushState({}, "", urlLista()); } catch (e) {} }
+    chipsTipo();
+    render();
+  }
+
+  // ---------- ficha do ativo ----------
+  function carregarGrade() {
+    if (!pedidoGrade) pedidoGrade = fetch("opcoes-grade.json").then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; }).then(function (g) { GRADE = g; return g; });
+    return pedidoGrade;
+  }
+  function urlAtivo() {
+    var q = new URLSearchParams();
+    q.set("t", ATUAL);
+    if (VENC) q.set("v", VENC);
+    if (LADO !== "ambas") q.set("lado", LADO);
+    if (FAIXA !== "perto") q.set("faixa", FAIXA);
+    return location.pathname + "?" + q.toString();
+  }
+  function abrir(t, empurrar) {
+    t = String(t || "").toUpperCase();
+    if (!BASE.ativos[t]) return false;
+    var mudou = ATUAL !== t;
+    ATUAL = t;
+    if (mudou) { VENC = null; LADO = "ambas"; FAIXA = "perto"; TODOS_VENC = false; }
+    var q = new URLSearchParams(location.search);
+    if (!empurrar && q.get("t") === t) {
+      VENC = q.get("v") || VENC; LADO = q.get("lado") || LADO; FAIXA = q.get("faixa") || FAIXA;
+    }
+    $("vista-lista").hidden = true; $("vista-ativo").hidden = false; $("voltar").hidden = false;
+    document.title = t + " · Opções — Muita Ação";
+    desenharAtivo();
+    if (empurrar) { try { history.pushState({ t: t }, "", urlAtivo()); } catch (e) {} }
+    window.scrollTo(0, 0);
+    carregarGrade().then(function () { if (ATUAL === t) desenharGrade(); });
+    return true;
+  }
+  function desenharAtivo() {
+    var t = ATUAL, a = BASE.ativos[t];
+    var link = a.tipo === "acao" ? '<a href="acoes.html?t=' + t + '">Ficha da ação &rarr;</a>'
+             : a.tipo === "fii" ? '<a href="fiis.html?t=' + t + '">Ficha do FII &rarr;</a>' : "";
+    var ivhv = a.iv && a.hv21 ? a.iv / a.hv21 : null;
+    $("vista-ativo").innerHTML =
+      '<div class="ficha"><div class="linha1"><span class="papel">' + t + '</span><span class="empresa">' +
+        esc(a.nome || "") + '</span><div class="cotacao"><span class="v">R$ ' + brl(a.preco) +
+        '</span><span class="d">fechamento de ' + dataBR(BASE.data) + "</span></div></div>" +
+        (link ? '<div class="links">' + link + "</div>" : "") + "</div>" +
+      '<div class="cartoes">' +
+        cartao("IV 1m", num(a.iv, 1, "%"), "vol implícita no dinheiro, 21 pregões") +
+        cartao("IV rank", a.iv_rank === null ? '<span class="na">—</span>' : brl(a.iv_rank, 0),
+               a.iv_min !== null ? "faixa de 12 meses: " + brl(a.iv_min, 1) + "% a " + brl(a.iv_max, 1) + "%" : "menos de 120 pregões com IV") +
+        cartao("IV percentil", a.iv_percentil === null ? '<span class="na">—</span>' : brl(a.iv_percentil, 0),
+               "% dos pregões do ano com IV abaixo da de hoje") +
+        cartao("Vol. histórica 21d", num(a.hv21, 1, "%"), ivhv ? "IV ÷ histórica: " + brl(ivhv, 2) + "×" : "do fechamento do ativo") +
+        cartao("Volume (dia)", grande(a.volume), "média de 21 pregões: " + grande(a.volume_med21).replace(/<[^>]+>/g, "")) +
+        cartao("Negócios (dia)", inteiro(a.negocios), (a.volume ? brl(a.volume_calls / a.volume * 100, 0) + "% do volume em calls" : "")) +
+      "</div>" +
+      '<div class="grafico"><h3>IV 1m nos últimos 12 meses</h3><div class="o" id="g-iv-o">Carregando…</div>' +
+        '<canvas id="g-iv"></canvas></div>' +
+      '<h2 class="sec">Séries negociadas no pregão</h2>' +
+      '<div id="grade"><div class="carregando">Carregando as séries…</div></div>';
+  }
+  function cartao(n, v, o) {
+    return '<div class="cartao"><div class="n">' + n + '</div><div class="v">' + v + '</div><div class="o">' + (o || "") + "</div></div>";
+  }
+  function desenharGrade() {
+    var t = ATUAL, g = GRADE && GRADE.ativos && GRADE.ativos[t];
+    if (!GRADE) { $("grade").innerHTML = '<div class="carregando">Não consegui carregar as séries.</div>'; $("g-iv-o").textContent = ""; return; }
+    if (!g) { $("grade").innerHTML = '<div class="carregando">Sem séries para este ativo.</div>'; return; }
+    // grafico da IV 1m
+    var serie = [];
+    (g.historico_iv || []).forEach(function (v, i) { if (v !== null) serie.push([GRADE.datas[i], v]); });
+    var a = BASE.ativos[t];
+    $("g-iv-o").textContent = serie.length
+      ? serie.length + " pregões com IV · tracejado: vol. histórica de 21 dias hoje (" + brl(a.hv21, 1) + "%)"
+      : "Sem IV suficiente para o gráfico.";
+    if (!a.hv21) $("g-iv-o").textContent = serie.length ? serie.length + " pregões com IV" : "Sem IV suficiente para o gráfico.";
+    desenhar($("g-iv"), serie, "#10233B", { casas: 1, suf: "%", ref: a.hv21, refNome: "hist. 21d" });
+
+    // vencimentos: total de negocios por vencimento, para escolher o padrao
+    var porVenc = {};
+    g.series.forEach(function (s) {
+      var v = porVenc[s[3]] || (porVenc[s[3]] = { venc: s[3], du: s[4], neg: 0, n: 0 });
+      v.neg += s[6]; v.n++;
+    });
+    var vencs = Object.keys(porVenc).sort().map(function (k) { return porVenc[k]; });
+    if (!VENC || !porVenc[VENC]) {
+      // o mais negociado com pelo menos 3 pregoes ate vencer (o do dia e o de amanha distorcem)
+      var cand = vencs.filter(function (v) { return v.du >= 3; });
+      VENC = (cand.length ? cand : vencs).reduce(function (m, v) { return v.neg > m.neg ? v : m; }).venc;
+    }
+    var atm = {};
+    (g.atm || []).forEach(function (x) { atm[x[0]] = x; });
+
+    // vencimento pouco negociado (semanal com 1 ou 2 negocios) fica escondido
+    // ate pedir: na PETR4 sao ~30 vencimentos
+    var maxNeg = Math.max.apply(null, vencs.map(function (v) { return v.neg; }));
+    var mostrar = vencs.filter(function (v) { return TODOS_VENC || v.venc === VENC || v.neg >= Math.max(5, maxNeg * 0.02); });
+    var escondidos = vencs.length - mostrar.length;
+    var termo = '<div class="lista" style="margin-top:0"><table class="tab-termo"><thead><tr><th class="esq">Vencimento</th>' +
+      '<th>Pregões</th><th>IV no dinheiro</th><th>Séries</th><th>Negócios</th></tr></thead><tbody>' +
+      mostrar.map(function (v) {
+        var x = atm[v.venc];
+        return '<tr data-v="' + v.venc + '"' + (v.venc === VENC ? ' class="marca"' : "") + '><td class="esq"><b></b>' +
+          dataBR(v.venc) + "</td><td>" + v.du + "</td><td>" + (x ? brl(x[2], 1) + "%" : '<span class="na">—</span>') +
+          "</td><td>" + v.n + "</td><td>" + inteiro(v.neg) + "</td></tr>";
+      }).join("") + "</tbody></table></div>" +
+      (escondidos ? '<button class="mais" id="todos-venc">Mostrar mais ' + escondidos + " vencimentos com poucos negócios</button>"
+                  : TODOS_VENC ? '<button class="mais" id="todos-venc">Esconder os pouco negociados</button>' : "");
+
+    var S = g.preco;
+    var noVenc = g.series.filter(function (s) { return s[3] === VENC; });
+    var linhas = noVenc.filter(function (s) {
+      return (LADO === "ambas" || s[1] === LADO) && (FAIXA === "todas" || Math.abs(s[2] / S - 1) <= 0.15);
+    });
+    var fora = noVenc.filter(function (s) { return (LADO === "ambas" || s[1] === LADO); }).length - linhas.length;
+    linhas.sort(function (x, y) { return x[2] - y[2] || (x[1] < y[1] ? -1 : 1); });
+    var corpo = "", marcou = false;
+    linhas.forEach(function (s) {
+      if (!marcou && s[2] >= S) {
+        corpo += '<tr class="objeto"><td colspan="13">' + t + " a R$ " + brl(S) + "</td></tr>";
+        marcou = true;
+      }
+      var call = s[1] === "C", itm = call ? s[2] < S : s[2] > S;
+      corpo += '<tr' + (itm ? ' class="itm"' : "") + '><td class="esq">' + esc(s[0]) + '</td><td class="esq"><span class="tag ' +
+        (call ? "c" : "p") + '">' + (call ? "CALL" : "PUT") + "</span></td><td>" + brl(s[2]) + '</td><td class="esq">' +
+        (Math.abs(s[2] / S - 1) <= 0.01 ? "ATM" : itm ? "ITM" : "OTM") + "</td><td>" + brl(s[5]) + "</td><td>" +
+        brl(s[8], 2) + "%</td><td>" + inteiro(s[6]) + "</td><td>" + grande(s[7]) + "</td><td>" + num(s[9], 1, "%") +
+        "</td><td>" + num(s[10], 2) + "</td><td>" + num(s[11], 3) + "</td><td>" + num(s[12], 3) + "</td><td>" +
+        num(s[13], 3) + "</td></tr>";
+    });
+    if (!marcou && linhas.length) corpo += '<tr class="objeto"><td colspan="13">' + t + " a R$ " + brl(S) + "</td></tr>";
+
+    $("grade").innerHTML =
+      '<p class="sub">Clique num vencimento para ver as séries dele.</p>' + termo +
+      '<h2 class="sec">Vencimento de ' + dataBR(VENC) + " · " + porVenc[VENC].du + " pregões</h2>" +
+      '<div class="controles"><div class="chips" id="ch-lado">' + [["ambas", "Calls e puts"], ["C", "Calls"], ["P", "Puts"]].map(function (l) {
+          return '<button data-lado="' + l[0] + '" aria-pressed="' + (LADO === l[0]) + '">' + l[1] + "</button>";
+        }).join("") + '</div><div class="chips" id="ch-faixa">' +
+        [["perto", "Strike a até 15% do preço"], ["todas", "Todos os strikes"]].map(function (l) {
+          return '<button data-faixa="' + l[0] + '" aria-pressed="' + (FAIXA === l[0]) + '">' + l[1] + "</button>";
+        }).join("") + "</div></div>" +
+      '<div class="lista"><table class="tab-grade"><thead><tr><th class="esq">Código</th><th class="esq">Tipo</th>' +
+        '<th>Strike</th><th class="esq"></th><th>Último</th><th title="prêmio ÷ preço do ativo">% do prêmio</th>' +
+        "<th>Negócios</th><th>Volume</th><th>IV</th><th>Delta</th><th>Gama</th>" +
+        '<th title="R$ por dia útil">Theta</th><th title="R$ por 1 ponto de vol">Vega</th></tr></thead><tbody>' +
+        (corpo || '<tr><td colspan="13" class="carregando">Nenhuma série neste filtro.</td></tr>') + "</tbody></table></div>" +
+      '<p class="lista-conta">Só as séries com negócio no pregão' +
+        (fora ? " · " + fora + " com strike a mais de 15% do preço fora (botão “Todos os strikes”)" : "") +
+        ". Fundo bege: dentro do dinheiro. Sem IV quando o último negócio ficou abaixo do valor intrínseco " +
+        "(negócio velho ou fora de preço).</p>";
+  }
+
+  // ---------- grafico de linha (o mesmo das fichas, com mira) ----------
+  var DICA = null, MIRA = null;
+  function desenhar(canvas, serie, cor, opt) {
+    opt = opt || {};
+    var dpr = window.devicePixelRatio || 1;
+    var L = canvas.clientWidth, A = canvas.clientHeight;
+    canvas.width = L * dpr; canvas.height = A * dpr;
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, L, A);
+    canvas._serie = serie; canvas._cor = cor; canvas._opt = opt;
+    if (!serie || serie.length < 2) {
+      ctx.fillStyle = "rgba(16,35,59,.42)"; ctx.font = "13px Poppins, Arial";
+      ctx.fillText("Sem histórico de IV para este ativo.", 12, A / 2);
+      canvas._linha = null;
+      return;
+    }
+    var mg = { e: 46, d: 10, t: 14, b: 22 };
+    var vs = serie.map(function (p) { return p[1]; });
+    var min = Math.min.apply(null, vs), max = Math.max.apply(null, vs);
+    if (opt.ref) { min = Math.min(min, opt.ref); max = Math.max(max, opt.ref); }
+    if (max === min) { max += 1; min -= 1; }
+    var folga = (max - min) * 0.08; min = Math.max(0, min - folga); max += folga;
+    var px = function (i) { return mg.e + (L - mg.e - mg.d) * (i / (serie.length - 1)); };
+    var py = function (v) { return mg.t + (A - mg.t - mg.b) * (1 - (v - min) / (max - min)); };
+    ctx.strokeStyle = "rgba(16,35,59,.10)"; ctx.fillStyle = "rgba(16,35,59,.48)";
+    ctx.font = "10px Poppins, Arial"; ctx.lineWidth = 1;
+    for (var k = 0; k <= 4; k++) {
+      var v = min + (max - min) * k / 4, y = Math.round(py(v)) + .5;
+      ctx.beginPath(); ctx.moveTo(mg.e, y); ctx.lineTo(L - mg.d, y); ctx.stroke();
+      ctx.textAlign = "right"; ctx.fillText(brl(v, 0) + (opt.suf || ""), mg.e - 7, y + 3);
+    }
+    ctx.textAlign = "left"; ctx.fillText(dataBR(serie[0][0]), mg.e, A - 6);
+    ctx.textAlign = "right"; ctx.fillText(dataBR(serie[serie.length - 1][0]), L - mg.d, A - 6);
+    var grad = ctx.createLinearGradient(0, mg.t, 0, A - mg.b);
+    grad.addColorStop(0, cor + "2E"); grad.addColorStop(1, cor + "00");
+    ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
+    serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
+    ctx.lineTo(px(serie.length - 1), A - mg.b); ctx.lineTo(px(0), A - mg.b); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(px(0), py(serie[0][1]));
+    serie.forEach(function (p, i) { ctx.lineTo(px(i), py(p[1])); });
+    ctx.strokeStyle = cor; ctx.lineWidth = 1.8; ctx.lineJoin = "round"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px(serie.length - 1), py(serie[serie.length - 1][1]), 3.5, 0, 7);
+    ctx.fillStyle = cor; ctx.fill();
+    if (opt.ref) {
+      var yr = Math.round(py(opt.ref)) + .5;
+      ctx.save(); ctx.setLineDash([5, 4]); ctx.strokeStyle = "rgba(138,109,18,.75)"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(mg.e, yr); ctx.lineTo(L - mg.d, yr); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = "#8A6D12"; ctx.font = "600 10px Poppins, Arial"; ctx.textAlign = "left";
+      ctx.fillText((opt.refNome || "") + " " + brl(opt.ref, 1) + (opt.suf || ""), mg.e + 6, yr - 5);
+    }
+    canvas._linha = { serie: serie, L: L, A: A, e: mg.e, d: mg.d, t: mg.t, b: mg.b, py: py, px: px, cor: cor, dpr: dpr,
+                      suf: opt.suf || "", foto: ctx.getImageData(0, 0, canvas.width, canvas.height) };
+  }
+  function tirarMira() {
+    if (MIRA && MIRA._linha) {
+      var cx = MIRA.getContext("2d");
+      cx.setTransform(1, 0, 0, 1, 0, 0);
+      cx.putImageData(MIRA._linha.foto, 0, 0);
+    }
+    MIRA = null;
+    if (DICA) DICA.style.display = "none";
+  }
+  function mira(c, clientX) {
+    var g = c._linha, r = c.getBoundingClientRect(), n = g.serie.length;
+    var mx = (clientX - r.left) * g.L / r.width;
+    var i = Math.max(0, Math.min(n - 1, Math.round((mx - g.e) / (g.L - g.e - g.d) * (n - 1))));
+    if (MIRA && MIRA !== c) tirarMira();
+    var ctx = c.getContext("2d");
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.putImageData(g.foto, 0, 0);
+    ctx.setTransform(g.dpr, 0, 0, g.dpr, 0, 0);
+    MIRA = c;
+    var x = g.px(i), y = g.py(g.serie[i][1]);
+    ctx.save(); ctx.strokeStyle = "rgba(16,35,59,.38)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + .5, g.t); ctx.lineTo(Math.round(x) + .5, g.A - g.b); ctx.stroke();
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7);
+    ctx.fillStyle = "#fff"; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = g.cor; ctx.stroke();
+    if (!DICA) { DICA = document.createElement("div"); DICA.className = "dica"; document.body.appendChild(DICA); }
+    DICA.innerHTML = "<b>" + brl(g.serie[i][1], 1) + g.suf + "</b>" + dataCurta(g.serie[i][0]);
+    DICA.style.display = "block";
+    var sx = r.left + x * r.width / g.L, sy = r.top + y * r.height / g.A;
+    var lx = sx + 12, ly = sy - DICA.offsetHeight - 12;
+    if (lx + DICA.offsetWidth > window.innerWidth - 8) lx = sx - DICA.offsetWidth - 12;
+    if (ly < 4) ly = sy + 14;
+    DICA.style.left = Math.max(4, lx) + "px"; DICA.style.top = ly + "px";
+  }
+  document.addEventListener("mousemove", function (ev) {
+    var c = ev.target;
+    if (c && c.tagName === "CANVAS" && c._linha) mira(c, ev.clientX); else if (MIRA) tirarMira();
+  });
+  ["touchstart", "touchmove"].forEach(function (tipo) {
+    document.addEventListener(tipo, function (ev) {
+      var c = ev.target;
+      if (c && c.tagName === "CANVAS" && c._linha && ev.touches.length === 1) mira(c, ev.touches[0].clientX);
+    }, { passive: true });
+  });
+  window.addEventListener("scroll", function () { if (MIRA) tirarMira(); }, { passive: true });
+  var redim = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(redim);
+    redim = setTimeout(function () {
+      var c = $("g-iv");
+      if (c && !$("vista-ativo").hidden && c._serie) desenhar(c, c._serie, c._cor, c._opt);
+    }, 150);
+  });
+
+  // ---------- eventos ----------
+  document.addEventListener("click", function (ev) {
+    var th = ev.target.closest("th[data-col]");
+    if (th) {
+      var col = th.dataset.col;
+      ordem = ordem.col === col ? { col: col, asc: !ordem.asc }
+            : { col: col, asc: col === "ticker" || col === "nome" };
+      render(); return;
+    }
+    var tp = ev.target.closest("#tipos button");
+    if (tp) { TIPO = tp.dataset.tipo; chipsTipo(); render(); try { history.replaceState({}, "", urlLista()); } catch (e) {} return; }
+    var bv = ev.target.closest(".tab-termo tbody tr[data-v]");
+    if (bv) { VENC = bv.dataset.v; desenharGrade(); try { history.replaceState({ t: ATUAL }, "", urlAtivo()); } catch (e) {} return; }
+    if (ev.target.closest("#todos-venc")) { TODOS_VENC = !TODOS_VENC; desenharGrade(); return; }
+    var bf = ev.target.closest("#ch-faixa button");
+    if (bf) { FAIXA = bf.dataset.faixa; desenharGrade(); try { history.replaceState({ t: ATUAL }, "", urlAtivo()); } catch (e) {} return; }
+    var bl = ev.target.closest("#ch-lado button");
+    if (bl) { LADO = bl.dataset.lado; desenharGrade(); try { history.replaceState({ t: ATUAL }, "", urlAtivo()); } catch (e) {} return; }
+    var tr = ev.target.closest(".tab-ativos tbody tr[data-t]");
+    if (tr && !ev.metaKey && !ev.ctrlKey) { ev.preventDefault(); abrir(tr.dataset.t, true); return; }
+    if (ev.target.closest("#voltar") && !ev.metaKey && !ev.ctrlKey) { ev.preventDefault(); mostrarLista(true); }
+  });
+  $("busca").addEventListener("input", function () {
+    var v = this.value.trim().toUpperCase();
+    if (BASE && BASE.ativos[v] && v.length >= 5) { this.value = ""; abrir(v, true); return; }
+    if (!$("vista-lista").hidden) render();
+  });
+  $("busca").addEventListener("keydown", function (ev) {
+    if (ev.key !== "Enter") return;
+    var v = this.value.trim().toUpperCase();
+    if (BASE && BASE.ativos[v]) { this.value = ""; abrir(v, true); }
+    else if ($("vista-lista").hidden) { mostrarLista(true); }
+  });
+  window.addEventListener("popstate", rota);
+  function rota() {
+    var t = new URLSearchParams(location.search).get("t");
+    if (t && abrir(t, false)) return;
+    if (FILTROS) FILTROS.lerUrl();
+    var tp = new URLSearchParams(location.search).get("tipo");
+    TIPO = tp && TIPOS.some(function (x) { return x[0] === tp; }) ? tp : "todos";
+    mostrarLista(false);
+  }
+
+  // ---------- inicio ----------
+  fetch("opcoes.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (b) {
+    BASE = b;
+    montarLista();
+    criarFiltros();
+    $("sub-lista").innerHTML = "Ações, ETFs e BDRs com opção negociada no pregão de <b>" + dataBR(b.data) +
+      "</b>. Volatilidade implícita calculada por nós a partir dos negócios do dia na B3. " +
+      "Clique num ativo para ver as séries, as gregas e o histórico da IV.";
+    $("rodape").innerHTML =
+      "<p><b>De onde vem.</b> Arquivo de cotações da B3 (COTAHIST) do pregão de " + dataBR(b.data) +
+      ": toda opção que teve negócio, com o último preço, os negócios e o volume do dia. Atualiza toda noite, depois do fechamento. " +
+      "Não é a tela do pregão: o prêmio é o do <b>último negócio</b> de cada série, que pode ter acontecido horas antes do fechamento do ativo.</p>" +
+      "<p><b>Vol implícita (IV).</b> Black-Scholes, prazo em dias úteis ÷ 252, juro = CDI (" + brl(b.juro, 2) + "% a.a.), sem dividendo " +
+      "(a B3 ajusta o strike pelos proventos). <b>IV 1m</b>: a IV das séries perto do dinheiro, interpolada para " + b.prazo_iv +
+      " pregões entre os dois vencimentos mais próximos, para o número não saltar na troca de vencimento.</p>" +
+      "<p><b>IV rank</b> = onde a IV de hoje está entre a mínima (0) e a máxima (100) dos últimos " + b.janela +
+      " pregões. <b>IV percentil</b> = % dos pregões do período com IV abaixo da de hoje. Dias isolados com IV muito fora da vizinhança " +
+      "(negócio velho no dinheiro) ficam fora da faixa. <b>Vol. histórica 21d</b>: desvio-padrão anualizado dos retornos diários do ativo.</p>" +
+      "<p><b>Gregas</b> por série: delta, gama, theta (R$ por dia útil, por opção) e vega (R$ por 1 ponto de vol). " +
+      "<b>% do prêmio</b> = prêmio ÷ preço do ativo.</p>" +
+      "<p>Ferramenta de consulta de dados de mercado; não é recomendação de compra ou venda de nenhum ativo ou opção.</p>";
+    rota();
+  }).catch(function () {
+    $("sub-lista").textContent = "Não consegui carregar os dados de opções.";
+  });
+})();
+</script>
+</body>
+</html>
